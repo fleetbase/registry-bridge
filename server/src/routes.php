@@ -22,20 +22,20 @@ Route::prefix(config('internals.api.routing.prefix', '~registry'))->middleware([
          */
         $router->group(['prefix' => config('internals.api.routing.internal_prefix', 'v1'), 'namespace' => 'Internal\v1'], function ($router) {
             $router->group(['prefix' => 'auth'], function ($router) {
-                $router->group(['middleware' => ['fleetbase.protected', 'throttle:60,1']], function ($router) {
+                $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
                     $router->get('registry-tokens', 'RegistryAuthController@getRegistryTokens');
                     $router->delete('registry-tokens/{id}', 'RegistryAuthController@deleteRegistryToken');
                     $router->post('registry-tokens', 'RegistryAuthController@createRegistryUser');
                 });
 
-                $router->post('composer-auth', 'RegistryAuthController@composerAuthentication')->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                $router->post('authenticate', 'RegistryAuthController@authenticate')->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                $router->post('add-user', 'RegistryAuthController@addUser')->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                $router->post('check-access', 'RegistryAuthController@checkAccess')->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed')->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
+                $router->post('composer-auth', 'RegistryAuthController@composerAuthentication');
+                $router->post('authenticate', 'RegistryAuthController@authenticate');
+                $router->post('add-user', 'RegistryAuthController@addUser');
+                $router->post('check-access', 'RegistryAuthController@checkAccess');
+                $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed');
             });
 
-            $router->group(['middleware' => ['fleetbase.protected', 'throttle:60,1']], function ($router) {
+            $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
                 $router->get('categories', 'RegistryController@categories');
                 $router->get('engines', 'RegistryController@getInstalledEngines');
                 $router->get('engine-install-status', 'RegistryController@getEngineInstallStatus');
@@ -61,10 +61,10 @@ Route::prefix(config('internals.api.routing.prefix', '~registry'))->middleware([
                     $router->post('publish', $controller('manualPublish'));
                     $router->get('download-bundle', $controller('downloadBundle'));
                     $router->get('analytics', $controller('analytics'));
-                    $router->get('installed', $controller('installed'))->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                    $router->get('purchased', $controller('purchased'))->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                    $router->get('config', $controller('getConfig'))->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
-                    $router->post('config', $controller('saveConfig'))->middleware([Spatie\ResponseCache\Middlewares\DoNotCacheResponse::class]);
+                    $router->get('installed', $controller('installed'));
+                    $router->get('purchased', $controller('purchased'));
+                    $router->get('config', $controller('getConfig'));
+                    $router->post('config', $controller('saveConfig'));
                 });
 
                 $router->fleetbaseRoutes('registry-extension-bundles', function ($router, $controller) {

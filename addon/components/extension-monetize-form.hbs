@@ -1,4 +1,4 @@
-<ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-payment-details"}} @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+<ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-payment-details"}} @open={{true}} @wrapperClass="bordered-classic">
     {{#if this.lookupStripeConnectAccount.isRunning}}
         <div class="flex items-center justify-center flex-1 p-4">
             <Spinner @loadingMessage="Loading monetization settings..." @loadingMessageClass="ml-2 text-black dark:text-white" @wrapperClass="flex flex-row items-center" />

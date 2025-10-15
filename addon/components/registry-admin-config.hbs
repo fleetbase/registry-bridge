@@ -1,4 +1,4 @@
-<ContentPanel @title="Registry Configuration" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+<ContentPanel @title="Registry Configuration" @open={{true}} @wrapperClass="bordered-classic">
     <InputGroup @name="Registry Host" @value={{this.registryHost}} disabled={{or this.getConfigValues.isRunning this.saveConfigValues.isRunning}} />
     <InputGroup @name="Registry Token" @value={{this.registryToken}} disabled={{or this.getConfigValues.isRunning this.saveConfigValues.isRunning}} />
 </ContentPanel>

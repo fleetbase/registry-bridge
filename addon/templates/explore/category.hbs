@@ -1,12 +1,19 @@
 <Layout::Section::Header @searchQuery={{this.query}} @onSearch={{perform this.search}} @title={{t "registry-bridge.developers.extensions.explore.explore-extensions"}} />
 
 <Layout::Section::Body class="overflow-y-scroll h-full">
-    <div class="m-auto p-8">
-        <div class="extension-card-grid-container">
-            {{#each this.extensions as |extension|}}
-                <ExtensionCard @extension={{extension}} />
-            {{/each}}
-        </div>
-    </div>
-    <Spacer @height="300px" />
+    <Layout::Resource::CardsGrid
+        @resource="registry-extension"
+        @data={{@model}}
+        @gap="sm"
+        @columns="4"
+        @showPagination={{true}}
+        @page={{this.page}}
+        @onPageChange={{fn (mut this.page)}}
+        @paginationMeta={{@model.meta}}
+        @containerClass="p-4"
+        class="h-full"
+        as |Item|
+    >
+        <ExtensionCard @resource={{Item.model}} />
+    </Layout::Resource::CardsGrid>
 </Layout::Section::Body>

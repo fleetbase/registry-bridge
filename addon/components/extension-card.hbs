@@ -1,17 +1,35 @@
-<button type="button" class="extension-card-container hover:opacity-50 {{@buttonClass}}" ...attributes {{on "click" this.onClick}} {{did-update this.onExtensionUpdated @extension}}>
-    <div class="extension-card-icon-container {{@iconWrapperClass}}">
-        <Image src={{@extension.icon_url}} class={{@iconClass}} alt={{@extension.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} />
-    </div>
-    <div class="extension-card-body-container {{@detailsWrapperClass}}">
-        <div class="flex flex-col">
-            <div class="font-semibold text-sm block {{@nameTextClass}}">{{@extension.name}}</div>
-            <div class="text-xs {{@descriptionTextClass}}">{{n-a @extension.description}}</div>
-            {{#if @extension.payment_required}}
-                <Badge @status="success" @hideStatusDot={{true}}>{{format-currency @extension.price @extension.currency}}</Badge>
-            {{else}}
-                <Badge @status="success" @hideStatusDot={{true}}>Free</Badge>
-            {{/if}}
+<Layout::Resource::Card  {{on "click" this.onClick}} {{did-update this.onExtensionUpdated @resource}} ...attributes as |Card|>
+    <Card.header class={{@headerClass}}>
+        <div class="flex flex-row items-center justify-between">
+            <div class="font-semibold">{{@resource.name}}</div>
+            <div>
+                {{#if @resource.payment_required}}
+                    <Badge @status="success" @hideStatusDot={{true}}>{{format-currency @resource.price @resource.currency}}</Badge>
+                {{else}}
+                    <Badge @status="success" @hideStatusDot={{true}}>Free</Badge>
+                {{/if}}
+            </div>
         </div>
-        {{yield @extension}}
-    </div>
-</button>
+        {{#if (has-block "header")}}
+            {{yield to="header"}}
+        {{/if}}
+    </Card.header>
+    <Card.body class={{@bodyClass}}>
+        <Image src={{@resource.icon_url}} alt={{@resource.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} class="card-img-lg {{@iconClass}}" />
+        {{#if (has-block "body")}}
+            {{yield to="body"}}
+        {{/if}}
+    </Card.body>
+    <Card.footer class={{@footerClass}}>
+        <div>
+            <p class="text-xs">{{n-a @extension.description}}</p>
+        </div>
+        {{#if (has-block "footer")}}
+            {{yield to="footer"}}
+        {{/if}}
+        <div class="mt-1">
+            <div class="text-gray-300 dark:text-gray-500 text-xs">Last Modified: {{@resource.updatedAt}}</div>
+        </div>
+    </Card.footer>
+</Layout::Resource::Card>
+{{yield}}

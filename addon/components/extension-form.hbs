@@ -28,7 +28,7 @@
         </FileUpload>
     </div>
     <div class="flex-1 px-6 space-y-6">
-        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.details-content-block"}} @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.details-content-block"}} @open={{true}} @wrapperClass="bordered-classic">
             <InputGroup
                 @name={{t "registry-bridge.developers.extensions.extension-form.extension-name"}}
                 @value={{@extension.name}}
@@ -98,7 +98,7 @@
                 </p>
             </InputGroup>
         </ContentPanel>
-        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-bundle"}} @open={{true}} @pad={{false}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-bundle"}} @open={{true}} @wrapperClass="bordered-classic">
             <div class="px-4 pb-4 pt-3 flex flex-col flex-grow-0">
                 <Button @type="magic" @icon="box-archive" @text="Select Bundle" @onClick={{this.selectBundle}} />
                 {{#if @extension.next_bundle_filename}}
@@ -116,9 +116,8 @@
         <ContentPanel
             @title={{t "registry-bridge.developers.extensions.extension-form.extension-listing-details"}}
             @open={{true}}
-            @pad={{true}}
-            @panelBodyClass="bg-white dark:bg-gray-800"
             @actionButtons={{this.listingDetailsPanelActions}}
+            @wrapperClass="bordered-classic"
         >
             <InputGroup
                 @name={{t "registry-bridge.developers.extensions.extension-form.extension-promotional-text"}}
@@ -178,7 +177,7 @@
                 />
             </div>
         </ContentPanel>
-        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-screenshots"}} @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.extension-screenshots"}} @open={{true}} @wrapperClass="bordered-classic">
             <div class="space-y-4">
                 {{#if this.isUploading}}
                     <div

@@ -21,8 +21,7 @@ export default class ExploreIndexRoute extends Route {
         }
     }
 
-    model(params) {
-        const { query } = params;
+    model({ query }) {
         return this.store.query('registry-extension', { explore: 1, query });
     }
 }

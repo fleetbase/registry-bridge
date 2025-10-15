@@ -29,9 +29,9 @@ export default class ExtensionCardComponent extends Component {
     @service abilities;
     @tracked extension;
 
-    constructor(owner, { extension }) {
+    constructor(owner, { resource }) {
         super(...arguments);
-        this.extension = extension;
+        this.extension = resource;
         this.checkForCheckoutSession();
     }
 

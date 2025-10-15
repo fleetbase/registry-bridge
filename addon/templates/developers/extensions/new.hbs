@@ -4,12 +4,7 @@
     <div class="container">
         <div class="max-w-3xl mx-auto mt-4">
             <div class="flex-1 px-6">
-                <ContentPanel
-                    @title={{t "registry-bridge.developers.extensions.extension-form.details-content-block"}}
-                    @open={{true}}
-                    @pad={{true}}
-                    @panelBodyClass="bg-white dark:bg-gray-800"
-                >
+                <ContentPanel @title={{t "registry-bridge.developers.extensions.extension-form.details-content-block"}} @open={{true}} @wrapperClass="bordered-classic">
                     <InputGroup
                         @name={{t "registry-bridge.developers.extensions.extension-form.extension-name"}}
                         @value={{this.extension.name}}
@@ -29,7 +24,15 @@
                     </InputGroup>
                 </ContentPanel>
                 <div class="mt-4 flex items-center space-x-4">
-                    <Button @size="lg" @type="primary" @text="Continue" @icon="check" @onClick={{perform this.save}} @isLoading={{not this.save.isIdle}} @permission="registry-bridge create registry-bundle" />
+                    <Button
+                        @size="lg"
+                        @type="primary"
+                        @text="Continue"
+                        @icon="check"
+                        @onClick={{perform this.save}}
+                        @isLoading={{not this.save.isIdle}}
+                        @permission="registry-bridge create registry-bundle"
+                    />
                     <Button @size="lg" @type="default" @text="Cancel" @icon="times" @onClick={{this.cancel}} />
                 </div>
             </div>

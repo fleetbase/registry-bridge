@@ -1,27 +1,34 @@
 <Layout::Section::Header @title={{t "registry-bridge.developers.extensions.extensions"}}>
-    <Button @type="primary" @size="sm" @icon="circle-plus" @text={{t "registry-bridge.developers.extensions.create-new-extension"}} @onClick={{transition-to "developers.extensions.new"}} @permission="registry-bridge create registry-bundle" />
+    <Button
+        @type="primary"
+        @size="sm"
+        @icon="circle-plus"
+        @text={{t "registry-bridge.developers.extensions.create-new-extension"}}
+        @onClick={{transition-to "developers.extensions.new"}}
+        @permission="registry-bridge create registry-bundle"
+    />
 </Layout::Section::Header>
 
 <Layout::Section::Body class="overflow-y-scroll h-full">
-    <div class="m-auto p-8">
-        <div class="extension-card-grid-container">
-            {{#each (filter-by "isNew" false @model) as |extension|}}
-                <button type="button" class="extension-card-container hover:opacity-50" {{on "click" (transition-to "developers.extensions.edit" extension)}}>
-                    <div class="extension-card-icon-container">
-                        <Image src={{extension.icon_url}} class="w-full h-36 rounded-t-lg" alt={{extension.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} />
-                    </div>
-                    <div class="extension-card-body-container">
-                        <div class="flex flex-col">
-                            <div class="font-semibold text-sm block">{{extension.name}}</div>
-                            <div class="text-xs truncate">{{n-a extension.description}}</div>
-                        </div>
-                        <div>
-                            <Badge @status={{extension.status}} />
-                        </div>
-                    </div>
-                </button>
-            {{/each}}
-        </div>
-    </div>
-    <Spacer @height="300px" />
+    <Layout::Resource::CardsGrid
+        @resource="registry-extension"
+        @data={{filter-by "isNew" false @model}}
+        @gap="sm"
+        @columns="4"
+        @showPagination={{true}}
+        @page={{this.page}}
+        @onPageChange={{fn (mut this.page)}}
+        @paginationMeta={{@model.meta}}
+        @containerClass="p-4"
+        class="h-full"
+        as |Item|
+    >
+        <ExtensionCard @resource={{Item.model}}>
+            <:footer>
+                <div class="flex flex-row items-center space-x-1">
+                    <Button @icon="eye" @size="xs" @onClick={{fn (transition-to "developers.extensions.edit" Item.model)}} />
+                </div>
+            </:footer>
+        </ExtensionCard>
+    </Layout::Resource::CardsGrid>
 </Layout::Section::Body>

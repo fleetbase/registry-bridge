@@ -1,6 +1,6 @@
 {
     "name": "@fleetbase/registry-bridge-engine",
-    "version": "0.0.19",
+    "version": "0.1.0",
     "description": "Internal Bridge between Fleetbase API and Extensions Registry",
     "fleetbase": {
         "route": "extensions"
@@ -43,8 +43,8 @@
         "@fleetbase/ember-ui": "latest",
         "@fortawesome/ember-fontawesome": "^2.0.0",
         "@fortawesome/fontawesome-svg-core": "6.4.0",
-        "@fortawesome/free-solid-svg-icons": "6.4.0",
         "@fortawesome/free-brands-svg-icons": "6.4.0",
+        "@fortawesome/free-solid-svg-icons": "6.4.0",
         "@stripe/connect-js": "^3.3.10",
         "ember-auto-import": "^2.7.4",
         "ember-cli-babel": "^8.2.0",
