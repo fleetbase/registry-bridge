@@ -21,18 +21,14 @@ export default class ExploreCategoryRoute extends Route {
         }
     }
 
-    model({ slug }) {
-        return this.store.queryRecord('category', { slug, for: 'extension_category', core_category: 1, single: 1 });
-    }
+    async model({ slug, query }) {
+        try {
+            const category = await this.store.queryRecord('category', { slug, for: 'extension_category', core_category: 1, single: 1 });
+            if (!category) return [];
 
-    async setupController(controller, model) {
-        super.setupController(...arguments);
-        const params = { explore: 1, category: model.id };
-        const query = controller.query;
-        if (query) {
-            params.query = controller.query;
+            return this.store.query('registry-extension', { explore: 1, category: category.id, query: query });
+        } catch {
+            return [];
         }
-
-        controller.extensions = await this.store.query('registry-extension', params);
     }
 }

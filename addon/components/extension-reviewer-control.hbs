@@ -1,5 +1,5 @@
 <div class="space-y-4">
-    <ContentPanel @title={{t "registry-bridge.component.extension-reviewer-control.content-panel-title"}} @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+    <ContentPanel @title={{t "registry-bridge.component.extension-reviewer-control.content-panel-title"}} @open={{true}} @wrapperClass="bordered-classic">
         <div class="grid grid-cols-1 lg:grid-cols-4">
             {{#each this.extensions as |extension|}}
                 <div class="flex flex-col">
@@ -57,7 +57,7 @@
     </ContentPanel>
 
     {{#if this.focusedExtension}}
-        <ContentPanel @title={{t "registry-bridge.component.extension-reviewer-control.focused-extension-title" extensionName=this.focusedExtension.name}} @open={{true}} @pad={{true}}>
+        <ContentPanel @title={{t "registry-bridge.component.extension-reviewer-control.focused-extension-title" extensionName=this.focusedExtension.name}} @open={{true}} @wrapperClass="bordered-classic">
             <div class="flex items-center mb-4 px-1">
                 <Button @type="primary" @size="sm" @icon="check" @text={{t "common.done"}} @onClick={{this.unfocusExtension}} class="w-full" />
             </div>

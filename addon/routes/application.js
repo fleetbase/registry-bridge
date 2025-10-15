@@ -15,9 +15,13 @@ export default class ApplicationRoute extends Route {
         }
     }
 
-    async setupController(controller) {
-        super.setupController(...arguments);
-        // controller.categories = await this.store.query('category', { for: 'extension_category', core_category: 1 });
-        controller.categories = await this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' });
+    model() {
+        return this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' });
     }
+
+    // async setupController(controller) {
+    //     super.setupController(...arguments);
+    //     // controller.categories = await this.store.query('category', { for: 'extension_category', core_category: 1 });
+    //     controller.categories = await this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' });
+    // }
 }
