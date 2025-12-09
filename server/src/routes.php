@@ -48,6 +48,7 @@ Route::prefix(config('internals.api.routing.prefix', '~registry'))->middleware([
                 $router->group(['prefix' => 'payments'], function ($router) {
                     $router->post('account', 'RegistryPaymentsController@getStripeAccount');
                     $router->post('account-session', 'RegistryPaymentsController@getStripeAccountSession');
+                    $router->post('account-management-session', 'RegistryPaymentsController@createAccountManagementSession');
                     $router->get('has-stripe-connect-account', 'RegistryPaymentsController@hasStripeConnectAccount');
                     $router->post('create-checkout-session', 'RegistryPaymentsController@createStripeCheckoutSession');
                     $router->post('get-checkout-session', 'RegistryPaymentsController@getStripeCheckoutSessionStatus');
