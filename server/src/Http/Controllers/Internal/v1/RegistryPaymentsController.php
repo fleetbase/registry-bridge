@@ -224,4 +224,44 @@ class RegistryPaymentsController extends Controller
 
         return FleetbaseResource::collection($payments)->additional(['total_amount' => $totalPurchaseAmount]);
     }
+
+    /**
+     * Creates a Stripe account session for account management.
+     *
+     * This method creates a session that allows connected accounts to manage their account details,
+     * including updating bank account information, business details, and other settings.
+     *
+     * @param Request $request the incoming HTTP request
+     *
+     * @return \Illuminate\Http\JsonResponse returns a JSON response with the session's client secret or an error message
+     */
+    public function createAccountManagementSession(Request $request)
+    {
+        $stripe  = Utils::getStripeClient();
+        $company = Auth::getCompany();
+
+        if (!$company || !$company->stripe_connect_id) {
+            return response()->error('Stripe Connect account not found for this company.');
+        }
+
+        try {
+            $accountSession = $stripe->accountSessions->create([
+                'account'    => $company->stripe_connect_id,
+                'components' => [
+                    'account_management' => [
+                        'enabled' => true,
+                        'features' => [
+                            'external_account_collection' => true,
+                        ],
+                    ],
+                ],
+            ]);
+
+            return response()->json([
+                'clientSecret' => $accountSession->client_secret,
+            ]);
+        } catch (\Exception $e) {
+            return response()->error($e->getMessage());
+        }
+    }
 }
