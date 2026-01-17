@@ -1,8 +1,14 @@
 <Layout::Section::Header @title="Payments">
     {{#if this.hasStripeConnectAccount}}
-        <div class="flex flex-row space-x-1">
-            <span class="text-sm text-black dark:text-white font-bold">Total Amount:</span>
-            <span class="text-sm text-black dark:text-white">{{format-currency @model.total_amount "USD"}}</span>
+        <div class="flex items-center space-x-4">
+            <LinkTo @route="developers.payments.settings" class="btn btn-primary">
+                <FaIcon @icon="cog" class="mr-1" />
+                {{t "registry-bridge.developers.payments.manage-account"}}
+            </LinkTo>
+            <div class="flex flex-row space-x-1">
+                <span class="text-sm text-black dark:text-white font-bold">Total Amount:</span>
+                <span class="text-sm text-black dark:text-white">{{format-currency @model.total_amount "USD"}}</span>
+            </div>
         </div>
     {{/if}}
 </Layout::Section::Header>

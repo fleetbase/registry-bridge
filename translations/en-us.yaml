@@ -49,6 +49,13 @@ registry-bridge:
   purchased:
     title: Purchased Extensions
   developers:
+    payments:
+      manage-account: Manage Payout Account
+      no-account-warning: You must complete the Stripe onboarding process before accessing account settings.
+      settings:
+        title: Manage Payout Account
+        description: Manage your Stripe account details, including your business information and bank accounts for receiving payouts.
+        loading: Loading account management...
     extensions:
       extensions: Extensions
       create-new-extension: Create new Extension
