@@ -1,6 +1,6 @@
 {
     "name": "Registry Bridge",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "description": "Internal Bridge between Fleetbase API and Extensions Registry",
     "repository": "https://github.com/fleetbase/registry-bridge",
     "license": "AGPL-3.0-or-later",

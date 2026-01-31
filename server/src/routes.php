@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 // Lookup package endpoint
-Route::get(config('internals.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
-Route::post(config('internals.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
-Route::prefix(config('internals.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
+Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
+Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {
         /*
          * Internal Routes v1
          */
-        $router->group(['prefix' => config('internals.api.routing.internal_prefix', 'v1'), 'namespace' => 'Internal\v1'], function ($router) {
+        $router->group(['prefix' => config('registry-bridge.api.routing.internal_prefix', 'v1'), 'namespace' => 'Internal\v1'], function ($router) {
             $router->group(['prefix' => 'auth'], function ($router) {
                 $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
                     $router->get('registry-tokens', 'RegistryAuthController@getRegistryTokens');
