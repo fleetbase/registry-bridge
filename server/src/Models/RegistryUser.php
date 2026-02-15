@@ -40,6 +40,8 @@ class RegistryUser extends Model
     protected $fillable = [
         'company_uuid',
         'user_uuid',
+        'account_type',
+        'developer_account_uuid',
         'token',
         'registry_token',
         'scope',
@@ -116,6 +118,14 @@ class RegistryUser extends Model
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function developerAccount()
+    {
+        return $this->belongsTo(RegistryDeveloperAccount::class, 'developer_account_uuid', 'uuid');
+    }
+
+    /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function extensions()
@@ -132,11 +142,14 @@ class RegistryUser extends Model
     }
 
     /**
-     * Undocumented function.
+     * Get the is_admin attribute.
      */
     public function getIsAdminAttribute(): bool
     {
-        return $this->user->is_admin === true;
+        if ($this->account_type === 'developer') {
+            return false;
+        }
+        return $this->user && $this->user->is_admin === true;
     }
 
     /**
@@ -190,9 +203,8 @@ class RegistryUser extends Model
     /**
      * Find a registry user by their username.
      *
-     * This method joins the users table with the registry users table to find a
-     * registry user by their email or username. If a matching user is found, the
-     * corresponding registry user is returned.
+     * This method searches for a registry user by email or username,
+     * supporting both cloud and developer account types.
      *
      * @param string $username the username to search for
      *
@@ -200,16 +212,32 @@ class RegistryUser extends Model
      */
     public static function findFromUsername(string $username): ?RegistryUser
     {
+        // First try to find a cloud user
+        $cloudUser = static::select('registry_users.*')
+            ->join('users', function ($join) use ($username) {
+                $join->on('users.uuid', '=', 'registry_users.user_uuid')
+                     ->on('users.company_uuid', '=', 'registry_users.company_uuid')
+                     ->where(function ($query) use ($username) {
+                         $query->where('users.email', $username)
+                               ->orWhere('users.username', $username);
+                     });
+            })
+            ->where('registry_users.account_type', 'cloud')
+            ->first();
+
+        if ($cloudUser) {
+            return $cloudUser;
+        }
+
+        // If not found, try to find a developer account
         return static::select('registry_users.*')
-        ->join('users', function ($join) use ($username) {
-            $join->on('users.uuid', '=', 'registry_users.user_uuid')
-                 ->on('users.company_uuid', '=', 'registry_users.company_uuid')
-                 ->where(function ($query) use ($username) {
-                     $query->where('users.email', $username)
-                           ->orWhere('users.username', $username);
-                 });
-        })
-        ->first();
+            ->join('registry_developer_accounts', 'registry_developer_accounts.uuid', '=', 'registry_users.developer_account_uuid')
+            ->where('registry_users.account_type', 'developer')
+            ->where(function ($query) use ($username) {
+                $query->where('registry_developer_accounts.email', $username)
+                      ->orWhere('registry_developer_accounts.username', $username);
+            })
+            ->first();
     }
 
     public static function findFromToken(string $token): ?RegistryUser
@@ -251,5 +279,53 @@ class RegistryUser extends Model
     public function groups(): array
     {
         return [$this->public_id];
+    }
+
+    /**
+     * Check if this is a developer account.
+     *
+     * @return bool
+     */
+    public function isDeveloperAccount(): bool
+    {
+        return $this->account_type === 'developer';
+    }
+
+    /**
+     * Check if this is a cloud account.
+     *
+     * @return bool
+     */
+    public function isCloudAccount(): bool
+    {
+        return $this->account_type === 'cloud';
+    }
+
+    /**
+     * Get permissions for this registry user.
+     *
+     * @return array
+     */
+    public function getPermissions(): array
+    {
+        if ($this->isDeveloperAccount()) {
+            return [
+                'can_install_free_extensions' => true,
+                'can_install_paid_extensions' => false,
+                'can_publish_extensions' => true,
+                'can_purchase_extensions' => false,
+                'can_access_console' => false,
+                'can_manage_company' => false,
+            ];
+        }
+
+        return [
+            'can_install_free_extensions' => true,
+            'can_install_paid_extensions' => true,
+            'can_publish_extensions' => true,
+            'can_purchase_extensions' => true,
+            'can_access_console' => true,
+            'can_manage_company' => true,
+        ];
     }
 }
