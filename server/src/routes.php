@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-// Lookup package endpoint
+// Public endpoints (no authentication required)
+Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/extensions', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController@listPublicExtensions');
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
 Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
