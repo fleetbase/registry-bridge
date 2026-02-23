@@ -8,6 +8,7 @@ use Fleetbase\RegistryBridge\Http\Requests\AddRegistryUserRequest;
 use Fleetbase\RegistryBridge\Http\Requests\AuthenticateRegistryUserRequest;
 use Fleetbase\RegistryBridge\Http\Requests\RegistryAuthRequest;
 use Fleetbase\RegistryBridge\Http\Resources\RegistryUser as RegistryUserResource;
+use Fleetbase\RegistryBridge\Models\RegistryDeveloperAccount;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryUser;
 use Fleetbase\RegistryBridge\Support\Bridge;
@@ -88,33 +89,58 @@ class RegistryAuthController extends Controller
         $identity = $request->input('identity');
         $password = $request->input('password');
 
-        // Find user by email or username
+        // First, try to find a cloud user
         $user = User::where(function ($query) use ($identity) {
             $query->where('email', $identity)->orWhere('phone', $identity)->orWhere('username', $identity);
         })->first();
 
-        // Authenticate user with password
-        if (Auth::isInvalidPassword($password, $user->password)) {
+        if ($user && Auth::isValidPassword($password, $user->password)) {
+            // Cloud user authentication
+            $registryUser = RegistryUser::firstOrCreate(
+                [
+                    'company_uuid' => $user->company_uuid,
+                    'user_uuid' => $user->uuid,
+                ],
+                [
+                    'account_type' => 'cloud',
+                    'scope' => '*',
+                    'expires_at' => now()->addYear(),
+                    'name' => $user->public_id . ' developer token',
+                ]
+            );
+
+            return new RegistryUserResource($registryUser);
+        }
+
+        // If not a cloud user, try Registry Developer Account
+        $developerAccount = RegistryDeveloperAccount::where(function ($query) use ($identity) {
+            $query->where('email', $identity)->orWhere('username', $identity);
+        })->first();
+
+        if (!$developerAccount) {
             return response()->error('Invalid credentials.', 401);
         }
 
-        // Get existing token for current user
-        $registryUser = RegistryUser::where(['company_uuid' => $user->company_uuid, 'user_uuid' => $user->uuid])->first();
-        if (!$registryUser) {
-            // Create registry user
-            $registryUser = RegistryUser::create([
-                'company_uuid' => $user->company_uuid,
-                'user_uuid'    => $user->uuid,
-                'scope'        => '*',
-                'expires_at'   => now()->addYear(),
-                'name'         => $user->public_id . ' developer token',
-            ]);
+        if ($developerAccount->status !== 'active') {
+            return response()->error('Account is not active. Please verify your email.', 401);
         }
 
-        // If no token response with error
-        if (!$registryUser) {
-            return response()->error('Unable to authenticate.');
+        if (Auth::isInvalidPassword($password, $developerAccount->password)) {
+            return response()->error('Invalid credentials.', 401);
         }
+
+        // Developer account authentication
+        $registryUser = RegistryUser::firstOrCreate(
+            [
+                'developer_account_uuid' => $developerAccount->uuid,
+            ],
+            [
+                'account_type' => 'developer',
+                'scope' => '*',
+                'expires_at' => now()->addYear(),
+                'name' => $developerAccount->username . ' developer token',
+            ]
+        );
 
         return new RegistryUserResource($registryUser);
     }
@@ -266,29 +292,53 @@ class RegistryAuthController extends Controller
 
         // Find package
         $extension = RegistryExtension::findByPackageName($package);
+        
         if (!$extension) {
-            return response()->error('Attempting to publish extension which has no record.', 401);
+            // First time publishing - create extension record
+            $publisherUuid = $registryUser->isDeveloperAccount() 
+                ? $registryUser->developer_account_uuid 
+                : $registryUser->company_uuid;
+            
+            $extension = RegistryExtension::create([
+                'uuid' => (string) Str::uuid(),
+                'package_name' => $package,
+                'publisher_type' => $registryUser->account_type,
+                'publisher_uuid' => $publisherUuid,
+                'company_uuid' => $registryUser->company_uuid, // Keep for backwards compatibility
+                'status' => 'published',
+                'payment_required' => false, // Default to free
+            ]);
+            
+            return response()->json(['allowed' => true]);
         }
 
-        // If user is not admin respond with error
-        // For now only admin is allowed to publish to registry
-        // This may change in the future with approval/reject flow
-        if ($registryUser->isNotAdmin()) {
-            return response()->error('User is not allowed publish to the registry.', 401);
+        // Check ownership
+        if ($registryUser->isCloudAccount()) {
+            if ($extension->publisher_type === 'cloud' && $extension->publisher_uuid !== $registryUser->company_uuid) {
+                return response()->error('You do not own this extension.', 403);
+            }
+        } elseif ($registryUser->isDeveloperAccount()) {
+            if ($extension->publisher_type === 'developer' && $extension->publisher_uuid !== $registryUser->developer_account_uuid) {
+                return response()->error('You do not own this extension.', 403);
+            }
+        }
+        
+        // If publisher types don't match, deny access
+        if ($extension->publisher_type !== $registryUser->account_type) {
+            return response()->error('Account type mismatch for this extension.', 403);
         }
 
-        // Extension should be approved
-        if (!in_array($extension->status, ['approved', 'published'])) {
-            return response()->error('Attempting to publish extension which is not approved.', 401);
-        }
-
-        // Change status to published
+        // Update extension status
         if ($action === 'publish') {
             $extension->update(['status' => 'published']);
-            $extension->currentBundle()->update(['status' => 'published']);
+            if ($extension->currentBundle) {
+                $extension->currentBundle->update(['status' => 'published']);
+            }
         } elseif ($action === 'unpublish') {
             $extension->update(['status' => 'unpublished']);
-            $extension->currentBundle()->update(['status' => 'unpublished']);
+            if ($extension->currentBundle) {
+                $extension->currentBundle->update(['status' => 'unpublished']);
+            }
         }
 
         // Passed all checks

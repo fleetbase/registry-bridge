@@ -35,6 +35,14 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed');
             });
 
+            $router->group(['prefix' => 'developer-account'], function ($router) {
+                $router->post('register', 'RegistryDeveloperAccountController@register');
+                $router->post('verify', 'RegistryDeveloperAccountController@verifyEmail');
+                $router->post('resend-verification', 'RegistryDeveloperAccountController@resendVerification');
+                $router->get('profile', 'RegistryDeveloperAccountController@profile');
+                $router->post('profile', 'RegistryDeveloperAccountController@updateProfile');
+            });
+
             $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
                 $router->get('categories', 'RegistryController@categories');
                 $router->get('engines', 'RegistryController@getInstalledEngines');
