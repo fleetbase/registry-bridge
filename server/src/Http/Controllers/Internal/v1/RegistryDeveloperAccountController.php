@@ -104,7 +104,7 @@ class RegistryDeveloperAccountController extends Controller
         }
 
         // Check if code is expired
-        if ($verificationCode->isExpired()) {
+        if ($verificationCode->hasExpired()) {
             return response()->error('Verification code has expired.', 400);
         }
 
