@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/extensions', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController@listPublicExtensions');
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
+
+// Developer account registration (public, no auth required)
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/verify', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@verifyEmail');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/resend-verification', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@resendVerification');
 Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {
         /*
@@ -36,10 +41,8 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed');
             });
 
+            // Developer account profile routes (require authentication)
             $router->group(['prefix' => 'developer-account'], function ($router) {
-                $router->post('register', 'RegistryDeveloperAccountController@register');
-                $router->post('verify', 'RegistryDeveloperAccountController@verifyEmail');
-                $router->post('resend-verification', 'RegistryDeveloperAccountController@resendVerification');
                 $router->get('profile', 'RegistryDeveloperAccountController@profile');
                 $router->post('profile', 'RegistryDeveloperAccountController@updateProfile');
             });
