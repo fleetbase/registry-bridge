@@ -117,12 +117,12 @@ class RegistryDeveloperAccountController extends Controller
         
         $registryUser = RegistryUser::firstOrCreate(
             [
-                'subject_uuid' => $account->uuid,
-                'subject_type' => RegistryDeveloperAccount::class,
+                'developer_account_uuid' => $account->uuid,
+                'account_type' => 'developer',
             ],
             [
-                'token'        => $token,
-                'account_type' => 'developer',
+                'token' => $token,
+                'name'  => $account->name,
             ]
         );
 
