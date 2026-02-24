@@ -3,11 +3,11 @@
 namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 
 use Fleetbase\Http\Controllers\Controller;
+use Fleetbase\Models\VerificationCode;
 use Fleetbase\RegistryBridge\Models\RegistryDeveloperAccount;
 use Fleetbase\RegistryBridge\Models\RegistryUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -62,7 +62,7 @@ class RegistryDeveloperAccountController extends Controller
     }
 
     /**
-     * Verify email address.
+     * Verify email address using verification code.
      *
      * @param Request $request
      *
@@ -70,16 +70,18 @@ class RegistryDeveloperAccountController extends Controller
      */
     public function verifyEmail(Request $request)
     {
-        $token = $request->input('token');
+        $code  = $request->input('code');
+        $email = $request->input('email');
 
-        if (!$token) {
-            return response()->error('Verification token is required.', 400);
+        if (!$code || !$email) {
+            return response()->error('Verification code and email are required.', 400);
         }
 
-        $account = RegistryDeveloperAccount::where('verification_token', $token)->first();
+        // Find the account
+        $account = RegistryDeveloperAccount::where('email', $email)->first();
 
         if (!$account) {
-            return response()->error('Invalid verification token.', 400);
+            return response()->error('Account not found.', 404);
         }
 
         if ($account->isActive()) {
@@ -89,7 +91,26 @@ class RegistryDeveloperAccountController extends Controller
             ]);
         }
 
+        // Find the verification code
+        $verificationCode = VerificationCode::where('subject_uuid', $account->uuid)
+            ->where('subject_type', RegistryDeveloperAccount::class)
+            ->where('for', 'registry_developer_account_verification')
+            ->where('code', $code)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$verificationCode) {
+            return response()->error('Invalid or expired verification code.', 400);
+        }
+
+        // Check if code is expired
+        if ($verificationCode->isExpired()) {
+            return response()->error('Verification code has expired.', 400);
+        }
+
+        // Mark as verified
         $account->markEmailAsVerified();
+        $verificationCode->update(['status' => 'used']);
 
         return response()->json([
             'status'  => 'success',
@@ -240,16 +261,27 @@ class RegistryDeveloperAccountController extends Controller
      */
     private function sendVerificationEmail(RegistryDeveloperAccount $account)
     {
-        // TODO: Implement email sending logic
-        // This would typically use Laravel's Mail facade to send an email
-        // with a verification link containing the verification token
-        
-        // Example:
-        // Mail::to($account->email)->send(new VerifyRegistryDeveloperAccount($account));
-        
-        // For now, we'll just log it
-        logger()->info('Verification email would be sent to: ' . $account->email);
-        logger()->info('Verification token: ' . $account->verification_token);
-        logger()->info('Verification URL: ' . config('app.url') . '/~registry/v1/developer-account/verify?token=' . $account->verification_token);
+        try {
+            VerificationCode::generateEmailVerificationFor(
+                $account,
+                'registry_developer_account_verification',
+                [
+                    'subject' => 'Verify your Registry Developer Account',
+                    'content' => function ($verificationCode) use ($account) {
+                        return "Hello {$account->name},\n\n" .
+                               "Thank you for registering a Registry Developer Account.\n\n" .
+                               "Your verification code is: {$verificationCode->code}\n\n" .
+                               "This code will expire in 1 hour.\n\n" .
+                               "If you did not create this account, please ignore this email.";
+                    },
+                ]
+            );
+        } catch (\Exception $e) {
+            // Log the error but don't fail registration
+            logger()->error('Failed to send verification email', [
+                'email' => $account->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
