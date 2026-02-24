@@ -273,6 +273,66 @@ class RegistryDeveloperAccountController extends Controller
     }
 
     /**
+     * Generate or regenerate registry token for authenticated developer account.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function generateToken(Request $request)
+    {
+        $email = $request->input('email');
+        $password = $request->input('password');
+
+        if (!$email || !$password) {
+            return response()->error('Email and password are required.', 400);
+        }
+
+        // Find the account
+        $account = RegistryDeveloperAccount::where('email', $email)->first();
+
+        if (!$account) {
+            return response()->error('Account not found.', 404);
+        }
+
+        // Verify password
+        if (!Hash::check($password, $account->password)) {
+            return response()->error('Invalid credentials.', 401);
+        }
+
+        // Check if account is active
+        if (!$account->isActive()) {
+            return response()->error('Account is not active. Please verify your email first.', 403);
+        }
+
+        // Generate new token
+        $token = RegistryUser::generateToken();
+        
+        // Find or create registry user
+        $registryUser = RegistryUser::firstOrCreate(
+            [
+                'developer_account_uuid' => $account->uuid,
+                'account_type' => 'developer',
+            ],
+            [
+                'token' => $token,
+                'name'  => $account->name,
+            ]
+        );
+
+        // If registry user already exists, regenerate the token
+        if (!$registryUser->wasRecentlyCreated) {
+            $registryUser->update(['token' => $token]);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => $registryUser->wasRecentlyCreated ? 'Token generated successfully.' : 'Token regenerated successfully.',
+            'token'   => $token,
+        ]);
+    }
+
+    /**
      * Send verification email to the account.
      *
      * @param RegistryDeveloperAccount $account

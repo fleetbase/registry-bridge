@@ -21,6 +21,7 @@ Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bun
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/verify', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@verifyEmail');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/resend-verification', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@resendVerification');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/generate-token', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@generateToken');
 Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {
         /*
