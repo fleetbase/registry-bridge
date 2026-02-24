@@ -112,9 +112,29 @@ class RegistryDeveloperAccountController extends Controller
         $account->markEmailAsVerified();
         $verificationCode->update(['status' => 'used']);
 
+        // Generate registry token for the developer account
+        $token = RegistryUser::generateToken();
+        
+        $registryUser = RegistryUser::firstOrCreate(
+            [
+                'subject_uuid' => $account->uuid,
+                'subject_type' => RegistryDeveloperAccount::class,
+            ],
+            [
+                'token'        => $token,
+                'account_type' => 'developer',
+            ]
+        );
+
+        // If registry user already exists, update the token
+        if (!$registryUser->wasRecentlyCreated) {
+            $registryUser->update(['token' => $token]);
+        }
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Email verified successfully. You can now log in.',
+            'token'   => $token,
         ]);
     }
 
