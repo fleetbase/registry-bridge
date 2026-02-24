@@ -269,8 +269,11 @@ class RegistryDeveloperAccountController extends Controller
                     'subject' => 'Verify your Registry Developer Account',
                     'content' => function ($verificationCode) use ($account) {
                         return "Hello {$account->name},\n\n" .
-                               "Thank you for registering a Registry Developer Account.\n\n" .
+                               "Thank you for registering a Registry Developer Account!\n\n" .
                                "Your verification code is: {$verificationCode->code}\n\n" .
+                               "To verify your account, run this command in your terminal:\n" .
+                               "flb verify -e {$account->email}\n\n" .
+                               "Then enter the verification code when prompted.\n\n" .
                                "This code will expire in 1 hour.\n\n" .
                                "If you did not create this account, please ignore this email.";
                     },
