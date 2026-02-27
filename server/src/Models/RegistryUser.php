@@ -149,6 +149,7 @@ class RegistryUser extends Model
         if ($this->account_type === 'developer') {
             return false;
         }
+
         return $this->user && $this->user->is_admin === true;
     }
 
@@ -283,8 +284,6 @@ class RegistryUser extends Model
 
     /**
      * Check if this is a developer account.
-     *
-     * @return bool
      */
     public function isDeveloperAccount(): bool
     {
@@ -293,8 +292,6 @@ class RegistryUser extends Model
 
     /**
      * Check if this is a cloud account.
-     *
-     * @return bool
      */
     public function isCloudAccount(): bool
     {
@@ -303,8 +300,6 @@ class RegistryUser extends Model
 
     /**
      * Get permissions for this registry user.
-     *
-     * @return array
      */
     public function getPermissions(): array
     {
@@ -312,20 +307,20 @@ class RegistryUser extends Model
             return [
                 'can_install_free_extensions' => true,
                 'can_install_paid_extensions' => false,
-                'can_publish_extensions' => true,
-                'can_purchase_extensions' => false,
-                'can_access_console' => false,
-                'can_manage_company' => false,
+                'can_publish_extensions'      => true,
+                'can_purchase_extensions'     => false,
+                'can_access_console'          => false,
+                'can_manage_company'          => false,
             ];
         }
 
         return [
             'can_install_free_extensions' => true,
             'can_install_paid_extensions' => true,
-            'can_publish_extensions' => true,
-            'can_purchase_extensions' => true,
-            'can_access_console' => true,
-            'can_manage_company' => true,
+            'can_publish_extensions'      => true,
+            'can_purchase_extensions'     => true,
+            'can_access_console'          => true,
+            'can_manage_company'          => true,
         ];
     }
 }

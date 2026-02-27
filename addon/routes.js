@@ -18,6 +18,7 @@ export default buildRoutes(function () {
         this.route('payments', function () {
             this.route('index', { path: '/' });
             this.route('onboard');
+            this.route('settings');
         });
         this.route('credentials');
     });

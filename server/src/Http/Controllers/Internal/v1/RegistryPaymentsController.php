@@ -163,7 +163,7 @@ class RegistryPaymentsController extends Controller
         }
 
         // Determine purchaser (Company or RegistryDeveloperAccount)
-        $purchaser = null;
+        $purchaser     = null;
         $purchaserType = null;
         $purchaserUuid = null;
 
@@ -171,7 +171,7 @@ class RegistryPaymentsController extends Controller
         if (session('company')) {
             $purchaserUuid = session('company');
             $purchaserType = 'Fleetbase\\Models\\Company';
-        } 
+        }
         // Check if authenticated via bearer token (developer account)
         elseif ($request->bearerToken()) {
             $registryUser = \Fleetbase\RegistryBridge\Models\RegistryUser::where('token', $request->bearerToken())->first();
@@ -189,9 +189,9 @@ class RegistryPaymentsController extends Controller
         $purchaseRecordExists = RegistryExtensionPurchase::where([
             'purchaser_uuid' => $purchaserUuid,
             'purchaser_type' => $purchaserType,
-            'extension_uuid' => $extension->uuid
+            'extension_uuid' => $extension->uuid,
         ])->exists();
-        
+
         if ($purchaseRecordExists) {
             return response()->json(['status' => 'purchase_complete', 'extension' => $extension]);
         }
@@ -280,7 +280,7 @@ class RegistryPaymentsController extends Controller
                 'account'    => $company->stripe_connect_id,
                 'components' => [
                     'account_management' => [
-                        'enabled' => true,
+                        'enabled'  => true,
                         'features' => [
                             'external_account_collection' => true,
                         ],

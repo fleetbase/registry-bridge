@@ -84,8 +84,9 @@ class RegistryExtensionPurchase extends Model
 
     /**
      * Legacy relationship for backward compatibility.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     *
      * @deprecated Use purchaser() instead
      */
     public function company()

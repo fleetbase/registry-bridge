@@ -11,15 +11,18 @@
                 </div>
                 {{#if this.isLoading}}
                     <div class="flex items-center justify-center p-8">
-                        <Spinner @loadingMessage={{t "registry-bridge.developers.payments.settings.loading"}} @loadingMessageClass="ml-2 text-black dark:text-white" @wrapperClass="flex flex-row items-center" />
+                        <Spinner
+                            @loadingMessage={{t "registry-bridge.developers.payments.settings.loading"}}
+                            @loadingMessageClass="ml-2 text-black dark:text-white"
+                            @wrapperClass="flex flex-row items-center"
+                        />
                     </div>
                 {{/if}}
-                <div 
-                    id="account-management-container" 
-                    {{did-insert this.setupStripe}} 
-                    class="min-h-screen bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+                <div
+                    id="account-management-container"
+                    {{did-insert this.setupStripe}}
+                    class="p-4 min-h-20 bg-gray-50 dark:bg-gray-100 shadow-md rounded-lg border border-gray-300 dark:border-gray-900"
                 >
-                    {{! The Stripe Account Management component will be rendered here }}
                 </div>
             </div>
         </div>

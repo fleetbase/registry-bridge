@@ -99,13 +99,13 @@ class RegistryAuthController extends Controller
             $registryUser = RegistryUser::firstOrCreate(
                 [
                     'company_uuid' => $user->company_uuid,
-                    'user_uuid' => $user->uuid,
+                    'user_uuid'    => $user->uuid,
                 ],
                 [
                     'account_type' => 'cloud',
-                    'scope' => '*',
-                    'expires_at' => now()->addYear(),
-                    'name' => $user->public_id . ' developer token',
+                    'scope'        => '*',
+                    'expires_at'   => now()->addYear(),
+                    'name'         => $user->public_id . ' developer token',
                 ]
             );
 
@@ -136,9 +136,9 @@ class RegistryAuthController extends Controller
             ],
             [
                 'account_type' => 'developer',
-                'scope' => '*',
-                'expires_at' => now()->addYear(),
-                'name' => $developerAccount->username . ' developer token',
+                'scope'        => '*',
+                'expires_at'   => now()->addYear(),
+                'name'         => $developerAccount->username . ' developer token',
             ]
         );
 
@@ -292,23 +292,23 @@ class RegistryAuthController extends Controller
 
         // Find package
         $extension = RegistryExtension::findByPackageName($package);
-        
+
         if (!$extension) {
             // First time publishing - create extension record
-            $publisherUuid = $registryUser->isDeveloperAccount() 
-                ? $registryUser->developer_account_uuid 
+            $publisherUuid = $registryUser->isDeveloperAccount()
+                ? $registryUser->developer_account_uuid
                 : $registryUser->company_uuid;
-            
+
             $extension = RegistryExtension::create([
-                'uuid' => (string) Str::uuid(),
-                'package_name' => $package,
-                'publisher_type' => $registryUser->account_type,
-                'publisher_uuid' => $publisherUuid,
-                'company_uuid' => $registryUser->company_uuid, // Keep for backwards compatibility
-                'status' => 'published',
+                'uuid'             => (string) Str::uuid(),
+                'package_name'     => $package,
+                'publisher_type'   => $registryUser->account_type,
+                'publisher_uuid'   => $publisherUuid,
+                'company_uuid'     => $registryUser->company_uuid, // Keep for backwards compatibility
+                'status'           => 'published',
                 'payment_required' => false, // Default to free
             ]);
-            
+
             return response()->json(['allowed' => true]);
         }
 
@@ -322,7 +322,7 @@ class RegistryAuthController extends Controller
                 return response()->error('You do not own this extension.', 403);
             }
         }
-        
+
         // If publisher types don't match, deny access
         if ($extension->publisher_type !== $registryUser->account_type) {
             return response()->error('Account type mismatch for this extension.', 403);

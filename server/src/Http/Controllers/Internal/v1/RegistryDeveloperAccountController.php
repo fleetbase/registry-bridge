@@ -16,8 +16,6 @@ class RegistryDeveloperAccountController extends Controller
     /**
      * Register a new Registry Developer Account.
      *
-     * @param Request $request
-     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function register(Request $request)
@@ -63,8 +61,6 @@ class RegistryDeveloperAccountController extends Controller
 
     /**
      * Verify email address using verification code.
-     *
-     * @param Request $request
      *
      * @return \Illuminate\Http\JsonResponse
      */
@@ -114,11 +110,11 @@ class RegistryDeveloperAccountController extends Controller
 
         // Generate registry token for the developer account
         $token = RegistryUser::generateToken();
-        
+
         $registryUser = RegistryUser::firstOrCreate(
             [
                 'developer_account_uuid' => $account->uuid,
-                'account_type' => 'developer',
+                'account_type'           => 'developer',
             ],
             [
                 'token' => $token,
@@ -140,8 +136,6 @@ class RegistryDeveloperAccountController extends Controller
 
     /**
      * Resend verification email.
-     *
-     * @param Request $request
      *
      * @return \Illuminate\Http\JsonResponse
      */
@@ -181,8 +175,6 @@ class RegistryDeveloperAccountController extends Controller
     /**
      * Get account profile.
      *
-     * @param Request $request
-     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function profile(Request $request)
@@ -208,24 +200,22 @@ class RegistryDeveloperAccountController extends Controller
         }
 
         return response()->json([
-            'uuid'          => $account->uuid,
-            'username'      => $account->username,
-            'email'         => $account->email,
-            'name'          => $account->name,
-            'avatar_url'    => $account->avatar_url,
-            'github_username' => $account->github_username,
-            'website'       => $account->website,
-            'bio'           => $account->bio,
-            'status'        => $account->status,
+            'uuid'              => $account->uuid,
+            'username'          => $account->username,
+            'email'             => $account->email,
+            'name'              => $account->name,
+            'avatar_url'        => $account->avatar_url,
+            'github_username'   => $account->github_username,
+            'website'           => $account->website,
+            'bio'               => $account->bio,
+            'status'            => $account->status,
             'email_verified_at' => $account->email_verified_at,
-            'created_at'    => $account->created_at,
+            'created_at'        => $account->created_at,
         ]);
     }
 
     /**
      * Update account profile.
-     *
-     * @param Request $request
      *
      * @return \Illuminate\Http\JsonResponse
      */
@@ -275,13 +265,11 @@ class RegistryDeveloperAccountController extends Controller
     /**
      * Generate or regenerate registry token for authenticated developer account.
      *
-     * @param Request $request
-     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function generateToken(Request $request)
     {
-        $email = $request->input('email');
+        $email    = $request->input('email');
         $password = $request->input('password');
 
         if (!$email || !$password) {
@@ -307,12 +295,12 @@ class RegistryDeveloperAccountController extends Controller
 
         // Generate new token
         $token = RegistryUser::generateToken();
-        
+
         // Find or create registry user
         $registryUser = RegistryUser::firstOrCreate(
             [
                 'developer_account_uuid' => $account->uuid,
-                'account_type' => 'developer',
+                'account_type'           => 'developer',
             ],
             [
                 'token' => $token,
@@ -335,8 +323,6 @@ class RegistryDeveloperAccountController extends Controller
     /**
      * Send verification email to the account.
      *
-     * @param RegistryDeveloperAccount $account
-     *
      * @return void
      */
     private function sendVerificationEmail(RegistryDeveloperAccount $account)
@@ -354,7 +340,7 @@ class RegistryDeveloperAccountController extends Controller
                                "To verify your account, copy and paste this command into your terminal:\n\n" .
                                "flb verify -e {$account->email} -c {$verificationCode->code}\n\n" .
                                "This code will expire in 1 hour.\n\n" .
-                               "If you did not create this account, please ignore this email.";
+                               'If you did not create this account, please ignore this email.';
                     },
                 ]
             );

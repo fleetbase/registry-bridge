@@ -92,8 +92,6 @@ class RegistryDeveloperAccount extends Model
 
     /**
      * Check if the account is active.
-     *
-     * @return bool
      */
     public function isActive(): bool
     {
@@ -102,8 +100,6 @@ class RegistryDeveloperAccount extends Model
 
     /**
      * Check if the account is suspended.
-     *
-     * @return bool
      */
     public function isSuspended(): bool
     {
@@ -112,8 +108,6 @@ class RegistryDeveloperAccount extends Model
 
     /**
      * Check if the account is pending verification.
-     *
-     * @return bool
      */
     public function isPendingVerification(): bool
     {
@@ -122,8 +116,6 @@ class RegistryDeveloperAccount extends Model
 
     /**
      * Check if the email is verified.
-     *
-     * @return bool
      */
     public function isEmailVerified(): bool
     {
@@ -132,27 +124,24 @@ class RegistryDeveloperAccount extends Model
 
     /**
      * Mark the email as verified.
-     *
-     * @return bool
      */
     public function markEmailAsVerified(): bool
     {
         return $this->update([
-            'email_verified_at' => now(),
-            'status' => 'active',
+            'email_verified_at'  => now(),
+            'status'             => 'active',
             'verification_token' => null,
         ]);
     }
 
     /**
      * Generate a new verification token.
-     *
-     * @return string
      */
     public function generateVerificationToken(): string
     {
         $token = Str::random(64);
         $this->update(['verification_token' => $token]);
+
         return $token;
     }
 }
