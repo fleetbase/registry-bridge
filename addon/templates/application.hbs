@@ -23,32 +23,34 @@
             </LinkTo>
         {{/each}}
     </Layout::Sidebar::Panel>
-    <Layout::Sidebar::Panel @open={{true}} @title="Developers">
-        <Layout::Sidebar::Item
-            @route="console.extensions.developers.extensions"
-            @icon="box-archive"
-            @permission="registry-bridge list extension-bundle"
-            @visible={{can "registry-bridge see extension-bundle"}}
-        >Extensions</Layout::Sidebar::Item>
-        <Layout::Sidebar::Item
-            @route="console.extensions.developers.analytics"
-            @icon="chart-simple"
-            @permission="registry-bridge list extension-analytic"
-            @visible={{can "registry-bridge see extension-analytic"}}
-        >Analytics</Layout::Sidebar::Item>
-        <Layout::Sidebar::Item
-            @route="console.extensions.developers.payments"
-            @icon="cash-register"
-            @permission="registry-bridge list extension-payment"
-            @visible={{can "registry-bridge see extension-payment"}}
-        >Payments</Layout::Sidebar::Item>
-        <Layout::Sidebar::Item
-            @route="console.extensions.developers.credentials"
-            @icon="key"
-            @permission="registry-bridge list registry-token"
-            @visible={{can "registry-bridge see registry-token"}}
-        >Credentials</Layout::Sidebar::Item>
-    </Layout::Sidebar::Panel>
+    {{#if this.selfHostedRegistry}}
+        <Layout::Sidebar::Panel @open={{true}} @title="Developers">
+            <Layout::Sidebar::Item
+                @route="console.extensions.developers.extensions"
+                @icon="box-archive"
+                @permission="registry-bridge list extension-bundle"
+                @visible={{can "registry-bridge see extension-bundle"}}
+            >Extensions</Layout::Sidebar::Item>
+            <Layout::Sidebar::Item
+                @route="console.extensions.developers.analytics"
+                @icon="chart-simple"
+                @permission="registry-bridge list extension-analytic"
+                @visible={{can "registry-bridge see extension-analytic"}}
+            >Analytics</Layout::Sidebar::Item>
+            <Layout::Sidebar::Item
+                @route="console.extensions.developers.payments"
+                @icon="cash-register"
+                @permission="registry-bridge list extension-payment"
+                @visible={{can "registry-bridge see extension-payment"}}
+            >Payments</Layout::Sidebar::Item>
+            <Layout::Sidebar::Item
+                @route="console.extensions.developers.credentials"
+                @icon="key"
+                @permission="registry-bridge list registry-token"
+                @visible={{can "registry-bridge see registry-token"}}
+            >Credentials</Layout::Sidebar::Item>
+        </Layout::Sidebar::Panel>
+    {{/if}}
     <Spacer @height="200px" />
 </EmberWormhole>
 

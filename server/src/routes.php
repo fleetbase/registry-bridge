@@ -12,9 +12,16 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-// Lookup package endpoint
+// Public endpoints (no authentication required)
+Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/extensions', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController@listPublicExtensions');
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
+
+// Developer account registration (public, no auth required)
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/verify', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@verifyEmail');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/resend-verification', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@resendVerification');
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/generate-token', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@generateToken');
 Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {
         /*
@@ -35,6 +42,12 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed');
             });
 
+            // Developer account profile routes (require authentication)
+            $router->group(['prefix' => 'developer-account'], function ($router) {
+                $router->get('profile', 'RegistryDeveloperAccountController@profile');
+                $router->post('profile', 'RegistryDeveloperAccountController@updateProfile');
+            });
+
             $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
                 $router->get('categories', 'RegistryController@categories');
                 $router->get('engines', 'RegistryController@getInstalledEngines');
@@ -48,6 +61,7 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->group(['prefix' => 'payments'], function ($router) {
                     $router->post('account', 'RegistryPaymentsController@getStripeAccount');
                     $router->post('account-session', 'RegistryPaymentsController@getStripeAccountSession');
+                    $router->post('account-management-session', 'RegistryPaymentsController@createAccountManagementSession');
                     $router->get('has-stripe-connect-account', 'RegistryPaymentsController@hasStripeConnectAccount');
                     $router->post('create-checkout-session', 'RegistryPaymentsController@createStripeCheckoutSession');
                     $router->post('get-checkout-session', 'RegistryPaymentsController@getStripeCheckoutSessionStatus');

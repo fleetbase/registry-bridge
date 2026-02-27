@@ -162,25 +162,56 @@ class RegistryPaymentsController extends Controller
             $extension->flushCache();
         }
 
+        // Determine purchaser (Company or RegistryDeveloperAccount)
+        $purchaser     = null;
+        $purchaserType = null;
+        $purchaserUuid = null;
+
+        // Check if authenticated via session (cloud user)
+        if (session('company')) {
+            $purchaserUuid = session('company');
+            $purchaserType = 'Fleetbase\\Models\\Company';
+        }
+        // Check if authenticated via bearer token (developer account)
+        elseif ($request->bearerToken()) {
+            $registryUser = \Fleetbase\RegistryBridge\Models\RegistryUser::where('token', $request->bearerToken())->first();
+            if ($registryUser && $registryUser->developer_account_uuid) {
+                $purchaserUuid = $registryUser->developer_account_uuid;
+                $purchaserType = 'Fleetbase\\RegistryBridge\\Models\\RegistryDeveloperAccount';
+            }
+        }
+
+        if (!$purchaserUuid || !$purchaserType) {
+            return response()->error('Unable to identify purchaser. Please ensure you are logged in.');
+        }
+
         // Check if already purchased
-        $purchaseRecordExists = RegistryExtensionPurchase::where(['company_uuid' => session('company'), 'extension_uuid' => $extension->uuid])->exists();
+        $purchaseRecordExists = RegistryExtensionPurchase::where([
+            'purchaser_uuid' => $purchaserUuid,
+            'purchaser_type' => $purchaserType,
+            'extension_uuid' => $extension->uuid,
+        ])->exists();
+
         if ($purchaseRecordExists) {
             return response()->json(['status' => 'purchase_complete', 'extension' => $extension]);
         }
 
-        $stripe          = Utils::getStripeClient();
+        $stripe = Utils::getStripeClient();
         try {
             $session = $stripe->checkout->sessions->retrieve($request->input('checkout_session_id'));
             if (isset($session->status) && $session->status === 'complete') {
                 RegistryExtensionPurchase::firstOrCreate(
                     [
-                        'company_uuid'   => session('company'),
+                        'purchaser_uuid' => $purchaserUuid,
+                        'purchaser_type' => $purchaserType,
                         'extension_uuid' => $extension->uuid,
                     ],
                     [
                         'stripe_checkout_session_id' => $session->id,
                         'stripe_payment_intent_id'   => $session->payment_intent,
                         'locked_price'               => $session->amount_total,
+                        // Keep company_uuid for backward compatibility if it's a company
+                        'company_uuid'               => $purchaserType === 'Fleetbase\\Models\\Company' ? $purchaserUuid : null,
                     ]
                 );
             }
@@ -223,5 +254,45 @@ class RegistryPaymentsController extends Controller
         $totalPurchaseAmount        = $query->get()->sum('locked_price');
 
         return FleetbaseResource::collection($payments)->additional(['total_amount' => $totalPurchaseAmount]);
+    }
+
+    /**
+     * Creates a Stripe account session for account management.
+     *
+     * This method creates a session that allows connected accounts to manage their account details,
+     * including updating bank account information, business details, and other settings.
+     *
+     * @param Request $request the incoming HTTP request
+     *
+     * @return \Illuminate\Http\JsonResponse returns a JSON response with the session's client secret or an error message
+     */
+    public function createAccountManagementSession(Request $request)
+    {
+        $stripe  = Utils::getStripeClient();
+        $company = Auth::getCompany();
+
+        if (!$company || !$company->stripe_connect_id) {
+            return response()->error('Stripe Connect account not found for this company.');
+        }
+
+        try {
+            $accountSession = $stripe->accountSessions->create([
+                'account'    => $company->stripe_connect_id,
+                'components' => [
+                    'account_management' => [
+                        'enabled'  => true,
+                        'features' => [
+                            'external_account_collection' => true,
+                        ],
+                    ],
+                ],
+            ]);
+
+            return response()->json([
+                'clientSecret' => $accountSession->client_secret,
+            ]);
+        } catch (\Exception $e) {
+            return response()->error($e->getMessage());
+        }
     }
 }

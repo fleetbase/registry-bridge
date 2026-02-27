@@ -24,6 +24,34 @@ class RegistryExtensionController extends RegistryBridgeController
     public $resource = 'registry_extension';
 
     /**
+     * Display a public list of all published extensions.
+     *
+     * This endpoint is publicly accessible and returns all extensions with a status of 'published'.
+     * The results are cached for 15 minutes to improve performance and reduce database load.
+     * This endpoint is designed to be called by self-hosted instances to discover available extensions.
+     *
+     * @param Request $request the incoming HTTP request
+     *
+     * @return \Illuminate\Http\JsonResponse the collection of published extensions
+     */
+    public function listPublicExtensions(Request $request)
+    {
+        $cacheKey = 'public-extensions-list';
+        $cacheTtl = now()->addMinutes(15);
+
+        $extensions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTtl, function () {
+            return RegistryExtension::where('status', 'published')
+                ->with(['author', 'category', 'currentBundle'])
+                ->orderBy('install_count', 'desc')
+                ->get();
+        });
+
+        $this->resource::wrap('registryExtensions');
+
+        return $this->resource::collection($extensions);
+    }
+
+    /**
      * Creates a record with request payload.
      *
      * @return \Illuminate\Http\Response

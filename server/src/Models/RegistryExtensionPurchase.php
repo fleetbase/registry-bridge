@@ -29,6 +29,8 @@ class RegistryExtensionPurchase extends Model
     protected $fillable = [
         'uuid',
         'company_uuid',
+        'purchaser_uuid',
+        'purchaser_type',
         'extension_uuid',
         'stripe_checkout_session_id',
         'stripe_payment_intent_id',
@@ -70,7 +72,22 @@ class RegistryExtensionPurchase extends Model
     protected $without = ['company', 'extension'];
 
     /**
+     * Get the purchaser (polymorphic relationship).
+     * Can be either a Company or RegistryDeveloperAccount.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
+     */
+    public function purchaser()
+    {
+        return $this->morphTo('purchaser', 'purchaser_type', 'purchaser_uuid', 'uuid');
+    }
+
+    /**
+     * Legacy relationship for backward compatibility.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     *
+     * @deprecated Use purchaser() instead
      */
     public function company()
     {
