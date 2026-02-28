@@ -48,7 +48,7 @@ class RegistryExtensionController extends RegistryBridgeController
                 ->get();
         });
 
-        PublicRegistryExtension::wrap('registryExtensions');
+        PublicRegistryExtension::withoutWrapping();
 
         return PublicRegistryExtension::collection($extensions);
     }
