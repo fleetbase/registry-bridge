@@ -41,7 +41,7 @@ class RegistryExtensionController extends RegistryBridgeController
 
         $extensions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTtl, function () {
             return RegistryExtension::where('status', 'published')
-                ->with(['author', 'category', 'currentBundle'])
+                ->with(['company', 'category', 'currentBundle'])
                 ->withCount('installs')
                 ->orderBy('installs_count', 'desc')
                 ->get();
