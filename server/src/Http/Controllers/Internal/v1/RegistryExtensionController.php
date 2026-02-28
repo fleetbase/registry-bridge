@@ -8,6 +8,7 @@ use Fleetbase\Models\Setting;
 use Fleetbase\RegistryBridge\Http\Controllers\RegistryBridgeController;
 use Fleetbase\RegistryBridge\Http\Requests\CreateRegistryExtensionRequest;
 use Fleetbase\RegistryBridge\Http\Requests\RegistryExtensionActionRequest;
+use Fleetbase\RegistryBridge\Http\Resources\PublicRegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Illuminate\Http\Request;
@@ -47,9 +48,9 @@ class RegistryExtensionController extends RegistryBridgeController
                 ->get();
         });
 
-        $this->resource::wrap('registryExtensions');
+        PublicRegistryExtension::wrap('registryExtensions');
 
-        return $this->resource::collection($extensions);
+        return PublicRegistryExtension::collection($extensions);
     }
 
     /**
