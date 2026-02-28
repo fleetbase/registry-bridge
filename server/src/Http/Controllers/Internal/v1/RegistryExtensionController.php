@@ -8,6 +8,7 @@ use Fleetbase\Models\Setting;
 use Fleetbase\RegistryBridge\Http\Controllers\RegistryBridgeController;
 use Fleetbase\RegistryBridge\Http\Requests\CreateRegistryExtensionRequest;
 use Fleetbase\RegistryBridge\Http\Requests\RegistryExtensionActionRequest;
+use Fleetbase\RegistryBridge\Http\Resources\PublicRegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Illuminate\Http\Request;
@@ -41,14 +42,15 @@ class RegistryExtensionController extends RegistryBridgeController
 
         $extensions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTtl, function () {
             return RegistryExtension::where('status', 'published')
-                ->with(['author', 'category', 'currentBundle'])
-                ->orderBy('install_count', 'desc')
+                ->with(['company', 'category', 'currentBundle'])
+                ->withCount('installs')
+                ->orderBy('installs_count', 'desc')
                 ->get();
         });
 
-        $this->resource::wrap('registryExtensions');
+        PublicRegistryExtension::withoutWrapping();
 
-        return $this->resource::collection($extensions);
+        return PublicRegistryExtension::collection($extensions);
     }
 
     /**
