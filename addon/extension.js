@@ -30,18 +30,6 @@ export default {
                     icon: 'receipt',
                     route: 'console.extensions.purchased',
                 },
-                {
-                    title: 'My Extensions',
-                    description: 'Manage and publish your own extensions to the registry.',
-                    icon: 'code-branch',
-                    route: 'console.extensions.developers.extensions',
-                },
-                {
-                    title: 'Developer Analytics',
-                    description: 'Track installs, revenue, and usage for your published extensions.',
-                    icon: 'chart-line',
-                    route: 'console.extensions.developers.analytics',
-                },
             ],
         });
 
