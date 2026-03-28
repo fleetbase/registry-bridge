@@ -94,7 +94,7 @@ class RegistryAuthController extends Controller
             $query->where('email', $identity)->orWhere('phone', $identity)->orWhere('username', $identity);
         })->first();
 
-        if ($user && Auth::isValidPassword($password, $user->password)) {
+        if ($user && Auth::checkPassword($password, $user->password)) {
             // Cloud user authentication
             $registryUser = RegistryUser::firstOrCreate(
                 [

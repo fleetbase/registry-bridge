@@ -22,7 +22,7 @@ class AddRegistryUserRequest extends FleetbaseRequest
      */
     public function authorize()
     {
-        return session('is_admin') === true;
+        return true;
     }
 
     /**
