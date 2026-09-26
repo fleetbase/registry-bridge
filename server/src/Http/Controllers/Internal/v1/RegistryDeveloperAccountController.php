@@ -92,7 +92,11 @@ class RegistryDeveloperAccountController extends Controller
             ->where('subject_type', RegistryDeveloperAccount::class)
             ->where('for', 'registry_developer_account_verification')
             ->where('code', $code)
-            ->whereIn('status', ['pending', null])  // Support both pending and NULL status
+            // generateEmailVerificationFor() stores codes as 'active'; also accept legacy 'pending' and NULL status
+            ->where(function ($query) {
+                $query->whereIn('status', ['active', 'pending'])->orWhereNull('status');
+            })
+            ->latest()
             ->first();
 
         if (!$verificationCode) {
