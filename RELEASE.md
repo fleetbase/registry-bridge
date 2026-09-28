@@ -1,13 +1,12 @@
-> v0.1.9 ~ "RELEASE_NOTES_PLACEHOLDER — replace this line with the release title"
+> v0.1.10 ~ "Fix developer account email verification, add Ukrainian translation"
 
 ---
 ## Highlights
 
-RELEASE_NOTES_PLACEHOLDER
-
-Describe what changed in this release. The first line above must name the version
-being released, and both placeholder markers must be gone, or the release workflow
-refuses to tag.
+- **Fixed developer account email verification.** `flb verify` rejected every valid code with
+  "Invalid or expired verification code." Codes are now checked correctly. That includes codes
+  that were already sent before this release. ([fleetbase/fleetbase#683](https://github.com/fleetbase/fleetbase/issues/683), #38)
+- **Added a Ukrainian translation** (`uk-ua`). (#37)
 
 ---
 ## Need help?
