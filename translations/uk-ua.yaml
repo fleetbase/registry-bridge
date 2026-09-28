@@ -106,7 +106,8 @@ registry-bridge:
         extension-subscription-required-help-text: Визначає, чи повинен користувач мати підписку для встановлення та використання цього розширення.
         extension-subscription-billing-period: Розрахунковий період підписки
         extension-subscription-billing-period-placeholder: Оберіть розрахунковий період
-        extension-subscription-billing-period-help-text: Вкажіть розрахунковий період для підписки. Наприклад: щомісяця, щокварталу, щорічно або інші власні інтервали.
+        extension-subscription-billing-period-help-text: >
+          Вкажіть розрахунковий період для підписки. Наприклад: щомісяця, щокварталу, щорічно або інші власні інтервали.
         extension-subscription-amount: Вартість підписки
         extension-subscription-amount-help-text: Введіть стандартну суму для стягнення за підписку. Вона має відображати звичайну ціну до застосування будь-яких знижок чи багаторівневих коригувань.
         extension-subscription-model: Модель підписки
