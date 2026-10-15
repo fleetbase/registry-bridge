@@ -1,12 +1,9 @@
-> v0.1.10 ~ "Fix developer account email verification, add Ukrainian translation"
+> v0.1.11 ~ "Extensions load in console test mode"
 
 ---
 ## Highlights
 
-- **Fixed developer account email verification.** `flb verify` rejected every valid code with
-  "Invalid or expired verification code." Codes are now checked correctly. That includes codes
-  that were already sent before this release. ([fleetbase/fleetbase#683](https://github.com/fleetbase/fleetbase/issues/683), #38)
-- **Added a Ukrainian translation** (`uk-ua`). (#37)
+- **Fix: registry endpoints returned 500 in console test mode.** `~registry/v1/engines`, `registry-extensions`, `installed`, `purchased` and `categories` queried the sandbox database, where registry tables don't exist. Registry models and the category queries now always use the live connection. (#41)
 
 ---
 ## Need help?
