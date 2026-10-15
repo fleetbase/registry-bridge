@@ -36,6 +36,17 @@ class RegistryExtension extends Model
     protected $table = 'registry_extensions';
 
     /**
+     * The database connection to use.
+     *
+     * Registry data belongs to the account and only exists in the live database
+     * (sandbox migrations are disabled for this package), so it must never follow
+     * the sandbox connection switch made by `Auth::setSandboxSession()`.
+     *
+     * @var string
+     */
+    protected $connection = 'mysql';
+
+    /**
      * The type of public Id to generate.
      *
      * @var string
@@ -230,11 +241,18 @@ class RegistryExtension extends Model
     }
 
     /**
+     * Registry extension categories are core `Category` rows that live in the live
+     * database. `Category` itself follows `fleetbase.connection.db`, which is
+     * switched to `sandbox` in test mode, so pin the related instance to the
+     * extension's own (live) connection.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_uuid', 'uuid');
+        $instance = (new Category())->setConnection($this->getConnectionName());
+
+        return $this->newBelongsTo($instance->newQuery(), $this, 'category_uuid', 'uuid', 'category');
     }
 
     /**

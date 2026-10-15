@@ -27,7 +27,11 @@ class RegistryController extends Controller
      */
     public function categories()
     {
-        $categories = Category::whereHas('registryExtensions')->where(['core_category' => 1, 'for' => 'extension_category'])->get();
+        // Registry categories and the `registry_extensions` table only exist in the live
+        // database. Run the whole query (including the `whereHas` subquery, which is
+        // executed on the parent query's connection) against the live connection so it
+        // does not resolve to the sandbox database in test mode.
+        $categories = Category::on((new RegistryExtension())->getConnectionName())->whereHas('registryExtensions')->where(['core_category' => 1, 'for' => 'extension_category'])->get();
 
         CategoryResource::wrap('categories');
 
