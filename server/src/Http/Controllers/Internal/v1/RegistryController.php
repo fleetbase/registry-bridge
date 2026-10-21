@@ -211,7 +211,7 @@ class RegistryController extends Controller
                 return response()->json(['error' => 'Unable to find extension for the uploaded bundle.'], 400);
             }
 
-            if ($extension->company_uuid !== $registryUser->company_uuid) {
+            if (!$extension->isOwnedBy($registryUser)) {
                 return response()->json(['error' => 'User is not authorized to upload bundles for this extension.'], 401);
             }
         } else {
@@ -245,11 +245,12 @@ class RegistryController extends Controller
             return response()->error($e->getMessage());
         }
 
-        // Set company and uploader
-        $file->update([
-            'company_uuid'  => $registryUser->company_uuid,
-            'uploader_uuid' => $registryUser->user_uuid,
-        ]);
+        // Set company and uploader (developer accounts have neither)
+        $fileAttributes = ['uploader_uuid' => $registryUser->user_uuid];
+        if ($registryUser->company_uuid) {
+            $fileAttributes['company_uuid'] = $registryUser->company_uuid;
+        }
+        $file->update($fileAttributes);
 
         // Set file subject to extension
         $file = $file->setSubject($extension);
@@ -276,14 +277,17 @@ class RegistryController extends Controller
         // Set bundle number to parsed JSON
         $extensionJson->bundle_number = RegistryExtensionBundle::getNextBundleNumber($extension);
 
-        // Create the bundle
-        $extensionBundle = RegistryExtensionBundle::create([
-            'company_uuid'    => $registryUser->company_uuid,
+        // Create the bundle (company only when the publisher is a cloud account)
+        $bundleAttributes = [
             'created_by_uuid' => $registryUser->user_uuid,
             'extension_uuid'  => $extension->uuid,
             'bundle_uuid'     => $file->uuid,
             'status'          => 'pending',
-        ]);
+        ];
+        if ($registryUser->company_uuid) {
+            $bundleAttributes['company_uuid'] = $registryUser->company_uuid;
+        }
+        $extensionBundle = RegistryExtensionBundle::create($bundleAttributes);
 
         $extensionBundle->update(['bundle_number' => $extensionJson->bundle_number, 'version' => $extensionJson->version]);
         $extensionBundle->updateMetaProperties((array) $bundleData);

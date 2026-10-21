@@ -793,54 +793,44 @@ class RegistryExtensionBundle extends Model
     }
 
     /**
-     * Simulates the installation progress of an extension by publishing progress updates.
+     * Publishes completion of each installation step for a pre-installed extension.
      *
-     * This method publishes progress updates to a SocketCluster channel for each step in the installation process.
-     * It can be used to provide real-time feedback to clients about the installation status.
+     * Used when extensions are pre-installed to the system and no real installer runs:
+     * one event per step is published to the SocketCluster channel at 100% so clients
+     * can advance their progress UI without a simulated delay.
      */
     public function runInstallerProgress(): void
     {
-        $channel   = implode('.', ['install', $this->company_uuid, $this->extension_uuid]);
-        $steps     = ['api.install', 'engine.install', 'console.build'];
+        $channel = implode('.', ['install', $this->company_uuid, $this->extension_uuid]);
+        $steps   = ['api.install', 'engine.install', 'console.build'];
 
         foreach ($steps as $step) {
-            $run = range(1, 100);
-            foreach ($run as $progress) {
-                SocketClusterService::publish($channel, [
-                    'process'  => 'install',
-                    'step'     => $step,
-                    'progress' => $progress,
-                ]);
-
-                // minimal latency
-                usleep(50 * rand(1, 3));
-            }
+            SocketClusterService::publish($channel, [
+                'process'  => 'install',
+                'step'     => $step,
+                'progress' => 100,
+            ]);
         }
     }
 
     /**
-     * Simulates the uninstallation progress of an extension by publishing progress updates.
+     * Publishes completion of each uninstallation step for a pre-installed extension.
      *
-     * This method publishes progress updates to a SocketCluster channel for each step in the uninstallation process.
-     * It can be used to provide real-time feedback to clients about the uninstallation status.
+     * Used when extensions are pre-installed to the system and no real uninstaller runs:
+     * one event per step is published to the SocketCluster channel at 100% so clients
+     * can advance their progress UI without a simulated delay.
      */
     public function runUninstallerProgress(): void
     {
-        $channel   = implode('.', ['uninstall', $this->company_uuid, $this->extension_uuid]);
-        $steps     = ['api.uninstall', 'engine.uninstall', 'console.build'];
+        $channel = implode('.', ['uninstall', $this->company_uuid, $this->extension_uuid]);
+        $steps   = ['api.uninstall', 'engine.uninstall', 'console.build'];
 
         foreach ($steps as $step) {
-            $run = range(1, 100);
-            foreach ($run as $progress) {
-                SocketClusterService::publish($channel, [
-                    'process'  => 'uninstall',
-                    'step'     => $step,
-                    'progress' => $progress,
-                ]);
-
-                // minimal latency
-                usleep(50 * rand(1, 3));
-            }
+            SocketClusterService::publish($channel, [
+                'process'  => 'uninstall',
+                'step'     => $step,
+                'progress' => 100,
+            ]);
         }
     }
 

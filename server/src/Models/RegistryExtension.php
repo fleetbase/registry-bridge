@@ -9,6 +9,8 @@ use Fleetbase\Models\Company;
 use Fleetbase\Models\File;
 use Fleetbase\Models\Model;
 use Fleetbase\Models\User;
+use Fleetbase\RegistryBridge\Support\Publisher;
+use Fleetbase\RegistryBridge\Support\Purchaser;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Fleetbase\Traits\HasApiModelBehavior;
 use Fleetbase\Traits\HasMetaAttributes;
@@ -48,6 +50,8 @@ class RegistryExtension extends Model
     protected $fillable = [
         'uuid',
         'company_uuid',
+        'publisher_type',
+        'publisher_uuid',
         'created_by_uuid',
         'category_uuid',
         'registry_user_uuid',
@@ -57,6 +61,7 @@ class RegistryExtension extends Model
         'public_id',
         'stripe_product_id',
         'name',
+        'package_name',
         'subtitle',
         'self_managed',
         'payment_required',
@@ -426,20 +431,23 @@ class RegistryExtension extends Model
     }
 
     /**
-     * Finds a RegistryExtension by package name in the associated currentBundle.
+     * Finds a RegistryExtension by package name.
      *
-     * This method searches for a RegistryExtension where the associated currentBundle's
-     * 'meta' JSON column contains the specified package name either in the 'api' field
-     * or the 'engine' field. It returns the first matching RegistryExtension or null
-     * if no matches are found. The method leverages Eloquent's relationship querying
-     * capabilities to efficiently filter the results.
+     * The extension's own `package_name` column is checked first (set on first publish, before
+     * any bundle exists). Otherwise the associated currentBundle's 'meta' JSON column is searched
+     * for the package name in either the `package.json` or `composer.json` name.
      *
-     * @param string $packageName the name of the package to search for in the 'api' or 'engine' fields
+     * @param string $packageName the npm or composer package name to search for
      *
      * @return RegistryExtension|null the first RegistryExtension that matches the search criteria, or null if no match is found
      */
     public static function findByPackageName(string $packageName): ?RegistryExtension
     {
+        $extension = static::where('package_name', $packageName)->first();
+        if ($extension) {
+            return $extension;
+        }
+
         return static::whereHas('currentBundle', function ($query) use ($packageName) {
             $query->where('meta->package.json->name', $packageName)->orWhere('meta->composer.json->name', $packageName);
         })->first();
@@ -666,19 +674,30 @@ class RegistryExtension extends Model
      * It calculates the facilitator fee based on the total amount and creates a checkout session with
      * the necessary Stripe configurations, including the return URI with query parameters.
      *
-     * @param string $returnUri the URI to which the user should be returned after the checkout process
+     * @param string         $returnUri the URI to which the user should be returned after the checkout process
+     * @param Purchaser|null $purchaser the purchaser (company or developer account); defaults to the session company
      *
      * @return \Stripe\Checkout\Session returns the Stripe Checkout Session object
      *
      * @throws \Exception throws an exception if the model does not have an associated company or price
      */
-    public function createStripeCheckoutSession(string $returnUri): \Stripe\Checkout\Session
+    public function createStripeCheckoutSession(string $returnUri, ?Purchaser $purchaser = null): \Stripe\Checkout\Session
     {
         // Get extension author
         $extensionAuthor = $this->company;
         if (!$extensionAuthor) {
             throw new \Exception('The extension you attempted to purchase is not available for purchase at this time.');
         }
+
+        // Identify the purchaser so the Stripe webhook can record the purchase without a browser session
+        if (!$purchaser && session('company')) {
+            $purchaser = Purchaser::company(session('company'));
+        }
+        if (!$purchaser) {
+            throw new \Exception('Unable to identify purchaser. Please ensure you are logged in.');
+        }
+
+        $metadata = array_merge($purchaser->toArray(), ['extension_uuid' => $this->uuid]);
 
         // Get the extension price from stripe
         $price = $this->getStripePrice();
@@ -704,11 +723,13 @@ class RegistryExtension extends Model
             ],
             'mode'                => 'payment',
             'return_url'          => Utils::consoleUrl($returnUri) . '?extension_id=' . $this->uuid . '&checkout_session_id={CHECKOUT_SESSION_ID}',
+            'metadata'            => $metadata,
             'payment_intent_data' => [
                 'application_fee_amount' => $facilitatorFee,
                 'transfer_data'          => [
                     'destination' => $extensionAuthor->stripe_connect_id,
                 ],
+                'metadata' => $metadata,
             ],
         ]);
 
@@ -716,11 +737,29 @@ class RegistryExtension extends Model
     }
 
     /**
+     * Determine if the registry user publishes (owns) this extension.
+     *
+     * Compares `publisher_type` / `publisher_uuid` against the registry user's publisher,
+     * falling back to `company_uuid` for rows created before publisher fields existed.
+     *
+     * @param RegistryUser $registryUser the registry user to check ownership for
+     */
+    public function isOwnedBy(RegistryUser $registryUser): bool
+    {
+        $publisher = $registryUser->publisher();
+        if (!$publisher) {
+            return false;
+        }
+
+        return $publisher->owns($this->publisher_type, $this->publisher_uuid, $this->company_uuid);
+    }
+
+    /**
      * Determine if the registry user has access to the registry extension.
      *
      * This method checks if the extension requires payment. If it does not,
-     * access is granted. If payment is required, it checks if the user's company
-     * has made a purchase of the extension.
+     * access is granted. If payment is required, it checks if the user's purchaser
+     * (company or developer account) has made a purchase of the extension.
      *
      * @param RegistryUser $registryUser the registry user to check access for
      *
@@ -732,15 +771,20 @@ class RegistryExtension extends Model
             return true;
         }
 
-        return $this->purchases()->where('company_uuid', $registryUser->company_uuid)->exists();
+        $purchaser = $registryUser->purchaser();
+        if (!$purchaser) {
+            return false;
+        }
+
+        return $this->purchases()->forPurchaser($purchaser)->exists();
     }
 
     /**
      * Determine if the registry user does not have access to the registry extension.
      *
      * This method checks if the extension requires payment. If it does not,
-     * access is always denied. If payment is required, it checks if the user's
-     * company has not made a purchase of the extension.
+     * access is never denied. If payment is required, it checks if the user's
+     * purchaser (company or developer account) has not made a purchase of the extension.
      *
      * @param RegistryUser $registryUser the registry user to check access for
      *
@@ -752,6 +796,6 @@ class RegistryExtension extends Model
             return false;
         }
 
-        return $this->purchases()->where('company_uuid', $registryUser->company_uuid)->doesntExist();
+        return !$this->hasAccess($registryUser);
     }
 }

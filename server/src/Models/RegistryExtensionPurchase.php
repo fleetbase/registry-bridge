@@ -6,6 +6,7 @@ use Fleetbase\Casts\Json;
 use Fleetbase\Casts\Money;
 use Fleetbase\Models\Company;
 use Fleetbase\Models\Model;
+use Fleetbase\RegistryBridge\Support\Purchaser;
 use Fleetbase\Traits\HasApiModelBehavior;
 use Fleetbase\Traits\HasMetaAttributes;
 use Fleetbase\Traits\HasUuid;
@@ -100,5 +101,28 @@ class RegistryExtensionPurchase extends Model
     public function extension()
     {
         return $this->belongsTo(RegistryExtension::class, 'extension_uuid', 'uuid');
+    }
+
+    /**
+     * Scope purchases to a purchaser (company or developer account).
+     *
+     * Matches on the polymorphic `purchaser_type` / `purchaser_uuid` columns, and for
+     * companies also on legacy rows that only carry `company_uuid`.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForPurchaser($query, Purchaser $purchaser)
+    {
+        return $query->where(function ($query) use ($purchaser) {
+            $query->where($purchaser->toArray());
+
+            if ($purchaser->isCompany()) {
+                $query->orWhere(function ($query) use ($purchaser) {
+                    $query->whereNull('purchaser_uuid')->where('company_uuid', $purchaser->uuid());
+                });
+            }
+        });
     }
 }

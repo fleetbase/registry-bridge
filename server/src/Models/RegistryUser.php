@@ -6,6 +6,8 @@ use Fleetbase\Casts\Json;
 use Fleetbase\Models\Company;
 use Fleetbase\Models\Model;
 use Fleetbase\Models\User;
+use Fleetbase\RegistryBridge\Support\Publisher;
+use Fleetbase\RegistryBridge\Support\Purchaser;
 use Fleetbase\Traits\Expirable;
 use Fleetbase\Traits\HasMetaAttributes;
 use Fleetbase\Traits\HasPublicId;
@@ -249,10 +251,10 @@ class RegistryUser extends Model
     /**
      * Determine if the registry user can access a specific package.
      *
-     * This method checks if the package name exists in the list of purchased
-     * extensions for the user. It verifies if the package name matches either
-     * the `package.json` or `composer.json` name in the metadata of the current bundle
-     * of any purchased extension.
+     * This method checks if the package name exists in the list of extensions purchased
+     * by this user's purchaser (company or developer account). It matches the extension's
+     * `package_name`, or the `package.json` / `composer.json` name in the metadata of the
+     * current bundle.
      *
      * @param string $packageName the name of the package to check access for
      *
@@ -260,8 +262,13 @@ class RegistryUser extends Model
      */
     public function canAccessPackage(string $packageName): bool
     {
-        return $this->purchases()->whereHas('extension', function ($query) use ($packageName) {
-            $query->whereHas('currentBundle', function ($query) use ($packageName) {
+        $purchaser = $this->purchaser();
+        if (!$purchaser) {
+            return false;
+        }
+
+        return RegistryExtensionPurchase::forPurchaser($purchaser)->whereHas('extension', function ($query) use ($packageName) {
+            $query->where('package_name', $packageName)->orWhereHas('currentBundle', function ($query) use ($packageName) {
                 $query->where('meta->package.json->name', $packageName)->orWhere('meta->composer.json->name', $packageName);
             });
         })->exists();
@@ -296,6 +303,22 @@ class RegistryUser extends Model
     public function isCloudAccount(): bool
     {
         return $this->account_type === 'cloud';
+    }
+
+    /**
+     * Resolve the publisher identity (company or developer account) this registry user publishes as.
+     */
+    public function publisher(): ?Publisher
+    {
+        return Publisher::fromAccount($this->account_type, $this->company_uuid, $this->developer_account_uuid);
+    }
+
+    /**
+     * Resolve the purchaser identity (company or developer account) this registry user purchases as.
+     */
+    public function purchaser(): ?Purchaser
+    {
+        return Purchaser::fromAccount($this->account_type, $this->company_uuid, $this->developer_account_uuid);
     }
 
     /**

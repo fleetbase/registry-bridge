@@ -6,6 +6,9 @@ use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Resources\FleetbaseResource;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionPurchase;
+use Fleetbase\RegistryBridge\Models\RegistryUser;
+use Fleetbase\RegistryBridge\Support\Purchaser;
+use Fleetbase\RegistryBridge\Support\StripeWebhooks;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Fleetbase\Support\Auth;
 use Illuminate\Http\Request;
@@ -130,8 +133,13 @@ class RegistryPaymentsController extends Controller
             return response()->error('The extension you attempted to purchase does not exist.');
         }
 
+        $purchaser = $this->resolvePurchaser($request);
+        if (!$purchaser) {
+            return response()->error('Unable to identify purchaser. Please ensure you are logged in.');
+        }
+
         try {
-            $checkoutSession = $extension->createStripeCheckoutSession($redirectUri);
+            $checkoutSession = $extension->createStripeCheckoutSession($redirectUri, $purchaser);
         } catch (\Throwable $e) {
             return response()->error($e->getMessage());
         }
@@ -163,34 +171,13 @@ class RegistryPaymentsController extends Controller
         }
 
         // Determine purchaser (Company or RegistryDeveloperAccount)
-        $purchaser     = null;
-        $purchaserType = null;
-        $purchaserUuid = null;
-
-        // Check if authenticated via session (cloud user)
-        if (session('company')) {
-            $purchaserUuid = session('company');
-            $purchaserType = 'Fleetbase\\Models\\Company';
-        }
-        // Check if authenticated via bearer token (developer account)
-        elseif ($request->bearerToken()) {
-            $registryUser = \Fleetbase\RegistryBridge\Models\RegistryUser::where('token', $request->bearerToken())->first();
-            if ($registryUser && $registryUser->developer_account_uuid) {
-                $purchaserUuid = $registryUser->developer_account_uuid;
-                $purchaserType = 'Fleetbase\\RegistryBridge\\Models\\RegistryDeveloperAccount';
-            }
-        }
-
-        if (!$purchaserUuid || !$purchaserType) {
+        $purchaser = $this->resolvePurchaser($request);
+        if (!$purchaser) {
             return response()->error('Unable to identify purchaser. Please ensure you are logged in.');
         }
 
         // Check if already purchased
-        $purchaseRecordExists = RegistryExtensionPurchase::where([
-            'purchaser_uuid' => $purchaserUuid,
-            'purchaser_type' => $purchaserType,
-            'extension_uuid' => $extension->uuid,
-        ])->exists();
+        $purchaseRecordExists = RegistryExtensionPurchase::forPurchaser($purchaser)->where('extension_uuid', $extension->uuid)->exists();
 
         if ($purchaseRecordExists) {
             return response()->json(['status' => 'purchase_complete', 'extension' => $extension]);
@@ -201,17 +188,13 @@ class RegistryPaymentsController extends Controller
             $session = $stripe->checkout->sessions->retrieve($request->input('checkout_session_id'));
             if (isset($session->status) && $session->status === 'complete') {
                 RegistryExtensionPurchase::firstOrCreate(
-                    [
-                        'purchaser_uuid' => $purchaserUuid,
-                        'purchaser_type' => $purchaserType,
-                        'extension_uuid' => $extension->uuid,
-                    ],
+                    array_merge($purchaser->toArray(), ['extension_uuid' => $extension->uuid]),
                     [
                         'stripe_checkout_session_id' => $session->id,
                         'stripe_payment_intent_id'   => $session->payment_intent,
                         'locked_price'               => $session->amount_total,
                         // Keep company_uuid for backward compatibility if it's a company
-                        'company_uuid'               => $purchaserType === 'Fleetbase\\Models\\Company' ? $purchaserUuid : null,
+                        'company_uuid'               => $purchaser->isCompany() ? $purchaser->uuid() : null,
                     ]
                 );
             }
@@ -225,6 +208,76 @@ class RegistryPaymentsController extends Controller
         } catch (\Error $e) {
             return response()->error($e->getMessage());
         }
+    }
+
+    /**
+     * Handles Stripe webhook events for extension purchases.
+     *
+     * The request is verified against `registry-bridge.stripe.webhook_secret` using the
+     * `Stripe-Signature` header. For paid Checkout Sessions (`checkout.session.completed`, or
+     * `checkout.session.async_payment_succeeded` for delayed payment methods) the purchase
+     * record is created idempotently from the session metadata set in
+     * `RegistryExtension::createStripeCheckoutSession()`, so a buyer who closes the return
+     * page before `getStripeCheckoutSessionStatus` runs still receives their licence.
+     *
+     * @param Request $request the incoming webhook request from Stripe
+     *
+     * @return \Illuminate\Http\JsonResponse returns an acknowledgement, or an error for unverifiable requests
+     */
+    public function handleStripeWebhook(Request $request)
+    {
+        $webhookSecret = config('registry-bridge.stripe.webhook_secret');
+        if (empty($webhookSecret)) {
+            return response()->json(['error' => 'Stripe webhook secret is not configured.'], 500);
+        }
+
+        $signatureHeader = $request->header('Stripe-Signature');
+
+        try {
+            $event = StripeWebhooks::constructEvent($request->getContent(), is_string($signatureHeader) ? $signatureHeader : null, $webhookSecret);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Invalid Stripe webhook signature.'], 400);
+        }
+
+        if (in_array($event->type, StripeWebhooks::CHECKOUT_PAID_EVENTS, true)) {
+            $purchase = StripeWebhooks::purchaseFromCheckoutSession($event->data->object->toArray());
+            if ($purchase) {
+                $extension = RegistryExtension::where('uuid', $purchase['match']['extension_uuid'])->first();
+                if ($extension) {
+                    RegistryExtensionPurchase::firstOrCreate($purchase['match'], $purchase['attributes']);
+
+                    // Flush cache for extension
+                    if (method_exists($extension, 'flushCache')) {
+                        $extension->flushCache();
+                    }
+                }
+            }
+        }
+
+        return response()->json(['received' => true]);
+    }
+
+    /**
+     * Resolve the purchaser for the current request.
+     *
+     * Cloud users are identified by the company in the session; developer accounts (and any
+     * other registry users) by their bearer token.
+     */
+    protected function resolvePurchaser(Request $request): ?Purchaser
+    {
+        if (session('company')) {
+            return Purchaser::company(session('company'));
+        }
+
+        $token = $request->bearerToken();
+        if ($token) {
+            $registryUser = RegistryUser::findFromToken($token);
+            if ($registryUser) {
+                return $registryUser->purchaser();
+            }
+        }
+
+        return null;
     }
 
     public function getAuthorReceivedPayments(Request $request)

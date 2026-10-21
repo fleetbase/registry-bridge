@@ -17,6 +17,9 @@ Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/exte
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
 
+// Stripe webhook (public, verified by signature; must stay outside the authenticated groups)
+Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/payments/webhook', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryPaymentsController@handleStripeWebhook');
+
 // Developer account registration (public, no auth required)
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/verify', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@verifyEmail');

@@ -21,22 +21,24 @@ class RegistryAuthController extends Controller
     /**
      * Handle Composer authentication and return a list of unauthorized packages.
      *
-     * This function authenticates the user based on the provided registry token.
-     * If the token is valid, it returns a list of packages that the user is not authorized to access.
+     * This function authenticates the user based on the provided token, which may be either the
+     * registry token (`registry_token`) or the bridge token (`token`); the legacy `registryToken`
+     * key is still accepted. If the token is valid, it returns a list of paid packages that the
+     * user's purchaser (company or developer account) has not purchased.
      *
-     * @param Request $request the incoming HTTP request containing the registry token
+     * @param Request $request the incoming HTTP request containing the token
      *
      * @return \Illuminate\Http\JsonResponse a JSON response containing the status and a list of unauthorized packages
      */
     public function composerAuthentication(Request $request)
     {
-        $registryToken = $request->input('registryToken');
-        if (!$registryToken) {
+        $token = $request->input('registry_token') ?? $request->input('token') ?? $request->input('registryToken');
+        if (!$token) {
             return response()->error('No registry token provided for authentication.', 401);
         }
 
         // Get registry user via token
-        $registryUser = RegistryUser::where('registry_token', $registryToken)->first();
+        $registryUser = RegistryUser::findFromToken($token);
         if (!$registryUser) {
             return response()->error('Invalid registry token provided for authentication.', 401);
         }
@@ -44,12 +46,16 @@ class RegistryAuthController extends Controller
         // Init unauthorized extensions
         $unauthorizedExtensionNames = collect();
 
-        // Unless admin the registry user is only allowed access to their extensions
+        // Unless admin the registry user is only allowed access to paid extensions they have purchased
         if ($registryUser->isNotAdmin()) {
-            // Fetch unauthorized extensions
+            $purchaser = $registryUser->purchaser();
+
+            // Fetch unauthorized extensions (without a purchaser every paid extension is unauthorized)
             $unauthorizedExtensions = RegistryExtension::where('payment_required', true)
-            ->whereDoesntHave('purchases', function ($query) use ($registryUser) {
-                $query->where('company_uuid', $registryUser->company_uuid);
+            ->when($purchaser, function ($query) use ($purchaser) {
+                $query->whereDoesntHave('purchases', function ($query) use ($purchaser) {
+                    $query->forPurchaser($purchaser);
+                });
             })
             ->whereHas('currentBundle')
             ->with('currentBundle')
@@ -86,17 +92,61 @@ class RegistryAuthController extends Controller
      */
     public function authenticate(AuthenticateRegistryUserRequest $request)
     {
-        $identity = $request->input('identity');
-        $password = $request->input('password');
+        try {
+            $registryUser = $this->authenticateIdentity($request->input('identity'), $request->input('password'));
+        } catch (\RuntimeException $e) {
+            return response()->error($e->getMessage(), 401);
+        }
+
+        return new RegistryUserResource($registryUser);
+    }
+
+    /**
+     * Adds a new user to the registry with authentication credentials.
+     *
+     * This method creates a registry user for the authenticated account. It requires an
+     * identity (email or username) and password for authentication. Cloud users are linked
+     * to their currently active company; registry developer accounts are linked to the
+     * developer account. After successful authentication, it returns the registry user
+     * (creating one with a scope and expiration date if none exists yet).
+     *
+     * @param AddRegistryUserRequest $request the request object containing identity and password
+     *
+     * @return \Illuminate\Http\JsonResponse returns the newly created registry user data in JSON format
+     */
+    public function addUser(AddRegistryUserRequest $request)
+    {
+        try {
+            $registryUser = $this->authenticateIdentity($request->input('identity'), $request->input('password'));
+        } catch (\RuntimeException $e) {
+            return response()->error($e->getMessage(), 401);
+        }
+
+        return response()->json($registryUser);
+    }
+
+    /**
+     * Resolve the registry user for an identity (email, phone or username) and password.
+     *
+     * Cloud users are tried first; if no cloud user matches the credentials, registry developer
+     * accounts are tried. A registry user record is created for the account if none exists yet.
+     *
+     * @throws \RuntimeException when the credentials are invalid or the developer account is not active
+     */
+    protected function authenticateIdentity(?string $identity, ?string $password): RegistryUser
+    {
+        if (!$identity || !$password) {
+            throw new \RuntimeException('Invalid credentials.');
+        }
 
         // First, try to find a cloud user
         $user = User::where(function ($query) use ($identity) {
             $query->where('email', $identity)->orWhere('phone', $identity)->orWhere('username', $identity);
         })->first();
 
-        if ($user && Auth::checkPassword($password, $user->password)) {
+        if ($user && is_string($user->password) && Auth::checkPassword($password, $user->password)) {
             // Cloud user authentication
-            $registryUser = RegistryUser::firstOrCreate(
+            return RegistryUser::firstOrCreate(
                 [
                     'company_uuid' => $user->company_uuid,
                     'user_uuid'    => $user->uuid,
@@ -108,8 +158,6 @@ class RegistryAuthController extends Controller
                     'name'         => $user->public_id . ' developer token',
                 ]
             );
-
-            return new RegistryUserResource($registryUser);
         }
 
         // If not a cloud user, try Registry Developer Account
@@ -118,19 +166,19 @@ class RegistryAuthController extends Controller
         })->first();
 
         if (!$developerAccount) {
-            return response()->error('Invalid credentials.', 401);
+            throw new \RuntimeException('Invalid credentials.');
         }
 
-        if ($developerAccount->status !== 'active') {
-            return response()->error('Account is not active. Please verify your email.', 401);
+        if (!$developerAccount->isActive()) {
+            throw new \RuntimeException('Account is not active. Please verify your email.');
         }
 
-        if (Auth::isInvalidPassword($password, $developerAccount->password)) {
-            return response()->error('Invalid credentials.', 401);
+        if (!is_string($developerAccount->password) || Auth::isInvalidPassword($password, $developerAccount->password)) {
+            throw new \RuntimeException('Invalid credentials.');
         }
 
         // Developer account authentication
-        $registryUser = RegistryUser::firstOrCreate(
+        return RegistryUser::firstOrCreate(
             [
                 'developer_account_uuid' => $developerAccount->uuid,
             ],
@@ -141,51 +189,28 @@ class RegistryAuthController extends Controller
                 'name'         => $developerAccount->username . ' developer token',
             ]
         );
-
-        return new RegistryUserResource($registryUser);
     }
 
     /**
-     * Adds a new user to the registry with authentication credentials.
-     *
-     * This method creates a registry user linked to the currently active company
-     * of the user. It requires an identity (email or username) and password for
-     * authentication. After successful authentication, it generates a developer
-     * key for the user with a scope and expiration date.
-     *
-     * @param AddRegistryUserRequest $request the request object containing identity and password
-     *
-     * @return \Illuminate\Http\JsonResponse returns the newly created registry user data in JSON format
+     * Verify a password against the registry user's cloud user, or failing that its developer account.
      */
-    public function addUser(AddRegistryUserRequest $request)
+    protected function verifyRegistryUserPassword(RegistryUser $registryUser, ?string $password): bool
     {
-        $identity    = $request->input('identity');
-        $password    = $request->input('password');
-
-        // Find user by email or username
-        $user = User::where(function ($query) use ($identity) {
-            $query->where('email', $identity)->orWhere('phone', $identity)->orWhere('username', $identity);
-        })->first();
-
-        // Authenticate user with password
-        if (Auth::isInvalidPassword($password, $user->password)) {
-            return response()->error('Invalid credentials.', 401);
+        if (!$password) {
+            return false;
         }
 
-        // Check if registry user already exists first
-        $registryUser = RegistryUser::where(['company_uuid' => $user->company_uuid, 'user_uuid' => $user->uuid])->first();
-        if (!$registryUser) {
-            // Create registry user
-            $registryUser = RegistryUser::create([
-                'company_uuid' => $user->company_uuid,
-                'user_uuid'    => $user->uuid,
-                'scope'        => '*',
-                'expires_at'   => now()->addYear(),
-                'name'         => $user->public_id . ' developer token',
-            ]);
+        $user = $registryUser->user;
+        if ($user && is_string($user->password)) {
+            return Auth::checkPassword($password, $user->password);
         }
 
-        return response()->json($registryUser);
+        $developerAccount = $registryUser->developerAccount;
+        if ($developerAccount && $developerAccount->isActive() && is_string($developerAccount->password)) {
+            return Auth::checkPassword($password, $developerAccount->password);
+        }
+
+        return false;
     }
 
     /**
@@ -275,10 +300,9 @@ class RegistryAuthController extends Controller
             return response()->error('Attempting to publish extension with invalid user.', 401);
         }
 
-        // If force publish bypass checks, authenticate by user login
+        // If force publish bypass checks, authenticate by cloud user or developer account login
         if ($force === true) {
-            // Authenticate user with password
-            if (Auth::isInvalidPassword($password, $registryUser->user->password)) {
+            if (!$this->verifyRegistryUserPassword($registryUser, $password)) {
                 return response()->error('Invalid credentials, unable to force publish.', 401);
             }
 
@@ -294,38 +318,27 @@ class RegistryAuthController extends Controller
         $extension = RegistryExtension::findByPackageName($package);
 
         if (!$extension) {
-            // First time publishing - create extension record
-            $publisherUuid = $registryUser->isDeveloperAccount()
-                ? $registryUser->developer_account_uuid
-                : $registryUser->company_uuid;
+            // First time publishing - create extension record owned by the publishing account
+            $publisher = $registryUser->publisher();
+            if (!$publisher) {
+                return response()->error('Unable to determine the publisher for this account.', 403);
+            }
 
-            $extension = RegistryExtension::create([
+            $extension = RegistryExtension::create(array_merge($publisher->toArray(), [
                 'uuid'             => (string) Str::uuid(),
+                'name'             => $package,
                 'package_name'     => $package,
-                'publisher_type'   => $registryUser->account_type,
-                'publisher_uuid'   => $publisherUuid,
                 'company_uuid'     => $registryUser->company_uuid, // Keep for backwards compatibility
                 'status'           => 'published',
                 'payment_required' => false, // Default to free
-            ]);
+            ]));
 
             return response()->json(['allowed' => true]);
         }
 
-        // Check ownership
-        if ($registryUser->isCloudAccount()) {
-            if ($extension->publisher_type === 'cloud' && $extension->publisher_uuid !== $registryUser->company_uuid) {
-                return response()->error('You do not own this extension.', 403);
-            }
-        } elseif ($registryUser->isDeveloperAccount()) {
-            if ($extension->publisher_type === 'developer' && $extension->publisher_uuid !== $registryUser->developer_account_uuid) {
-                return response()->error('You do not own this extension.', 403);
-            }
-        }
-
-        // If publisher types don't match, deny access
-        if ($extension->publisher_type !== $registryUser->account_type) {
-            return response()->error('Account type mismatch for this extension.', 403);
+        // Check ownership (publisher type and uuid, falling back to company_uuid for legacy rows)
+        if (!$extension->isOwnedBy($registryUser)) {
+            return response()->error('You do not own this extension.', 403);
         }
 
         // Update extension status
