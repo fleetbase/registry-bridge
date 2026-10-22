@@ -67,6 +67,31 @@ Install the Ember.js Engine/Addon:
 pnpm install @fleetbase/registry-bridge-engine
 ```
 
+## Registry Service
+
+With a Registry Service URL configured, Explore, Installed, installs and update checks go through the
+[Fleetbase Registry Service](https://github.com/fleetbase/registry) (API `v2`). Without one, Explore falls back to
+the cloud catalog at `REGISTRY_HOST` (`~registry/v1/extensions`), read-only.
+
+| Setting (env) | Purpose |
+| --- | --- |
+| `REGISTRY_SERVICE_URL` | Service base URL, for example `https://registry.fleetbase.io`. Also editable on the admin Registry Configuration page |
+| `REGISTRY_API_VERSION` | `v2` (default when a service URL is set) or `v1` to keep the cloud catalog fallback |
+| `REGISTRY_INSTANCE_KIND` | `self_hosted` (default) or `cloud`; reported at registration and matched against each extension's hosting |
+| `REGISTRY_INSTANCE_TOKEN` | Instance token, normally issued by registering from the admin page and stored encrypted in settings instead |
+
+Register the instance on the admin Registry Configuration page with a one-time code from an owner or admin of your
+registry organization (`POST /v1/account/instance-codes` on the service). The instance token is stored encrypted with
+the app key and only ever shown masked.
+
+Installs report to the service's instance API, which checks the licence and the extension's hosting before anything
+is installed. Composer and pnpm authenticate per process: `COMPOSER_AUTH` for Composer, and for npm
+`NPM_CONFIG_//<host>/npm/:_authToken` plus `npm_config_userconfig` pointing at
+[`server/resources/npm/registry.npmrc`](server/resources/npm/registry.npmrc), which holds only `${…}` placeholders
+(pnpm 11 does not read `//host` credentials from the environment). No `auth.json` or `.npmrc` with a token is
+written. The installer adds the service's Composer repository to the API's `composer.json` and adds engines by
+tarball URL, so an engine's npm scope is never remapped.
+
 ## Usage
 
 ### Backend

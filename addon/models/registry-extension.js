@@ -67,6 +67,14 @@ export default class RegistryExtensionModel extends Model {
     @attr('boolean') is_purchased;
     @attr('boolean') is_installed;
     @attr('boolean') is_author;
+    /** false when this instance cannot install the record; `meta.install_blocked_reason` says why for Registry Service records */
+    @attr('boolean', { defaultValue: true }) is_installable;
+    /** 'registry' for the cloud catalog (v1), 'registry-service' for the Registry Service (v2) */
+    @attr('string') source;
+    /** Registry Service: installed release, newest compatible release, and whether they differ */
+    @attr('string') installed_version;
+    @attr('string') latest_version;
+    @attr('boolean', { defaultValue: false }) update_available;
     @attr('string', { defaultValue: 'pending' }) status;
 
     /** @dates */

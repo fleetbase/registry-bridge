@@ -6,21 +6,11 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Component | modals/confirm-extension-purchase', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    test('it renders the loading message from the modal options', async function (assert) {
+        this.set('options', { title: 'Finalizing Purchase', loadingMessage: 'Completing purchase do not refresh or exit window...' });
 
-        await render(hbs`<Modals::ConfirmExtensionPurchase />`);
+        await render(hbs`<Modals::ConfirmExtensionPurchase @modalIsOpened={{true}} @options={{this.options}} />`);
 
-        assert.dom().hasText('');
-
-        // Template block usage:
-        await render(hbs`
-      <Modals::ConfirmExtensionPurchase>
-        template block text
-      </Modals::ConfirmExtensionPurchase>
-    `);
-
-        assert.dom().hasText('template block text');
+        assert.dom(document.body).containsText('Completing purchase do not refresh or exit window...');
     });
 });

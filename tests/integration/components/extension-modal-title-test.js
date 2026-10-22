@@ -6,21 +6,21 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Component | extension-modal-title', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    test('it renders the extension name, subtitle and publisher', async function (assert) {
+        this.set('extension', { name: 'Fleet-Ops', subtitle: 'Fleet management', publisher_name: 'Fleetbase' });
 
-        await render(hbs`<ExtensionModalTitle />`);
+        await render(hbs`<ExtensionModalTitle @extension={{this.extension}} />`);
 
-        assert.dom().hasText('');
+        assert.dom('h1').hasText('Fleet-Ops');
+        assert.dom(this.element).containsText('Fleet management');
+        assert.dom(this.element).containsText('Published by Fleetbase');
+    });
 
-        // Template block usage:
-        await render(hbs`
-      <ExtensionModalTitle>
-        template block text
-      </ExtensionModalTitle>
-    `);
+    test('it reads the extension from modal options when given', async function (assert) {
+        this.set('options', { extension: { name: 'Storefront', subtitle: 'Commerce', publisher_name: 'Fleetbase' } });
 
-        assert.dom().hasText('template block text');
+        await render(hbs`<ExtensionModalTitle @options={{this.options}} />`);
+
+        assert.dom('h1').hasText('Storefront');
     });
 });

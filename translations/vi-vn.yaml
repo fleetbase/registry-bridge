@@ -57,6 +57,9 @@ registry-bridge:
         explore-extensions: Khám phá tiện ích mở rộng
         explore-category-extensions: >
           Tiện ích mở rộng {categoryName}
+        no-extensions-published: Chưa có tiện ích mở rộng nào được xuất bản lên registry này
+        no-extensions-published-help: Khi có tiện ích mở rộng được xuất bản lên registry mà bảng điều khiển này kết nối, chúng sẽ hiển thị ở đây.
+        open-registry-config: Mở cấu hình registry
       extension-form:
         package-name: Tên gói
         package-json-name: tên package.json

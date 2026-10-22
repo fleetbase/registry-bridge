@@ -6,9 +6,16 @@ use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Resources\Category as CategoryResource;
 use Fleetbase\Models\Category;
 use Fleetbase\Models\File;
+use Fleetbase\RegistryBridge\Exceptions\RegistryException;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionBundle;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
 use Fleetbase\RegistryBridge\Models\RegistryUser;
+use Fleetbase\RegistryBridge\Support\CentralCatalog;
+use Fleetbase\RegistryBridge\Support\ExtensionManifest;
+use Fleetbase\RegistryBridge\Support\RegistryClient;
+use Fleetbase\RegistryBridge\Support\RegistryConfig;
+use Fleetbase\RegistryBridge\Support\ServiceCatalog;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Illuminate\Http\Request;
 
@@ -17,16 +24,26 @@ class RegistryController extends Controller
     /**
      * Retrieve a collection of categories that have registry extensions.
      *
-     * This method fetches categories that have associated registry extensions
-     * and meet the specified criteria (core_category equals 1 and 'for' equals
-     * 'extension_category'). The retrieved categories are then wrapped using
-     * the CategoryResource and returned as a collection of CategoryResource.
+     * When a Registry Service is configured, or this instance is not a self-hosted registry,
+     * the categories come from the central registry catalog. Otherwise this method fetches local categories that
+     * have associated registry extensions and meet the specified criteria
+     * (core_category equals 1 and 'for' equals 'extension_category'). The retrieved
+     * categories are then wrapped using the CategoryResource and returned as a
+     * collection of CategoryResource.
      *
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
-     *                                                                     A collection of CategoryResource objects representing the categories
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection|\Illuminate\Http\JsonResponse
+     *                                                                                                   A collection of CategoryResource objects representing the categories
      */
     public function categories()
     {
+        if (CentralCatalog::enabled()) {
+            try {
+                return response()->json(['categories' => CentralCatalog::categories()]);
+            } catch (RegistryException $e) {
+                return response()->error($e->getMessage(), 503);
+            }
+        }
+
         // Registry categories and the `registry_extensions` table only exist in the live
         // database. Run the whole query (including the `whereHas` subquery, which is
         // executed on the parent query's connection) against the live connection so it
@@ -44,7 +61,8 @@ class RegistryController extends Controller
      * This method fetches registry extensions that have been installed by the
      * company identified in the current session. It disables caching for the
      * query, filters the results based on the company's UUID stored in the session,
-     * and maps the retrieved extensions to extract the 'package.json' metadata.
+     * and maps the retrieved extensions to extract the 'package.json' metadata, then adds
+     * engines installed from the Registry Service (`{name, version}`).
      * The result is returned as a JSON response.
      *
      * @return \Illuminate\Http\JsonResponse
@@ -59,7 +77,12 @@ class RegistryController extends Controller
                 return $extension->currentBundle->meta['package.json'] ?? [];
             });
 
-            return response()->json($installedExtensions);
+            $serviceEngines = RegistryServiceInstall::where('company_uuid', session('company'))
+                ->whereNotNull('npm_package')
+                ->get()
+                ->map(fn ($install) => ['name' => $install->npm_package, 'version' => $install->version]);
+
+            return response()->json($installedExtensions->concat($serviceEngines)->values());
         }
 
         return [];
@@ -94,6 +117,10 @@ class RegistryController extends Controller
                 }
             )->exists();
 
+            if (!$installed) {
+                $installed = RegistryServiceInstall::where(['company_uuid' => session('company'), 'npm_package' => $engine])->exists();
+            }
+
             return ['installed' => $installed];
         }
 
@@ -110,13 +137,37 @@ class RegistryController extends Controller
      * If a valid extension and its associated bundle are found, the function extracts the package and composer names from the
      * `package.json` and `composer.json` metadata. These names are then returned in a JSON response.
      *
+     * With a Registry Service configured the package name, slug or id is resolved from the service catalog first;
+     * the local tables are only consulted when the service does not list it.
+     *
      * @param Request $request the incoming HTTP request containing the 'package' input parameter
      *
      * @return \Illuminate\Http\JsonResponse a JSON response containing the package and composer names if found, or an error message otherwise
      */
     public function lookupPackage(Request $request)
     {
-        $packageName       = $request->input('package');
+        $packageName = $request->input('package');
+
+        $config = RegistryConfig::current();
+        if ($config->usesService() && is_string($packageName) && $packageName !== '') {
+            try {
+                $resolved = ServiceCatalog::lookup($packageName, RegistryClient::fromConfig($config));
+            } catch (RegistryException $e) {
+                return response()->error($e->getMessage(), 503);
+            }
+
+            if ($resolved) {
+                return response()->json([
+                    'npm'       => $resolved['npm'],
+                    'composer'  => $resolved['composer'],
+                    'extension' => $resolved['extension']['id'] ?? null,
+                    'slug'      => $resolved['extension']['slug'] ?? null,
+                    'version'   => $resolved['extension']['latest_release']['version'] ?? ($resolved['extension']['latest_version'] ?? null),
+                    'source'    => ServiceCatalog::SOURCE,
+                ]);
+            }
+        }
+
         $registryExtension = RegistryExtension::lookup($packageName);
         if (!$registryExtension) {
             return response()->error('No extension found by this name for install');
@@ -208,6 +259,20 @@ class RegistryController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
 
+        // Validate the extension.json manifest against the schema before anything is stored
+        $extensionJson = Utils::getObjectKeyValue($bundleData, 'extension.json');
+        if (!$extensionJson || !is_object($extensionJson)) {
+            return response()->json(['error' => 'Unable to find `extension.json` file required in bundle.'], 400);
+        }
+
+        $manifestErrors = ExtensionManifest::validate($extensionJson);
+        if (!empty($manifestErrors)) {
+            return response()->json([
+                'error'  => 'Invalid `extension.json` in bundle: ' . implode('; ', ExtensionManifest::flatten($manifestErrors)),
+                'errors' => $manifestErrors,
+            ], 422);
+        }
+
         $bundlePackageData = Utils::getObjectKeyValue($bundleData, 'package.json') ?? Utils::getObjectKeyValue($bundleData, 'composer.json');
         if ($bundlePackageData && data_get($bundlePackageData, 'name')) {
             $extension = RegistryExtension::findByPackageName(data_get($bundlePackageData, 'name'));
@@ -258,24 +323,8 @@ class RegistryController extends Controller
         // Set file subject to extension
         $file = $file->setSubject($extension);
 
-        // Get extension.json contents
-        $extensionJson = Utils::getObjectKeyValue($bundleData, 'extension.json');
-        if (!$extensionJson) {
-            return response()->error('Unable to find `extension.json` file required in bundle.');
-        }
-
-        // Set version in file meta
+        // Set version in file meta (`version`, `engine`/`api` presence already enforced by the schema)
         $file->updateMeta('version', data_get($extensionJson, 'version'));
-
-        // Check if version is set
-        if (!isset($extensionJson->version)) {
-            return response()->error('No `version` set in the `extension.json`');
-        }
-
-        // Check if either api or engine property is set
-        if (!isset($extensionJson->engine) && !isset($extensionJson->api)) {
-            return response()->error('No `api` or `engine` property set in the `extension.json`');
-        }
 
         // Set bundle number to parsed JSON
         $extensionJson->bundle_number = RegistryExtensionBundle::getNextBundleNumber($extension);

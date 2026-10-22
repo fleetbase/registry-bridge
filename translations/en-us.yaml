@@ -95,6 +95,9 @@ registry-bridge:
         explore-extensions: Explore Extensions
         explore-category-extensions: >
           {categoryName} Extensions
+        no-extensions-published: No extensions are published to this registry yet
+        no-extensions-published-help: Once extensions are published to the registry this console is connected to, they will show up here.
+        open-registry-config: Open registry configuration
       extension-form:
         package-name: Package Name
         package-json-name: package.json name

@@ -6,21 +6,12 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Component | modals/self-managed-install-instructions', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    test('it renders the CLI instructions', async function (assert) {
+        this.set('options', { title: 'Install Extension to Self-Hosted Instance' });
 
-        await render(hbs`<Modals::SelfManagedInstallInstructions />`);
+        await render(hbs`<Modals::SelfManagedInstallInstructions @modalIsOpened={{true}} @options={{this.options}} />`);
 
-        assert.dom().hasText('');
-
-        // Template block usage:
-        await render(hbs`
-      <Modals::SelfManagedInstallInstructions>
-        template block text
-      </Modals::SelfManagedInstallInstructions>
-    `);
-
-        assert.dom().hasText('template block text');
+        assert.dom(document.body).containsText('Begin the installation from the base directory of your Fleetbase instance');
+        assert.dom('ol.self-managed-install-instructions', document.body).exists();
     });
 });
