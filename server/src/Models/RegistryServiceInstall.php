@@ -35,6 +35,17 @@ class RegistryServiceInstall extends Model
     protected $table = 'registry_service_installs';
 
     /**
+     * The database connection to use.
+     *
+     * Registry data belongs to the account and only exists in the live database
+     * (sandbox migrations are disabled for this package), so it must never follow
+     * the sandbox connection switch made by `Auth::setSandboxSession()`.
+     *
+     * @var string
+     */
+    protected $connection = 'mysql';
+
+    /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
