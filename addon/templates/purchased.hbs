@@ -4,7 +4,7 @@
     <div class="m-auto p-8">
         <div class="extension-card-grid-container">
             {{#each @model as |extension|}}
-                <ExtensionCard @extension={{extension}}>
+                <ExtensionCard @resource={{extension}}>
                     {{#if extension.is_installed}}
                         <Badge @status="success" @hideStatusDot={{true}} class="mt-1"><FaIcon @icon="check" class="mr-1" /> Installed</Badge>
                     {{/if}}

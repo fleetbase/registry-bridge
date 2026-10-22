@@ -35,7 +35,7 @@ export default class ExtensionCardComponent extends Component {
         this.checkForCheckoutSession();
     }
 
-    @action onExtenstionUpdated(el, [extension]) {
+    @action onExtensionUpdated(el, [extension]) {
         this.extension = extension;
     }
 
