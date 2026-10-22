@@ -69,6 +69,9 @@ registry-bridge:
         explore-extensions: Огляд розширень
         explore-category-extensions: >
           Розширення категорії {categoryName}
+        no-extensions-published: У цьому реєстрі ще не опубліковано жодного розширення
+        no-extensions-published-help: Щойно розширення буде опубліковано в реєстрі, до якого підключено цю консоль, вони з’являться тут.
+        open-registry-config: Відкрити налаштування реєстру
       extension-form:
         package-name: Назва пакета
         package-json-name: назва в package.json

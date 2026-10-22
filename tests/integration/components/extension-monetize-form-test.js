@@ -1,26 +1,36 @@
 import { module, test } from 'qunit';
-import { setupRenderingTest } from 'dummy/tests/helpers';
+import { setupRenderingTest, StubFetchService } from 'dummy/tests/helpers';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
 module('Integration | Component | extension-monetize-form', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    hooks.beforeEach(function () {
+        this.owner.register('service:fetch', StubFetchService);
+        this.fetch = this.owner.lookup('service:fetch');
+    });
 
-        await render(hbs`<ExtensionMonetizeForm />`);
+    test('it looks up the Stripe Connect account and shows the payment toggle when one exists', async function (assert) {
+        this.fetch.responses['payments/has-stripe-connect-account'] = { hasStripeConnectAccount: true };
+        this.set('extension', { payment_required: false });
 
-        assert.dom().hasText('');
+        await render(hbs`<ExtensionMonetizeForm @extension={{this.extension}} />`);
 
-        // Template block usage:
-        await render(hbs`
-      <ExtensionMonetizeForm>
-        template block text
-      </ExtensionMonetizeForm>
-    `);
+        assert.strictEqual(this.fetch.calls.length, 1, 'one lookup request');
+        assert.strictEqual(this.fetch.calls[0].path, 'payments/has-stripe-connect-account');
+        assert.dom(this.element).containsText('Payment Details');
+        assert.dom(this.element).containsText('Payment Required');
+        assert.dom('[role="checkbox"]').exists('the payment toggle renders');
+    });
 
-        assert.dom().hasText('template block text');
+    test('it hides the payment settings without a Stripe Connect account', async function (assert) {
+        this.fetch.responses['payments/has-stripe-connect-account'] = { hasStripeConnectAccount: false };
+        this.set('extension', { payment_required: false });
+
+        await render(hbs`<ExtensionMonetizeForm @extension={{this.extension}} />`);
+
+        assert.dom('[role="checkbox"]').doesNotExist('no payment toggle without an account');
+        assert.dom(this.element).doesNotContainText('Payment Required');
     });
 });

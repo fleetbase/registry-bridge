@@ -6,6 +6,7 @@ use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\RegistryBridge\Http\Requests\InstallExtensionRequest;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionInstall;
+use Fleetbase\RegistryBridge\Support\CentralCatalog;
 
 class ExtensionInstallerController extends Controller
 {
@@ -34,6 +35,9 @@ class ExtensionInstallerController extends Controller
     {
         set_time_limit(120 * 6);
         $extension = RegistryExtension::where('public_id', $request->input('extension'))->first();
+        if (!$extension) {
+            return $this->extensionNotFound($request->input('extension'), 'installed');
+        }
 
         // Check if already installed
         $installed = RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $extension->uuid])->exists();
@@ -102,6 +106,9 @@ class ExtensionInstallerController extends Controller
     {
         set_time_limit(120 * 6);
         $extension   = RegistryExtension::where('public_id', $request->input('extension'))->first();
+        if (!$extension) {
+            return $this->extensionNotFound($request->input('extension'), 'uninstalled');
+        }
         $uninstalled = false;
 
         // Check if already uninstalled
@@ -149,5 +156,25 @@ class ExtensionInstallerController extends Controller
         ])->delete();
 
         return response()->json(['status' => 'ok', 'uninstalled' => $uninstalled]);
+    }
+
+    /**
+     * Error response for an extension that has no local record.
+     *
+     * Records listed from the central registry catalog cannot be installed or
+     * uninstalled yet; they get a clear message instead of a null dereference.
+     *
+     * @param mixed $publicId the requested extension public id
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function extensionNotFound($publicId, string $action)
+    {
+        $publicId = is_string($publicId) ? $publicId : null;
+        if (CentralCatalog::enabled() && CentralCatalog::find($publicId)) {
+            return response()->error('This extension is listed from the central Fleetbase registry and cannot be ' . $action . ' from this instance yet. Installing from the central registry will be available once the Registry Service launches.', 400);
+        }
+
+        return response()->error('Unable to find extension to be ' . $action . '.', 404);
     }
 }

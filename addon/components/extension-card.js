@@ -45,11 +45,16 @@ export default class ExtensionCardComponent extends Component {
         const isSelfManaged = this.extension.self_managed === true;
         const isAlreadyPurchased = this.extension.is_purchased === true;
         const isAlreadyInstalled = this.extension.is_installed === true;
+        const isNotInstallable = this.extension.is_installable === false && !isAlreadyInstalled;
         const isPaymentRequired = !isAuthor && this.extension.payment_required === true && isAlreadyPurchased === false;
         const userCannotPurchase = isPaymentRequired && this.abilities.cannot('registry-bridge purchase extension');
         let acceptButtonText = isPaymentRequired ? `Purchase for ${formatCurrency(this.extension.price, this.extension.currency)}` : isAlreadyInstalled ? 'Installed' : 'Install';
         if (this.abilities.cannot('registry-bridge install extension')) {
             acceptButtonText = 'Unauthorized to Install';
+        }
+        if (isNotInstallable) {
+            // Listed from the central registry; install/purchase arrive with the Registry Service
+            acceptButtonText = 'Not available yet';
         }
         const goBack = async (modal) => {
             await modal.done();
@@ -73,7 +78,7 @@ export default class ExtensionCardComponent extends Component {
             modalHeaderClass: 'flb--extension-modal-header',
             acceptButtonText,
             acceptButtonIcon: isPaymentRequired ? 'credit-card' : isAlreadyInstalled ? 'check' : 'download',
-            acceptButtonDisabled: this.abilities.cannot('registry-bridge install extension') || isAlreadyInstalled || userCannotPurchase,
+            acceptButtonDisabled: this.abilities.cannot('registry-bridge install extension') || isAlreadyInstalled || userCannotPurchase || isNotInstallable,
             acceptButtonScheme: isPaymentRequired ? 'success' : 'primary',
             declineButtonText: 'Done',
             process: null,

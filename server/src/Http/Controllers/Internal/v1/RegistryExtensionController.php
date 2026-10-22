@@ -5,11 +5,15 @@ namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 use Fleetbase\Exceptions\FleetbaseRequestValidationException;
 use Fleetbase\Http\Requests\AdminRequest;
 use Fleetbase\Models\Setting;
+use Fleetbase\RegistryBridge\Exceptions\RegistryUnavailableException;
 use Fleetbase\RegistryBridge\Http\Controllers\RegistryBridgeController;
 use Fleetbase\RegistryBridge\Http\Requests\CreateRegistryExtensionRequest;
 use Fleetbase\RegistryBridge\Http\Requests\RegistryExtensionActionRequest;
 use Fleetbase\RegistryBridge\Http\Resources\PublicRegistryExtension;
+use Fleetbase\RegistryBridge\Http\Resources\RemoteRegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
+use Fleetbase\RegistryBridge\Support\CentralCatalog;
+use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -51,6 +55,32 @@ class RegistryExtensionController extends RegistryBridgeController
         PublicRegistryExtension::withoutWrapping();
 
         return PublicRegistryExtension::collection($extensions);
+    }
+
+    /**
+     * Query registry extensions.
+     *
+     * The Explore listing (`?explore=1`) is served from the central registry catalog unless this
+     * instance is configured as a self-hosted registry (`registry-bridge.registry.self_hosted`),
+     * in which case it falls back to the local `registry_extensions` table.
+     *
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection|\Illuminate\Http\JsonResponse|\Illuminate\Http\Resources\Json\JsonResource
+     */
+    public function queryRecord(Request $request)
+    {
+        if ($request->boolean('explore') && CentralCatalog::enabled()) {
+            try {
+                $extensions = CentralCatalog::query($request);
+            } catch (RegistryUnavailableException $e) {
+                return response()->error($e->getMessage(), 503);
+            }
+
+            RemoteRegistryExtension::wrap($this->resourcePluralName);
+
+            return RemoteRegistryExtension::collection($extensions);
+        }
+
+        return parent::queryRecord($request);
     }
 
     /**
@@ -366,9 +396,35 @@ class RegistryExtensionController extends RegistryBridgeController
         // Reboot registry auth
         Utils::bootRegistryAuth(true);
 
+        // Drop any catalog cached for the previous host/token
+        RegistryClient::flush();
+
         return response()->json([
             'host'  => $registryHost,
             'token' => $registryToken,
         ]);
+    }
+
+    /**
+     * Test the connection to the configured registry.
+     *
+     * Calls the registry's public catalog endpoint with the saved host and token (or the values
+     * supplied in the request, so unsaved form values can be tried) and reports whether it answered.
+     *
+     * @param AdminRequest $request optional `host` and `token` overrides
+     *
+     * @return \Illuminate\Http\JsonResponse `{ok, latency_ms, status, extension_count, host, error}`
+     */
+    public function testConfig(AdminRequest $request)
+    {
+        $host  = $request->input('host');
+        $token = $request->input('token');
+
+        $client = new RegistryClient(
+            is_string($host) && trim($host) !== '' ? trim($host) : null,
+            is_string($token) && trim($token) !== '' ? trim($token) : null
+        );
+
+        return response()->json($client->testConnection());
     }
 }

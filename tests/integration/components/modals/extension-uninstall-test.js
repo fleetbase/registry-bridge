@@ -6,21 +6,12 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Component | modals/extension-uninstall', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    test('it names the extension being uninstalled', async function (assert) {
+        this.set('options', { title: 'Uninstall', extension: { name: 'Fleet-Ops' } });
 
-        await render(hbs`<Modals::ExtensionUninstall />`);
+        await render(hbs`<Modals::ExtensionUninstall @modalIsOpened={{true}} @options={{this.options}} />`);
 
-        assert.dom().hasText('');
-
-        // Template block usage:
-        await render(hbs`
-      <Modals::ExtensionUninstall>
-        template block text
-      </Modals::ExtensionUninstall>
-    `);
-
-        assert.dom().hasText('template block text');
+        assert.dom(document.body).containsText('Proceed with Uninstall?');
+        assert.dom(document.body).containsText('Do you really want to uninstall the Fleet-Ops?');
     });
 });

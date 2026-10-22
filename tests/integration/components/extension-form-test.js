@@ -1,26 +1,24 @@
 import { module, test } from 'qunit';
-import { setupRenderingTest } from 'dummy/tests/helpers';
+import { setupRenderingTest, StubFetchService, stubStoreQuery } from 'dummy/tests/helpers';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
 module('Integration | Component | extension-form', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    hooks.beforeEach(function () {
+        this.owner.register('service:fetch', StubFetchService);
+        stubStoreQuery(this.owner, []);
+    });
 
-        await render(hbs`<ExtensionForm />`);
+    test('it renders the extension fields with the extension values', async function (assert) {
+        this.set('extension', { name: 'Fleet-Ops', subtitle: 'Fleet management', tags: [], languages: [] });
 
-        assert.dom().hasText('');
+        await render(hbs`<ExtensionForm @extension={{this.extension}} />`);
 
-        // Template block usage:
-        await render(hbs`
-      <ExtensionForm>
-        template block text
-      </ExtensionForm>
-    `);
-
-        assert.dom().hasText('template block text');
+        const values = [...this.element.querySelectorAll('input')].map((input) => input.value);
+        assert.ok(values.includes('Fleet-Ops'), 'the name input is bound to the extension');
+        assert.dom(this.element).containsText('Extension Name');
+        assert.dom(this.element).containsText('Upload Icon');
     });
 });

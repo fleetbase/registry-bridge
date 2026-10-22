@@ -67,6 +67,10 @@ export default class RegistryExtensionModel extends Model {
     @attr('boolean') is_purchased;
     @attr('boolean') is_installed;
     @attr('boolean') is_author;
+    /** false for records listed from the central registry that cannot be installed from this instance yet */
+    @attr('boolean', { defaultValue: true }) is_installable;
+    /** 'registry' when the record was read from the central registry catalog */
+    @attr('string') source;
     @attr('string', { defaultValue: 'pending' }) status;
 
     /** @dates */

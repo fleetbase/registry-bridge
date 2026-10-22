@@ -18,7 +18,11 @@ return [
     ],
     'registry' => [
         'host' => env('REGISTRY_HOST', 'https://registry.fleetbase.io'),
-        'token' => env('REGISTRY_TOKEN', env('REGISTRY_AUTH_TOKEN'))
+        'token' => env('REGISTRY_TOKEN', env('REGISTRY_AUTH_TOKEN')),
+        // When false (the default) this instance browses the central Fleetbase registry catalog
+        // instead of its own `registry_extensions` tables. Set to true on an instance that runs
+        // its own registry and publishes extensions locally.
+        'self_hosted' => Utils::castBoolean(env('REGISTRY_SELF_HOSTED', false)),
     ],
     'stripe' => [
         'key' => env('STRIPE_KEY', env('STRIPE_API_KEY')),

@@ -6,21 +6,20 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Component | extension-card', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    test('it renders the extension name and price badge', async function (assert) {
+        this.set('extension', {
+            id: 'extension_test',
+            public_id: 'extension_test',
+            name: 'Fleet-Ops',
+            description: 'Fleet & Transport Management',
+            payment_required: false,
+            is_installed: false,
+            updatedAt: 'January, 01 2026',
+        });
 
-        await render(hbs`<ExtensionCard />`);
+        await render(hbs`<ExtensionCard @resource={{this.extension}} />`);
 
-        assert.dom().hasText('');
-
-        // Template block usage:
-        await render(hbs`
-      <ExtensionCard>
-        template block text
-      </ExtensionCard>
-    `);
-
-        assert.dom().hasText('template block text');
+        assert.dom(this.element).containsText('Fleet-Ops');
+        assert.dom(this.element).containsText('Free');
     });
 });
