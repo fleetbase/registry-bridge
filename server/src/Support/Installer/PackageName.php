@@ -37,6 +37,27 @@ class PackageName
     }
 
     /**
+     * Key of a Composer repository entry (`composer config repositories.<name>`).
+     */
+    public static function isRepositoryName(string $name): bool
+    {
+        return preg_match('/^[a-z0-9][a-z0-9._-]*$/', $name) === 1;
+    }
+
+    /**
+     * An engine tarball URL goes to pnpm as `name@<url>`: only http(s) URLs
+     * ending in .tgz, without credentials, query or fragment.
+     */
+    public static function assertTarballUrl(?string $url): ?string
+    {
+        if ($url !== null && preg_match('#^https?://[A-Za-z0-9.-]+(:[0-9]+)?/[A-Za-z0-9@%._~/+-]*\.tgz$#', $url) !== 1) {
+            throw new InstallerException(sprintf('"%s" is not a valid package tarball URL.', $url));
+        }
+
+        return $url;
+    }
+
+    /**
      * Version constraints go to composer and pnpm as part of one argument; keep
      * them to characters a constraint can contain.
      */

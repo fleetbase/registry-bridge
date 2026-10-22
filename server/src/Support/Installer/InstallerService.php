@@ -3,6 +3,7 @@
 namespace Fleetbase\RegistryBridge\Support\Installer;
 
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallReporter;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
 
 /**
@@ -13,6 +14,8 @@ class InstallerService
 {
     public const ACTIONS = ['install', 'uninstall', 'update'];
 
+    private readonly InstallReporter $reporter;
+
     public function __construct(
         private readonly InstallerQueue $queue,
         private readonly InstallerJobStore $store,
@@ -20,7 +23,9 @@ class InstallerService
         private readonly InstallRecorder $recorder,
         private readonly ExtensionInstaller $installer,
         private readonly bool $preinstalled = false,
+        ?InstallReporter $reporter = null,
     ) {
+        $this->reporter = $reporter ?? new NullInstallReporter();
     }
 
     /**
@@ -89,22 +94,50 @@ class InstallerService
 
     /**
      * Cloud images ship every extension preinstalled: only the install record
-     * changes.
+     * changes, and the registry the release came from is told (an install it
+     * refuses, such as a paid extension without a licence, is not recorded).
      *
-     * @param array<string, mixed> $attributes
+     * @param array{action: string, extension: array<string, mixed>, version: ?string, company: string, user: ?string} $attributes
      *
      * @return array<string, mixed>
      */
     private function recordOnly(array $attributes, ExtensionRef $ref, ?string $version): array
     {
-        $record = $this->store->create($attributes);
+        $company = $attributes['company'];
+        $user    = $attributes['user'];
+
         if ($attributes['action'] === 'uninstall') {
-            $this->recorder->remove($attributes['company'], $ref);
+            $lastOnInstance = !$this->recorder->installedElsewhere($company, $ref);
+            $record         = $this->store->create($attributes);
+            $this->recorder->remove($company, $ref);
+            $reportError    = $this->reportQuietly(fn () => $this->reporter->finished('uninstall', $ref, $this->releases->resolve($ref, null), $company, $user, $lastOnInstance));
         } else {
             $release = $this->releases->resolve($ref, $version);
-            $this->recorder->record($attributes['company'], $ref, $release, ['version' => $release->version, 'mode' => 'preinstalled', 'job' => $record['id']]);
+            $this->reporter->starting($attributes['action'], $ref, $release, $company, $user);
+            $record = $this->store->create($attributes);
+            $this->recorder->record($company, $ref, $release, ['version' => $release->version, 'mode' => 'preinstalled', 'job' => $record['id']]);
+            $reportError = $this->reportQuietly(fn () => $this->reporter->finished($attributes['action'], $ref, $release, $company, $user));
         }
 
-        return $this->store->update($record['id'], ['status' => 'completed', 'progress' => 100, 'result' => ['status' => 'completed', 'mode' => 'preinstalled'], 'finished_at' => date(DATE_ATOM)]) ?? $record;
+        $result = ['status' => 'completed', 'mode' => 'preinstalled', ...($reportError !== null ? ['report_error' => $reportError] : [])];
+
+        return $this->store->update($record['id'], ['status' => 'completed', 'progress' => 100, 'result' => $result, 'finished_at' => date(DATE_ATOM)]) ?? $record;
+    }
+
+    /**
+     * The install record already changed; a lost report must not undo that.
+     * Returns the error, if any, for the job result.
+     *
+     * @param callable(): void $report
+     */
+    private function reportQuietly(callable $report): ?string
+    {
+        try {
+            $report();
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        }
+
+        return null;
     }
 }

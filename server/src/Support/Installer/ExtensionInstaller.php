@@ -4,6 +4,8 @@ namespace Fleetbase\RegistryBridge\Support\Installer;
 
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\EngineCompatChecker;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallReporter;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\PackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProcessRunner;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProgressPublisher;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
@@ -14,11 +16,12 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  *
  * Install and update:
  *
- *   resolve   release.resolve   the release from the ReleaseSource
+ *   resolve   release.resolve   the release from the ReleaseSource, then the InstallReporter
+ *                               (the Registry Service checks the licence and claims a seat here)
  *   download  release.download  artifacts, checksums, and the prebuilt dist unpacked and verified
  *   snapshot  snapshot.create   composer.json/lock, console package.json/pnpm-lock.yaml,
  *                               the runtime manifest and the engine's engines-dist folder
- *   composer  server.install    composer require
+ *   composer  server.install    composer config (the release's repository, if any), composer require
  *   engine    engine.install    prebuilt: compat check against host-modules.json, unpack,
  *                               add to the runtime manifest; otherwise pnpm add
  *   build     console.build     pnpm build (only without a prebuilt dist)
@@ -30,6 +33,10 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  * caches and record. Packages stay when another company still has the
  * extension installed.
  *
+ * Composer and pnpm run with the PackageCredentials environment for their
+ * command; nothing writes credentials to disk. The InstallReporter hears
+ * about the outcome after the job succeeds or is rolled back.
+ *
  * Socket events keep the payload the console already reads
  * (`process`, `step`, `progress` from 0 to 100 per step) and add `job`,
  * `stage` and `status`. A failure event carries `status: failed`, the stage,
@@ -37,6 +44,10 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  */
 class ExtensionInstaller
 {
+    private readonly InstallReporter $reporter;
+
+    private readonly PackageCredentials $credentials;
+
     public function __construct(
         private readonly InstallerConfig $config,
         private readonly ReleaseSource $releases,
@@ -45,7 +56,11 @@ class ExtensionInstaller
         private readonly EngineCompatChecker $compat,
         private readonly InstallRecorder $recorder,
         private readonly ArtifactDownloader $downloader,
+        ?InstallReporter $reporter = null,
+        ?PackageCredentials $credentials = null,
     ) {
+        $this->reporter    = $reporter ?? new NullInstallReporter();
+        $this->credentials = $credentials ?? new NoPackageCredentials();
     }
 
     /**
@@ -103,6 +118,9 @@ class ExtensionInstaller
                 $ctx->result['previous_version'] = $this->recorder->installedVersion($ctx->company, $ctx->extension)
                     ?? ($release->enginePackage ? $this->manifest()->get($release->enginePackage)['version'] ?? null : null);
             }
+
+            $this->reporter->starting($ctx->action, $ctx->extension, $release, $ctx->company, $ctx->user);
+            $ctx->reportedStart = true;
         });
 
         $release = $ctx->release();
@@ -125,6 +143,13 @@ class ExtensionInstaller
         if ($release->composerPackage !== null) {
             $this->stage($ctx, 'composer', 'server.install', function () use ($ctx, $release) {
                 $ctx->snapshot()->flag('composer');
+                if ($release->composerRepository !== null) {
+                    // composer.json is in the snapshot, so a rollback removes the repository again
+                    $repository = $release->composerRepository;
+                    $name       = $repository['name'];
+                    unset($repository['name']);
+                    $this->exec($ctx, [$this->config->composerBinary, 'config', 'repositories.' . $name, (string) json_encode($repository, JSON_UNESCAPED_SLASHES)], $this->config->apiPath);
+                }
                 $this->exec($ctx, [$this->config->composerBinary, 'require', (string) $release->composerRequirement(), '--no-interaction'], $this->config->apiPath, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
             });
         }
@@ -275,6 +300,10 @@ class ExtensionInstaller
         $ctx->snapshot?->discard();
         Files::delete($this->config->jobDirectory($ctx->id));
 
+        if ($ctx->release !== null && ($ctx->action === 'uninstall' || $ctx->reportedStart)) {
+            $this->report($ctx, fn () => $this->reporter->finished($ctx->action, $ctx->extension, $ctx->release(), $ctx->company, $ctx->user, !($ctx->result['packages_kept'] ?? false)));
+        }
+
         $step = ($ctx->action === 'uninstall' ? 'uninstall' : 'install') . '.complete';
         $this->publish($ctx, ['process' => $ctx->process($step), 'step' => $step, 'progress' => 100, 'status' => 'completed', 'job' => $ctx->id, 'stage' => null]);
 
@@ -295,6 +324,10 @@ class ExtensionInstaller
 
         $rollback = $this->rollback($ctx);
         Files::delete($this->config->jobDirectory($ctx->id));
+
+        if ($ctx->reportedStart && $ctx->release !== null) {
+            $this->report($ctx, fn () => $this->reporter->failed($ctx->action, $ctx->extension, $ctx->release(), $ctx->company, $message, $ctx->user));
+        }
 
         $this->publish($ctx, [
             'process'  => $ctx->process((string) $step),
@@ -399,6 +432,7 @@ class ExtensionInstaller
         $ctx->log->add('$ ' . implode(' ', $command));
         $last = 0;
 
+        $env    = $this->credentials->environment($command);
         $result = $this->runner->run($command, $cwd, function (string $line) use ($ctx, $step, $progress, &$last) {
             $ctx->log->add($line);
             if ($step && $progress) {
@@ -408,7 +442,7 @@ class ExtensionInstaller
                     $this->emit($ctx, $step, $value);
                 }
             }
-        }, $this->config->processTimeout);
+        }, $this->config->processTimeout, $env);
 
         if (!$result->successful()) {
             $summary = $command[0] === $this->config->composerBinary ? ' ' . OutputProgress::composerOutputFriendly($result->output) : '';
@@ -416,6 +450,21 @@ class ExtensionInstaller
         }
 
         return $result;
+    }
+
+    /**
+     * Run a reporter call that must not change the job's outcome.
+     *
+     * @param callable(): void $call
+     */
+    private function report(InstallContext $ctx, callable $call): void
+    {
+        try {
+            $call();
+        } catch (\Throwable $e) {
+            $ctx->log->add('(registry not told about the outcome: ' . $e->getMessage() . ')');
+            $ctx->result['report_error'] = $e->getMessage();
+        }
     }
 
     private function emit(InstallContext $ctx, string $step, int $progress): void
@@ -446,6 +495,10 @@ class ExtensionInstaller
         if ($release->enginePackage !== null) {
             PackageName::assertNpm($release->enginePackage);
             PackageName::assertConstraint($release->engineConstraint);
+            PackageName::assertTarballUrl($release->engineTarball);
+        }
+        if ($release->composerRepository !== null && (!PackageName::isRepositoryName($release->composerRepository['name']) || !preg_match('#^https?://#', $release->composerRepository['url']))) {
+            throw new \RuntimeException('The release names an invalid Composer repository.');
         }
         if ($release->composerPackage === null && $release->enginePackage === null) {
             throw new \RuntimeException('The release has neither a Composer nor an engine package.');

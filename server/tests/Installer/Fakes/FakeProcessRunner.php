@@ -13,7 +13,7 @@ use Fleetbase\RegistryBridge\Support\Installer\ProcessResult;
  */
 class FakeProcessRunner implements ProcessRunner
 {
-    /** @var array<int, array{command: array<int, string>, cwd: string}> */
+    /** @var array<int, array{command: array<int, string>, cwd: string, env: array<string, string>}> */
     public array $calls = [];
 
     /** @var array<int, array{prefix: array<int, string>, handler: callable}> */
@@ -26,9 +26,9 @@ class FakeProcessRunner implements ProcessRunner
         return $this;
     }
 
-    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null): ProcessResult
+    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null, array $env = []): ProcessResult
     {
-        $this->calls[] = ['command' => $command, 'cwd' => $cwd];
+        $this->calls[] = ['command' => $command, 'cwd' => $cwd, 'env' => $env];
 
         foreach (array_reverse($this->handlers) as $entry) {
             if (array_slice($command, 0, count($entry['prefix'])) === $entry['prefix']) {

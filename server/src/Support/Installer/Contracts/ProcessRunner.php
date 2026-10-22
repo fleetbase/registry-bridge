@@ -17,6 +17,7 @@ interface ProcessRunner
      * @param string                            $cwd      working directory
      * @param callable(string $line): void|null $onOutput called with every non-empty output line
      * @param int|null                          $timeout  seconds, null for no limit
+     * @param array<string, string>             $env      variables added to the inherited environment of this process only
      */
-    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null): ProcessResult;
+    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null, array $env = []): ProcessResult;
 }

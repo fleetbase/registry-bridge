@@ -7,9 +7,9 @@ use Symfony\Component\Process\Process;
 
 class SymfonyProcessRunner implements ProcessRunner
 {
-    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null): ProcessResult
+    public function run(array $command, string $cwd, ?callable $onOutput = null, ?int $timeout = null, array $env = []): ProcessResult
     {
-        $process = new Process($command, $cwd);
+        $process = new Process($command, $cwd, $env === [] ? null : $env);
         $process->setTimeout($timeout);
 
         $output  = '';

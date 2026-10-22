@@ -12,6 +12,7 @@ class InstallContext
     public ExtensionRef $extension;
     public ?string $version;
     public string $company;
+    public ?string $user;
     public string $channel;
     public InstallLog $log;
     public ?string $stage                = null;
@@ -25,6 +26,9 @@ class InstallContext
 
     /** @var array<int, string> */
     public array $completed = [];
+
+    /** Whether the InstallReporter accepted the start of this job (so a failure is reported too). */
+    public bool $reportedStart = false;
 
     /** @var array<string, mixed> */
     public array $result = [];
@@ -42,6 +46,7 @@ class InstallContext
         $this->extension  = ExtensionRef::fromArray((array) ($job['extension'] ?? []));
         $this->version    = isset($job['version']) && $job['version'] !== '' ? (string) $job['version'] : null;
         $this->company    = (string) ($job['company'] ?? '');
+        $this->user       = isset($job['user']) && $job['user'] !== '' ? (string) $job['user'] : null;
         $this->channel    = static::channel($this->action, $this->company, $this->extension->uuid);
         $this->log        = new InstallLog();
         $this->onProgress = $onProgress;

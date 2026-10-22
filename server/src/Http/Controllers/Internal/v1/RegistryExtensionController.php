@@ -135,8 +135,10 @@ class RegistryExtensionController extends RegistryBridgeController
      *
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection|\Illuminate\Http\JsonResponse the collection of installed extensions wrapped as a resource
      */
-    public function installed(Request $request)
+    public function installed(?Request $request = null)
     {
+        $request ??= request();
+
         $installedExtensions = RegistryExtension::whereHas('installs', function ($query) {
             $query->where('company_uuid', session('company'));
         })->get();
@@ -177,8 +179,10 @@ class RegistryExtensionController extends RegistryBridgeController
      *
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection|\Illuminate\Http\JsonResponse the collection of purchased extensions wrapped as a resource
      */
-    public function purchased(Request $request)
+    public function purchased(?Request $request = null)
     {
+        $request ??= request();
+
         $purchasedExtensions = RegistryExtension::whereHas('purchases', function ($query) {
             $query->where('company_uuid', session('company'));
         })->get();

@@ -4,13 +4,17 @@ namespace Fleetbase\RegistryBridge\Providers;
 
 use Fleetbase\Models\Setting;
 use Fleetbase\Providers\CoreServiceProvider;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
 use Fleetbase\RegistryBridge\Support\Installer\ArtifactDownloader;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\EngineCompatChecker;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallReporter;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\PackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProcessRunner;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProgressPublisher;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\EloquentInstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\ExtensionRef;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerJobStore;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerQueue;
@@ -19,8 +23,18 @@ use Fleetbase\RegistryBridge\Support\Installer\LocalBundleReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\NodeEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\PhpEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\RuntimeEngineManifest;
+use Fleetbase\RegistryBridge\Support\Installer\ServiceInstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\ServiceInstallReporter;
+use Fleetbase\RegistryBridge\Support\Installer\ServicePackageCredentials;
+use Fleetbase\RegistryBridge\Support\Installer\ServiceReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\SocketClusterPublisher;
+use Fleetbase\RegistryBridge\Support\Installer\SourceRoutingInstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\SourceRoutingReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\SymfonyProcessRunner;
+use Fleetbase\RegistryBridge\Support\InstanceRegistration;
+use Fleetbase\RegistryBridge\Support\PackageAuth;
+use Fleetbase\RegistryBridge\Support\RegistryClient;
+use Fleetbase\RegistryBridge\Support\RegistryConfig;
 use Illuminate\Cache\NullStore;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\LockProvider;
@@ -28,7 +42,6 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\ExecutableFinder;
-use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 
 if (!class_exists(CoreServiceProvider::class)) {
     throw new \Exception('Registry Bridge cannot be loaded without `fleetbase/core-api` installed!');
@@ -111,8 +124,39 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
 
         $this->app->bind(ProcessRunner::class, SymfonyProcessRunner::class);
         $this->app->bind(ProgressPublisher::class, SocketClusterPublisher::class);
-        $this->app->bind(InstallRecorder::class, EloquentInstallRecorder::class);
-        $this->app->bind(ReleaseSource::class, LocalBundleReleaseSource::class);
+
+        // Extensions come from the Registry Service when one is configured, else (and for ids it does not know) from the local registry tables
+        $this->app->bind(ReleaseSource::class, function () {
+            $config = RegistryConfig::current();
+
+            return new SourceRoutingReleaseSource([
+                ExtensionRef::REGISTRY_SERVICE => new ServiceReleaseSource(
+                    RegistryClient::fromConfig($config),
+                    $config,
+                    fn (string $extension) => RegistryServiceInstall::where('extension_id', $extension)->first()?->toListing(),
+                ),
+                ExtensionRef::LOCAL => new LocalBundleReleaseSource(),
+            ]);
+        });
+        $this->app->bind(InstallRecorder::class, function () {
+            $local = new EloquentInstallRecorder();
+
+            return new SourceRoutingInstallRecorder([
+                ExtensionRef::LOCAL            => $local,
+                ExtensionRef::REGISTRY_SERVICE => new ServiceInstallRecorder($local, RegistryConfig::current()->serviceUrl()),
+            ]);
+        });
+        $this->app->bind(InstallReporter::class, function () {
+            $config = RegistryConfig::current();
+
+            return new ServiceInstallReporter(RegistryClient::fromConfig($config), $config);
+        });
+        $this->app->bind(PackageCredentials::class, function (Application $app) {
+            $config       = $app->make(InstallerConfig::class);
+            $composerAuth = getenv('COMPOSER_AUTH');
+
+            return new ServicePackageCredentials(new PackageAuth(RegistryConfig::current()), $config->composerBinary, $config->pnpmBinary, is_string($composerAuth) ? $composerAuth : null);
+        });
 
         $this->app->bind(EngineCompatChecker::class, function (Application $app) {
             $config = $app->make(InstallerConfig::class);
@@ -169,6 +213,7 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
                 $app->make(InstallRecorder::class),
                 $app->make(\Fleetbase\RegistryBridge\Support\Installer\ExtensionInstaller::class),
                 config('registry-bridge.extensions.preinstalled') === true,
+                $app->make(InstallReporter::class),
             );
         });
     }

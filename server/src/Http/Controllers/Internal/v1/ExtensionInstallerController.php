@@ -6,6 +6,8 @@ use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\RegistryBridge\Http\Requests\InstallExtensionRequest;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionInstall;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
+use Fleetbase\RegistryBridge\Support\Installer\ExtensionRef;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerException;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerService;
 
@@ -24,7 +26,7 @@ class ExtensionInstallerController extends Controller
      */
     public function install(InstallExtensionRequest $request, InstallerService $installer)
     {
-        if (config('registry-bridge.extensions.preinstalled') === true) {
+        if (config('registry-bridge.extensions.preinstalled') === true && $this->isLocalExtension($request)) {
             return $this->installPreinstalled($request);
         }
 
@@ -37,7 +39,7 @@ class ExtensionInstallerController extends Controller
      */
     public function uninstall(InstallExtensionRequest $request, InstallerService $installer)
     {
-        if (config('registry-bridge.extensions.preinstalled') === true) {
+        if (config('registry-bridge.extensions.preinstalled') === true && $this->isLocalExtension($request)) {
             return $this->uninstallPreinstalled($request);
         }
 
@@ -77,9 +79,21 @@ class ExtensionInstallerController extends Controller
             return response()->error($job['message'] ?? 'The installer job failed.');
         }
 
-        $install = RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $job['extension']['uuid'] ?? null])->first();
+        $install = ($job['extension']['source'] ?? ExtensionRef::LOCAL) === ExtensionRef::REGISTRY_SERVICE
+            ? RegistryServiceInstall::where(['company_uuid' => session('company'), 'extension_id' => $job['extension']['id'] ?? null])->first()
+            : RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $job['extension']['uuid'] ?? null])->first();
 
         return response()->json(['status' => 'ok', 'job' => $job, $action === 'install' ? 'install' : 'uninstalled' => $action === 'install' ? $install : $install === null]);
+    }
+
+    /**
+     * Whether the requested extension is in this instance's registry tables.
+     * Registry Service extensions go through the InstallerService, which
+     * handles preinstalled mode itself and reports to the service.
+     */
+    private function isLocalExtension(InstallExtensionRequest $request): bool
+    {
+        return RegistryExtension::where('public_id', $request->input('extension'))->exists();
     }
 
     private function installPreinstalled(InstallExtensionRequest $request)
