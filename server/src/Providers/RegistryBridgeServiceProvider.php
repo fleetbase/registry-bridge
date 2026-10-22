@@ -4,6 +4,30 @@ namespace Fleetbase\RegistryBridge\Providers;
 
 use Fleetbase\Models\Setting;
 use Fleetbase\Providers\CoreServiceProvider;
+use Fleetbase\RegistryBridge\Support\Installer\ArtifactDownloader;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\EngineCompatChecker;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProcessRunner;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProgressPublisher;
+use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
+use Fleetbase\RegistryBridge\Support\Installer\EloquentInstallRecorder;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerJobStore;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerQueue;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerService;
+use Fleetbase\RegistryBridge\Support\Installer\LocalBundleReleaseSource;
+use Fleetbase\RegistryBridge\Support\Installer\NodeEngineCompat;
+use Fleetbase\RegistryBridge\Support\Installer\PhpEngineCompat;
+use Fleetbase\RegistryBridge\Support\Installer\RuntimeEngineManifest;
+use Fleetbase\RegistryBridge\Support\Installer\SocketClusterPublisher;
+use Fleetbase\RegistryBridge\Support\Installer\SymfonyProcessRunner;
+use Illuminate\Cache\NullStore;
+use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\ExecutableFinder;
 
 if (!class_exists(CoreServiceProvider::class)) {
     throw new \Exception('Registry Bridge cannot be loaded without `fleetbase/core-api` installed!');
@@ -28,6 +52,9 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
      */
     public $commands = [
         \Fleetbase\RegistryBridge\Console\Commands\Initialize::class,
+        \Fleetbase\RegistryBridge\Console\Commands\InstallExtension::class,
+        \Fleetbase\RegistryBridge\Console\Commands\UninstallExtension::class,
+        \Fleetbase\RegistryBridge\Console\Commands\UpdateExtension::class,
     ];
 
     /**
@@ -59,6 +86,101 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
     public function register()
     {
         $this->app->register(CoreServiceProvider::class);
+        $this->registerInstaller();
+    }
+
+    /**
+     * Bind the job-based installer (see Support/Installer). Bindings are lazy,
+     * so config merged in boot() is in place when they resolve.
+     */
+    protected function registerInstaller(): void
+    {
+        $this->app->singleton(InstallerConfig::class, function () {
+            $config      = (array) config('registry-bridge.installer', []);
+            $consolePath = $config['console_path'] ?? config('fleetbase.console.path', '/fleetbase/console');
+
+            return InstallerConfig::fromArray([
+                ...$config,
+                'api_path'          => $config['api_path'] ?? base_path(),
+                'console_path'      => $consolePath,
+                'work_path'         => $config['work_path'] ?? storage_path('app/registry-installer'),
+                'build_environment' => $config['build_environment'] ?? config('app.env', 'production'),
+            ]);
+        });
+
+        $this->app->bind(ProcessRunner::class, SymfonyProcessRunner::class);
+        $this->app->bind(ProgressPublisher::class, SocketClusterPublisher::class);
+        $this->app->bind(InstallRecorder::class, EloquentInstallRecorder::class);
+        $this->app->bind(ReleaseSource::class, LocalBundleReleaseSource::class);
+
+        $this->app->bind(EngineCompatChecker::class, function (Application $app) {
+            $config = $app->make(InstallerConfig::class);
+            $driver = config('registry-bridge.installer.compat.driver', 'auto');
+            $script = config('registry-bridge.installer.compat.script') ?? rtrim($config->consolePath, '/') . '/node_modules/@fleetbase/ember-core/bin/check-engine-compat.js';
+            $node   = config('registry-bridge.installer.binaries.node', 'node');
+
+            if ($driver === 'node' || ($driver === 'auto' && is_file($script) && (new ExecutableFinder())->find($node))) {
+                return new NodeEngineCompat($app->make(ProcessRunner::class), $script, $config->consolePath, $node);
+            }
+
+            return new PhpEngineCompat();
+        });
+
+        $this->app->bind(ArtifactDownloader::class, function (Application $app) {
+            return new ArtifactDownloader(
+                $app->make(InstallerConfig::class)->requireChecksums,
+                fn (string $disk, string $path) => Storage::disk($disk)->readStream($path),
+            );
+        });
+
+        $this->app->bind(RuntimeEngineManifest::class, function (Application $app) {
+            $config = $app->make(InstallerConfig::class);
+
+            return new RuntimeEngineManifest($config->runtimeManifestFile(), $config->runtimeEnginesBaseUrl);
+        });
+
+        $this->app->singleton(InstallerJobStore::class, fn () => new InstallerJobStore(static::installerCache(), (int) config('registry-bridge.installer.job_ttl', 604800)));
+
+        $this->app->singleton(InstallerQueue::class, function (Application $app) {
+            $store = static::installerCache()->getStore();
+            if (!$store instanceof LockProvider) {
+                throw new \RuntimeException('The installer needs a cache store with locks (redis, database, file); set REGISTRY_INSTALLER_CACHE_STORE.');
+            }
+
+            return new InstallerQueue(
+                $app->make(InstallerJobStore::class),
+                $store,
+                $app->make(Dispatcher::class),
+                (string) config('registry-bridge.installer.queue', 'installer'),
+                config('registry-bridge.installer.connection'),
+                (int) config('registry-bridge.installer.lock_seconds', 10800),
+                (int) config('registry-bridge.installer.retry_delay', 15),
+                (int) config('registry-bridge.installer.stale_after', 1800),
+                (int) config('registry-bridge.installer.timeout', 7200),
+            );
+        });
+
+        $this->app->bind(InstallerService::class, function (Application $app) {
+            return new InstallerService(
+                $app->make(InstallerQueue::class),
+                $app->make(InstallerJobStore::class),
+                $app->make(ReleaseSource::class),
+                $app->make(InstallRecorder::class),
+                $app->make(\Fleetbase\RegistryBridge\Support\Installer\ExtensionInstaller::class),
+                config('registry-bridge.extensions.preinstalled') === true,
+            );
+        });
+    }
+
+    /**
+     * The cache store for installer jobs and the instance lock. The null store
+     * would silently drop job records, so it falls back to the file store.
+     */
+    protected static function installerCache(): \Illuminate\Contracts\Cache\Repository
+    {
+        $cache = Cache::store(config('registry-bridge.installer.cache_store'));
+
+        return $cache->getStore() instanceof NullStore ? Cache::store('file') : $cache;
     }
 
     /**

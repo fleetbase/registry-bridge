@@ -115,6 +115,21 @@ pnpm start
 pnpm build
 ```
 
+## Extension installer
+
+Installs, uninstalls and updates run as `InstallExtensionJob` on the `installer` queue, one at a time per instance (a cache lock owned by the running job). The console's `POST installer/install` and `installer/uninstall` return `202 { status: "queued", job }`; poll `GET installer/jobs/{id}` or listen on `install.{company}.{extension}` (`uninstall.…` for uninstalls) for `step` and `progress`.
+
+```bash
+php artisan registry:install pallet --release=0.0.2   # or pallet@0.0.2; artisan reserves --version
+php artisan registry:update pallet --json
+php artisan registry:uninstall pallet --company=<uuid or public id>
+php artisan queue:work --queue=installer --timeout=7200   # the worker that runs them
+```
+
+`--sync` runs the job in the current process. Stages: resolve the release, download and verify checksums, snapshot `composer.json`, `composer.lock`, the console's `package.json` and `pnpm-lock.yaml`, the runtime manifest and the engine's `engines-dist` folder, `composer require`, the engine step, clear caches, record the install. Any failure restores the snapshot and reports the stage and the last 50 log lines.
+
+When a release carries a prebuilt engine dist (D3 Outcome A), the engine step checks it against the console's `dist/host-modules.json` with `@fleetbase/ember-core`'s compatibility check, unpacks it into the runtime engines directory (default `<console>/dist/engines-dist`) and adds it to the manifest served at `GET ~registry/v1/engines/runtime`, which the console reads at boot. Without a prebuilt dist it falls back to `pnpm add` and `pnpm build`. Settings live under `registry-bridge.installer` in `server/config/registry-bridge.php`.
+
 ## Contributing
 See the Contributing Guide for details on how to contribute to this project.
 

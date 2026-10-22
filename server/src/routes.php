@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/extensions', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController@listPublicExtensions');
 Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
+// Runtime engines manifest: read by the console at boot, before sign-in
+Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/engines/runtime', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RuntimeEngineController@index');
 
 // Developer account registration (public, no auth required)
 Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
@@ -56,6 +58,7 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->group(['prefix' => 'installer'], function ($router) {
                     $router->post('install', 'ExtensionInstallerController@install');
                     $router->post('uninstall', 'ExtensionInstallerController@uninstall');
+                    $router->get('jobs/{id}', 'ExtensionInstallerController@job');
                 });
 
                 $router->group(['prefix' => 'payments'], function ($router) {
