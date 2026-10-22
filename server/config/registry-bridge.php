@@ -31,7 +31,7 @@ return [
     ],
     'facilitator_fee' => env('REGISTRY_FACILITATOR_FEE', 10),
     'installer' => [
-        // Queue installs and return a job id; false runs the job inside the request (the console UI before the job-aware modal).
+        // Queue installs and return a job id (the console follows the job). False runs the job inside the request, e.g. where no queue worker runs.
         'async' => Utils::castBoolean(env('REGISTRY_INSTALLER_ASYNC', true)),
         'queue' => env('REGISTRY_INSTALLER_QUEUE', 'installer'),
         'connection' => env('REGISTRY_INSTALLER_CONNECTION'),

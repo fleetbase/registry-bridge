@@ -13,6 +13,9 @@
                 <ProgressBar @title={{@options.stepDescription}} @percent={{@options.progress}} />
             </div>
         {{/if}}
+        {{#if @options.installerError}}
+            <InstallerJobError @error={{@options.installerError}} />
+        {{/if}}
         {{#if this.extension.screenshots}}
             <div class="grid grid-cols-4 gap-2">
                 {{#each this.extension.screenshots as |screenshot|}}

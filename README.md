@@ -117,7 +117,7 @@ pnpm build
 
 ## Extension installer
 
-Installs, uninstalls and updates run as `InstallExtensionJob` on the `installer` queue, one at a time per instance (a cache lock owned by the running job). The console's `POST installer/install` and `installer/uninstall` return `202 { status: "queued", job }`; poll `GET installer/jobs/{id}` or listen on `install.{company}.{extension}` (`uninstall.…` for uninstalls) for `step` and `progress`.
+Installs, uninstalls and updates run as `InstallExtensionJob` on the `installer` queue, one at a time per instance (a cache lock owned by the running job). The console's `POST installer/install` and `installer/uninstall` return `202 { status: "queued", job }`; poll `GET installer/jobs/{id}` or listen on `install.{company}.{extension}` (`uninstall.…` for uninstalls) for `step` and `progress`. The console's install and uninstall modals do both (`addon/utils/installer-job.js`): they show the queue position and each step, count down to a reload on success, and on failure show the step, message and log tail with Retry.
 
 ```bash
 php artisan registry:install pallet --release=0.0.2   # or pallet@0.0.2; artisan reserves --version
