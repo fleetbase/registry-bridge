@@ -50,7 +50,10 @@ module('Integration | Component | registry-admin-config', function (hooks) {
 
         assert.strictEqual(this.fetch.calls[0].path, 'registry-extensions/config', 'loads the saved config');
         const values = [...this.element.querySelectorAll('input')].map((input) => input.value);
-        assert.ok(values.includes('https://registry.fleetbase.io'), 'host is editable');
+        assert.true(
+            values.some((value) => value === 'https://registry.fleetbase.io'),
+            'host is editable'
+        );
         assert.notOk(values.includes('secret-token'), 'token is not shown in an input');
         assert.dom(this.element).containsText('Reveal token');
         assert.ok(buttonLabelled('Test Connection'), 'test connection action renders');
@@ -97,7 +100,10 @@ module('Integration | Component | registry-admin-config', function (hooks) {
         await render(TEMPLATE);
 
         const values = [...this.element.querySelectorAll('input')].map((input) => input.value);
-        assert.ok(values.includes('https://registry.example.test'), 'service URL is editable');
+        assert.true(
+            values.some((value) => value === 'https://registry.example.test'),
+            'service URL is editable'
+        );
         assert.dom('[data-test-registry-mode]').containsText('use the Registry Service');
         assert.dom('[data-test-registration-status]').containsText('Acme Fleet (self-hosted)');
         assert.dom('[data-test-registration-status]').containsText('Registry Demo Buyer');
