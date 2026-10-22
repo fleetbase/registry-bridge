@@ -1,0 +1,59 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/updates"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "extension": {
+                    "id": "ext_lx52k33erf",
+                    "slug": "registry-demo-hello",
+                    "name": "Registry Demo Hello"
+                },
+                "installed": {
+                    "id": "rel_fshrg663og",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 882,
+                    "checksum": "sha256:69384a4894fa04287ac37662724b8ffcaa59e3b1e02546356465388bccb05623",
+                    "notes": "Seeded by registry:seed --seed-release.",
+                    "published_at": "2026-10-22T07:09:37.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-22T07:09:37.000000Z"
+                },
+                "latest": {
+                    "id": "rel_iqze9fuwad",
+                    "version": "1.1.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 882,
+                    "checksum": "sha256:69384a4894fa04287ac37662724b8ffcaa59e3b1e02546356465388bccb05623",
+                    "notes": "Adds a greeting.",
+                    "published_at": "2026-10-22T07:10:54.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-22T07:10:54.000000Z"
+                },
+                "update_available": true
+            }
+        ],
+        "meta": {
+            "console_version": "0.7.69",
+            "api_version": "1.6.30",
+            "channels": [
+                "stable"
+            ],
+            "updates_available": 1
+        }
+    }
+}

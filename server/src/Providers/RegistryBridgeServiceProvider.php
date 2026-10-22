@@ -4,6 +4,7 @@ namespace Fleetbase\RegistryBridge\Providers;
 
 use Fleetbase\Models\Setting;
 use Fleetbase\Providers\CoreServiceProvider;
+use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 
 if (!class_exists(CoreServiceProvider::class)) {
     throw new \Exception('Registry Bridge cannot be loaded without `fleetbase/core-api` installed!');
@@ -83,10 +84,11 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
      * Merge configuration settings from the database into the application configuration.
      *
      * This function checks if there is a database connection available. If a connection exists,
-     * it retrieves the 'registry-bridge.registry.host' and 'registry-bridge.registry.token' values
-     * from the settings table and merges them into the application's configuration. If the settings
-     * are not available or the database connection does not exist, the function will return without
-     * making any changes.
+     * it retrieves the registry settings (legacy host and token, Registry Service URL, API version,
+     * the encrypted instance token and the registered instance) from the settings table and merges
+     * them into the application's configuration. The instance token is decrypted with the app key;
+     * a token that cannot be decrypted is ignored. If the settings are not available or the database
+     * connection does not exist, the function will return without making any changes.
      *
      * @return void
      */
@@ -105,6 +107,31 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
 
         if ($registryToken) {
             config(['registry-bridge.registry.token' => $registryToken->value]);
+        }
+
+        $serviceUrl = Setting::getByKey(InstanceRegistration::SETTING_SERVICE_URL);
+        if ($serviceUrl && is_string($serviceUrl->value) && $serviceUrl->value !== '') {
+            config(['registry-bridge.registry.service_url' => $serviceUrl->value]);
+        }
+
+        $apiVersion = Setting::getByKey(InstanceRegistration::SETTING_API_VERSION);
+        if ($apiVersion && is_string($apiVersion->value) && $apiVersion->value !== '') {
+            config(['registry-bridge.registry.api_version' => $apiVersion->value]);
+        }
+
+        $instanceToken = Setting::getByKey(InstanceRegistration::SETTING_INSTANCE_TOKEN);
+        if ($instanceToken) {
+            /** @var \Illuminate\Contracts\Encryption\StringEncrypter $encrypter */
+            $encrypter = $this->app->make('encrypter');
+            $token     = InstanceRegistration::decryptToken($instanceToken->value, $encrypter);
+            if ($token) {
+                config(['registry-bridge.registry.instance_token' => $token]);
+            }
+        }
+
+        $instance = Setting::getByKey(InstanceRegistration::SETTING_INSTANCE);
+        if ($instance && is_array($instance->value)) {
+            config(['registry-bridge.registry.instance' => $instance->value]);
         }
     }
 }

@@ -1,0 +1,40 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/installs"
+    },
+    "status": 201,
+    "body": {
+        "install": {
+            "id": "d20101a4-52fe-422c-9658-f77aa54abb8d",
+            "extension": {
+                "id": "ext_gzh4wgc9nr",
+                "slug": "registry-demo-pro",
+                "name": "Registry Demo Pro"
+            },
+            "release": {
+                "id": "rel_gjrc6mixp0",
+                "version": "1.0.0",
+                "channel": "stable",
+                "status": "published",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "size_bytes": 873,
+                "checksum": "sha256:93885f12e28ddb3b3940f7f238a3eb80b7614d21860ba7d3b0e88f672dc7a414",
+                "notes": "Seeded by registry:seed --seed-release.",
+                "published_at": "2026-10-22T07:09:37.000000Z",
+                "yanked_at": null,
+                "created_at": "2026-10-22T07:09:37.000000Z"
+            },
+            "status": "failed",
+            "installed_by": null,
+            "error": "composer require failed",
+            "started_at": "2026-10-22T07:09:51.000000Z",
+            "finished_at": "2026-10-22T07:09:51.000000Z",
+            "created_at": "2026-10-22T07:09:51.000000Z"
+        },
+        "activation": null
+    }
+}

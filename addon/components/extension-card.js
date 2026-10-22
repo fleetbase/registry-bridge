@@ -53,8 +53,8 @@ export default class ExtensionCardComponent extends Component {
             acceptButtonText = 'Unauthorized to Install';
         }
         if (isNotInstallable) {
-            // Listed from the central registry; install/purchase arrive with the Registry Service
-            acceptButtonText = 'Not available yet';
+            // Registry Service records say why (not registered, no licence, wrong hosting); cloud catalog records cannot be installed here
+            acceptButtonText = this.extension.meta?.install_blocked_reason ? 'Unavailable' : 'Not available yet';
         }
         const goBack = async (modal) => {
             await modal.done();

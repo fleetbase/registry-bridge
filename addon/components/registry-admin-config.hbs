@@ -1,11 +1,77 @@
-<ContentPanel @title="Registry Configuration" @open={{true}} @wrapperClass="bordered-classic">
+<ContentPanel @title="Registry Service" @open={{true}} @wrapperClass="bordered-classic">
+    <div class="mb-3 text-sm text-gray-700 dark:text-gray-300" data-test-registry-mode>
+        {{#if this.usesService}}
+            <FaIcon @icon="circle-check" class="text-green-600 dark:text-green-400" />
+            <span>Explore, installs and updates use the Registry Service.</span>
+        {{else}}
+            <FaIcon @icon="circle-info" class="text-blue-600 dark:text-blue-400" />
+            <span>No Registry Service is configured, so Explore reads the cloud catalog read-only and installs from it are unavailable.</span>
+        {{/if}}
+    </div>
+    <InputGroup
+        @name="Service URL"
+        @value={{this.serviceUrl}}
+        @placeholder="https://registry.fleetbase.io"
+        @helpText="Base URL of the Fleetbase Registry Service. Leave empty to fall back to the cloud catalog."
+        disabled={{this.isBusy}}
+    />
+    <InputGroup @name="Instance registration" @helpText="Instances are registered with a one-time code (valid for 15 minutes) from an owner or admin of your registry organization." as |id|>
+        {{#if this.isRegistered}}
+            <div class="rounded-md border border-gray-200 dark:border-gray-700 p-3 text-sm" data-test-registration-status>
+                <div class="flex items-center space-x-2 font-semibold text-green-700 dark:text-green-300">
+                    <FaIcon @icon="circle-check" />
+                    <span>Registered</span>
+                </div>
+                <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300">
+                    <dt class="font-medium">Instance</dt>
+                    <dd class="truncate">{{n-a this.instance.name}} <span class="text-gray-500">{{this.instance.id}}</span></dd>
+                    <dt class="font-medium">Organization</dt>
+                    <dd class="truncate">{{n-a this.instance.organization.name}}</dd>
+                    <dt class="font-medium">Instance token</dt>
+                    <dd class="font-mono" data-test-token-hint>{{n-a this.instance.token_hint}}</dd>
+                    <dt class="font-medium">Registered</dt>
+                    <dd>{{n-a this.instance.registered_at}}</dd>
+                </dl>
+                <div class="mt-3">
+                    <Button @type="danger" @size="sm" @icon="link-slash" @text="Unregister" @onClick={{this.confirmUnregister}} @disabled={{this.isBusy}} />
+                </div>
+            </div>
+        {{else}}
+            <div class="flex items-center space-x-2">
+                <Input
+                    id={{id}}
+                    @type="text"
+                    @value={{this.registrationCode}}
+                    class="w-full form-input font-mono uppercase"
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    autocomplete="off"
+                    spellcheck="false"
+                    disabled={{this.isBusy}}
+                />
+                <Button
+                    @type="primary"
+                    @size="sm"
+                    @icon="link"
+                    @text="Register this instance"
+                    @onClick={{perform this.registerInstance}}
+                    @disabled={{not this.canRegister}}
+                    @isLoading={{this.registerInstance.isRunning}}
+                />
+            </div>
+            {{#unless this.serviceUrl}}
+                <div class="mt-1 text-xs text-gray-500">Enter the service URL first.</div>
+            {{/unless}}
+        {{/if}}
+    </InputGroup>
+</ContentPanel>
+<ContentPanel @title="Cloud Registry (v1 fallback)" @open={{true}} @wrapperClass="bordered-classic">
     <InputGroup
         @name="Registry Host"
         @value={{this.registryHost}}
-        @helpText="Base URL of the Fleetbase extensions registry this instance reads its catalog from."
+        @helpText="Base URL of the cloud registry this instance reads its catalog from when no Registry Service is configured."
         disabled={{this.isBusy}}
     />
-    <InputGroup @name="Registry Token" @helpText="Bearer token used to authenticate with the registry. Reveal the saved token or replace it with a new one." as |id|>
+    <InputGroup @name="Registry Token" @helpText="Bearer token used to authenticate with the cloud registry. Reveal the saved token or replace it with a new one." as |id|>
         {{#if this.isEditingToken}}
             <div class="flex items-center space-x-2">
                 <Input
@@ -29,28 +95,40 @@
             </div>
         {{/if}}
     </InputGroup>
-    {{#if this.testResult}}
-        <div class="rounded-md border p-3 text-sm {{if this.testResult.ok 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800' 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800'}}">
-            <div class="flex items-center space-x-2 font-semibold {{if this.testResult.ok 'text-green-700 dark:text-green-300' 'text-red-700 dark:text-red-300'}}">
-                <FaIcon @icon={{if this.testResult.ok "circle-check" "circle-xmark"}} />
-                <span>{{if this.testResult.ok "Connected to the registry" "Unable to connect to the registry"}}</span>
-            </div>
-            <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300">
-                <dt class="font-medium">Host</dt>
-                <dd class="truncate">{{n-a this.testResult.host}}</dd>
-                <dt class="font-medium">HTTP status</dt>
-                <dd>{{n-a this.testResult.status}}</dd>
-                <dt class="font-medium">Latency</dt>
-                <dd>{{this.testResult.latency_ms}} ms</dd>
-                <dt class="font-medium">Published extensions</dt>
-                <dd>{{n-a this.testResult.extension_count}}</dd>
-            </dl>
-            {{#if this.testResult.error}}
-                <div class="mt-2 text-red-700 dark:text-red-300">{{this.testResult.error}}</div>
-            {{/if}}
-        </div>
-    {{/if}}
 </ContentPanel>
+{{#if this.testResult}}
+    <div class="rounded-md border p-3 text-sm {{if this.testResult.ok 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800' 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800'}}">
+        <div class="flex items-center space-x-2 font-semibold {{if this.testResult.ok 'text-green-700 dark:text-green-300' 'text-red-700 dark:text-red-300'}}">
+            <FaIcon @icon={{if this.testResult.ok "circle-check" "circle-xmark"}} />
+            <span>{{if this.testResult.ok "Connected to the registry" "Unable to connect to the registry"}}</span>
+        </div>
+        <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300">
+            <dt class="font-medium">Host</dt>
+            <dd class="truncate">{{n-a this.testResult.host}}</dd>
+            <dt class="font-medium">API</dt>
+            <dd>{{if (eq this.testResult.api_version "v2") "Registry Service (v2)" "Cloud registry (v1)"}}</dd>
+            <dt class="font-medium">HTTP status</dt>
+            <dd>{{n-a this.testResult.status}}</dd>
+            <dt class="font-medium">Latency</dt>
+            <dd>{{this.testResult.latency_ms}} ms</dd>
+            <dt class="font-medium">Published extensions</dt>
+            <dd>{{n-a this.testResult.extension_count}}</dd>
+            {{#if this.testResult.instance}}
+                <dt class="font-medium">Instance token</dt>
+                <dd data-test-instance-check>
+                    {{#if this.testResult.instance.ok}}
+                        Accepted ({{n-a this.testResult.instance.name}}, {{n-a this.testResult.instance.organization}})
+                    {{else}}
+                        Rejected{{#if this.testResult.instance.error}}: {{this.testResult.instance.error}}{{/if}}
+                    {{/if}}
+                </dd>
+            {{/if}}
+        </dl>
+        {{#if this.testResult.error}}
+            <div class="mt-2 text-red-700 dark:text-red-300">{{this.testResult.error}}</div>
+        {{/if}}
+    </div>
+{{/if}}
 <EmberWormhole @to="next-view-section-subheader-actions">
     <div class="flex items-center space-x-2">
         <Button

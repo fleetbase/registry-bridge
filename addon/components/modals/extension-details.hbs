@@ -8,6 +8,16 @@
                 {{this.extension.category_name}}
             </div>
         </div>
+        {{#if this.extension.meta.install_blocked_reason}}
+            {{#unless this.extension.is_installed}}
+                <div
+                    class="rounded-md border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 p-2 text-sm text-yellow-800 dark:text-yellow-200"
+                    data-test-install-blocked-reason
+                >
+                    <FaIcon @icon="circle-info" class="mr-1" />{{this.extension.meta.install_blocked_reason}}
+                </div>
+            {{/unless}}
+        {{/if}}
         {{#if @options.progress}}
             <div class="my-4">
                 <ProgressBar @title={{@options.stepDescription}} @percent={{@options.progress}} />
@@ -45,6 +55,12 @@
                         <div>
                             <div class="text-sm font-semibold dark:text-gray-100">{{t "registry-bridge.component.extension-details-modal.version"}}</div>
                             <div class="text-sm dark:text-gray-200">{{n-a this.extension.current_bundle_version}}</div>
+                            {{#if this.extension.update_available}}
+                                <div class="text-xs text-blue-600 dark:text-blue-400" data-test-update-available>Installed
+                                    {{this.extension.installed_version}}, update to
+                                    {{this.extension.latest_version}}
+                                    available</div>
+                            {{/if}}
                         </div>
                         <div>
                             <div class="text-sm font-semibold dark:text-gray-100">{{t "registry-bridge.component.extension-details-modal.updated"}}</div>

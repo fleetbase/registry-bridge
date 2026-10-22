@@ -2,20 +2,24 @@
 
 namespace Fleetbase\RegistryBridge\Support;
 
+use Fleetbase\RegistryBridge\Exceptions\RegistryException;
 use Fleetbase\RegistryBridge\Exceptions\RegistryUnavailableException;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionInstall;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 /**
- * Explore data sourced from the central registry instead of the local `registry_extensions` tables.
+ * Explore data sourced from a central registry instead of the local `registry_extensions` tables.
  *
- * Remote catalog entries are mapped into the same shape the `RegistryExtension` resource produces so the
- * console renders them with the existing components. `is_installed` is derived from the local install
- * rows by package name; `is_purchased` is always false and the records are flagged as not installable
- * until the Registry Service exists.
+ * With a Registry Service configured (`RegistryConfig::usesService()`) every call is delegated to
+ * `ServiceCatalog`, which reads the v2 catalog and instance API. Otherwise this reads the cloud
+ * `~registry/v1/extensions` endpoint: entries are mapped into the same shape the `RegistryExtension`
+ * resource produces, `is_installed` is derived from the local install rows by package name,
+ * `is_purchased` is always false and the records are flagged as not installable, since the v1 cloud
+ * endpoints cannot serve installs to other instances.
  */
 class CentralCatalog
 {
@@ -38,12 +42,18 @@ class CentralCatalog
      *
      * @return LengthAwarePaginator<array<string, mixed>>
      *
-     * @throws RegistryUnavailableException
+     * @throws RegistryException
      */
     public static function query(Request $request, ?RegistryClient $client = null): LengthAwarePaginator
     {
+        $companyUuid = static::str($request->hasSession() ? $request->session()->get('company') : session('company'));
+        $config      = RegistryConfig::current();
+        if ($config->usesService()) {
+            return ServiceCatalog::query($request, $client ?? RegistryClient::fromConfig($config), $config, static::installedPackageNames($companyUuid));
+        }
+
         $client     = $client ?? new RegistryClient();
-        $extensions = static::all($client, static::str($request->hasSession() ? $request->session()->get('company') : session('company')));
+        $extensions = static::all($client, $companyUuid);
 
         $search   = trim(static::str($request->input('query', '')));
         $category = trim(static::str($request->input('category', '')));
@@ -97,13 +107,18 @@ class CentralCatalog
         }
 
         try {
+            $config = RegistryConfig::current();
+            if ($config->usesService()) {
+                return ServiceCatalog::find($id, $client ?? RegistryClient::fromConfig($config), $config);
+            }
+
             $client = $client ?? new RegistryClient();
             foreach ($client->listPublicExtensions() as $extension) {
                 if (($extension['id'] ?? null) === $id || ($extension['slug'] ?? null) === $id) {
                     return static::transform($extension, [], $client->host());
                 }
             }
-        } catch (RegistryUnavailableException $e) {
+        } catch (RegistryException $e) {
             return null;
         }
 
@@ -111,14 +126,20 @@ class CentralCatalog
     }
 
     /**
-     * Distinct categories referenced by the remote catalog, shaped like the `Category` resource.
+     * Categories of the remote catalog, shaped like the `Category` resource: the service's category list
+     * (v2), or the distinct categories referenced by the cloud catalog (v1).
      *
      * @return array<int, array<string, mixed>>
      *
-     * @throws RegistryUnavailableException
+     * @throws RegistryException
      */
     public static function categories(?RegistryClient $client = null): array
     {
+        $config = RegistryConfig::current();
+        if ($config->usesService()) {
+            return ServiceCatalog::categories($client ?? RegistryClient::fromConfig($config));
+        }
+
         $client     = $client ?? new RegistryClient();
         $categories = [];
 
@@ -286,7 +307,8 @@ class CentralCatalog
     }
 
     /**
-     * Package names of every extension the company has installed locally.
+     * Package names (and service extension ids) of every extension the company has installed locally,
+     * from the legacy install rows and from installs served by the Registry Service.
      *
      * @return array<int, string>
      */
@@ -296,11 +318,19 @@ class CentralCatalog
             return [];
         }
 
+        $names = [];
+        if (RegistryConfig::current()->usesService()) {
+            foreach (RegistryServiceInstall::where('company_uuid', $companyUuid)->get() as $install) {
+                $names[] = $install->npm_package;
+                $names[] = $install->composer_package;
+                $names[] = $install->extension_id;
+            }
+        }
+
         $installs = RegistryExtensionInstall::where('company_uuid', $companyUuid)
             ->with(['extension.currentBundle'])
             ->get();
 
-        $names = [];
         foreach ($installs as $install) {
             $bundle = data_get($install, 'extension.currentBundle');
             $meta   = is_object($bundle) ? data_get($bundle, 'meta') : null;
