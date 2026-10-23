@@ -69,6 +69,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         \Fleetbase\RegistryBridge\Console\Commands\InstallExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\UninstallExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\UpdateExtension::class,
+        \Fleetbase\RegistryBridge\Console\Commands\InstallerJobStatus::class,
+        \Fleetbase\RegistryBridge\Console\Commands\RegisterInstance::class,
     ];
 
     /**
