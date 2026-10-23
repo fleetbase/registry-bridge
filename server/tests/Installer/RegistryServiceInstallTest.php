@@ -123,7 +123,7 @@ test('a service release installs from the service package endpoints with credent
         ->and($this->sandbox->runner->commands())->toBe([
             'composer config repositories.fleetbase-registry-service {"type":"composer","url":"https://registry.example.test/composer","canonical":false}',
             'composer require ' . HELLO_API . ':1.0.0 --no-interaction',
-            'pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL,
+            'pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL . ' --config.ignore-workspace-root-check=true',
             'pnpm build --environment production',
             'php artisan config:clear',
             'php artisan route:clear',

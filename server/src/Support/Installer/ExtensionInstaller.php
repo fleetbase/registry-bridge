@@ -161,7 +161,9 @@ class ExtensionInstaller
             } else {
                 $this->stage($ctx, 'engine', 'engine.install', function () use ($ctx, $release) {
                     $ctx->snapshot()->flag('pnpm');
-                    $this->exec($ctx, [$this->config->pnpmBinary, 'add', (string) $release->engineRequirement()], $this->config->consolePath, 'engine.install', [OutputProgress::class, 'pnpmInstallOutputProgress']);
+                    // A console whose pnpm-workspace.yaml lists packages (local engine links in development) is a
+                    // workspace root, and pnpm refuses a root `add` without this (ERR_PNPM_ADDING_TO_ROOT).
+                    $this->exec($ctx, [$this->config->pnpmBinary, 'add', (string) $release->engineRequirement(), '--config.ignore-workspace-root-check=true'], $this->config->consolePath, 'engine.install', [OutputProgress::class, 'pnpmInstallOutputProgress']);
                     $ctx->result['mode'] = 'build';
                 });
                 $this->stage($ctx, 'build', 'console.build', fn () => $this->buildConsole($ctx));
