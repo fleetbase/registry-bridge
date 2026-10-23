@@ -192,7 +192,7 @@ test('Installed joins the instance updates and local records with the catalog', 
         ->and($installed[1]['current_bundle_version'])->toBe('0.1.0');
 });
 
-test('Purchased lists only active paid licences', function () {
+test('Purchased leaves out free licences', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-installed')
@@ -202,6 +202,63 @@ test('Purchased lists only active paid licences', function () {
 
     expect(array_column($purchased, 'slug'))->toBe(['registry-demo-pro'])
         ->and($purchased[0]['is_purchased'])->toBeTrue();
+});
+
+test('Purchased keeps refunded and revoked paid licences with their state, without entitling installs', function () {
+    $me                                  = RegistryServiceFake::body('instances-me-installed');
+    $me['licences'][1]['status']         = 'revoked';
+    $me['licences'][1]['revoked_reason'] = 'refunded';
+    $me['licences'][]                    = ['id' => 'lic_gone', 'extension' => ['id' => 'ext_delisted', 'slug' => 'delisted-pro', 'name' => 'Delisted Pro'], 'kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'disputed', 'max_activations' => 5, 'seats_used' => 1, 'created_at' => '2026-10-01T00:00:00Z'];
+    $this->service
+        ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
+        ->respondWith('GET', 'v1/instances/me', 200, $me)
+        ->on('GET', 'v1/instances/me/updates', 'instances-me-updates');
+
+    $purchased = ServiceCatalog::purchased(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config());
+    $bySlug    = array_column($purchased, null, 'slug');
+
+    expect(array_keys($bySlug))->toBe(['registry-demo-pro', 'delisted-pro'])
+        ->and($bySlug['registry-demo-pro']['is_purchased'])->toBeFalse()
+        ->and($bySlug['registry-demo-pro']['is_installable'])->toBeFalse()
+        ->and($bySlug['registry-demo-pro']['meta']['install_blocked_code'])->toBe('licence_required')
+        ->and($bySlug['registry-demo-pro']['meta']['licence_state'])->toBe('refunded')
+        ->and($bySlug['registry-demo-pro']['meta']['licence']['revoked_reason'])->toBe('refunded')
+        ->and($bySlug['delisted-pro']['meta']['licence_state'])->toBe('revoked')
+        ->and($bySlug['delisted-pro']['is_purchased'])->toBeFalse();
+
+    $state = ServiceCatalog::buildState($me, [], [], true);
+    expect(ServiceCatalog::counts($state)['purchased'])->toBe(0);
+});
+
+test('an active paid licence wins over a revoked one for the same extension, in either order', function () {
+    $active  = ['id' => 'lic_new', 'extension' => ['id' => 'ext_1'], 'kind' => 'paid', 'status' => 'active'];
+    $revoked = ['id' => 'lic_old', 'extension' => ['id' => 'ext_1'], 'kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded'];
+    $free    = ['id' => 'lic_free', 'extension' => ['id' => 'ext_1'], 'kind' => 'free', 'status' => 'active'];
+
+    foreach ([[$revoked, $active], [$active, $revoked], [$free, $revoked, $active]] as $licences) {
+        $state = ServiceCatalog::buildState(['licences' => $licences], [], [], true);
+        expect($state['licences']['ext_1']['id'])->toBe('lic_new')
+            ->and(ServiceCatalog::counts($state)['purchased'])->toBe(1);
+    }
+
+    expect(ServiceCatalog::buildState(['licences' => [$free, $revoked]], [], [], true)['licences']['ext_1']['id'])->toBe('lic_old');
+});
+
+test('licence states the console shows', function () {
+    expect(ServiceCatalog::licenceState(null))->toBeNull()
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'active']))->toBe('active')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded']))->toBe('refunded')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'staff']))->toBe('revoked')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked']))->toBe('revoked')
+        ->and(ServiceCatalog::isPaidLicence(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded']))->toBeFalse();
+});
+
+test('the registry organization comes from the registration, not the console company', function () {
+    $config = RegistryServiceFake::config(['instance' => ['id' => 'inst_1', 'organization' => ['id' => 'org_9sz9sh8ivz', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer']]]);
+
+    expect($config->organization())->toBe(['id' => 'org_9sz9sh8ivz', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer'])
+        ->and(RegistryServiceFake::config()->organization())->toBeNull()
+        ->and(RegistryServiceFake::config(['instance' => ['organization' => ['name' => '']]])->organization())->toBeNull();
 });
 
 test('lookup resolves npm and Composer names, slugs and ids from the catalog', function () {

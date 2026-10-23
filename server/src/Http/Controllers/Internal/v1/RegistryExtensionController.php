@@ -85,7 +85,8 @@ class RegistryExtensionController extends Controller
 
     /**
      * What every console user needs to know about the registry: the service URL, whether this instance is
-     * registered, its kind, the publisher portal and whether paid extensions can be bought here. No secrets.
+     * registered, its kind, the registry organization that owns its licences, the publisher portal and whether
+     * paid extensions can be bought here. No secrets.
      *
      * @return \Illuminate\Http\JsonResponse
      */
@@ -97,6 +98,7 @@ class RegistryExtensionController extends Controller
             'service_url'        => $config->serviceUrl(),
             'registered'         => $config->isRegistered(),
             'instance_kind'      => $config->instanceKind(),
+            'organization'       => $config->organization(),
             'publisher_url'      => $config->publisherUrl(),
             'checkout_available' => ServiceCheckout::available($config),
         ]);
@@ -137,7 +139,8 @@ class RegistryExtensionController extends Controller
     }
 
     /**
-     * Extensions the instance's organization holds an active paid licence for, with activations and receipts.
+     * Extensions the instance's organization bought: active paid licences, and refunded or revoked ones with
+     * their state and receipt. Only active ones entitle installs.
      *
      * @return \Illuminate\Http\JsonResponse `{registryExtensions}`
      */

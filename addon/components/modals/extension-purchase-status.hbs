@@ -5,14 +5,14 @@
                 <Spinner />
                 <div>
                     <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.finalizing.title"}}</div>
-                    <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.finalizing.body" company=(or @options.companyName (t "registry-bridge.common.this-organization"))}}</p>
+                    <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.finalizing.body" organization=(or @options.organizationName (t "registry-bridge.purchase.your-organization"))}}</p>
                 </div>
             </div>
         {{else if (eq this.phase "success")}}
             <div class="space-y-2" role="status" aria-live="polite" data-test-purchase-success>
                 <Badge @status="success" @icon="check" @disableHumanize={{true}}>{{t "registry-bridge.purchase.success.badge"}}</Badge>
                 <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.success.title" name=@options.extension.name}}</div>
-                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.success.body" company=(or @options.companyName (t "registry-bridge.common.this-organization"))}}</p>
+                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.success.body" organization=(or @options.organizationName (t "registry-bridge.purchase.your-organization"))}}</p>
                 {{#if @options.amount}}
                     <p class="text-sm dark:text-gray-200" data-test-purchase-amount>{{t "registry-bridge.purchase.success.paid" amount=(format-currency @options.amount @options.currency)}}</p>
                 {{/if}}

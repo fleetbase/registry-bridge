@@ -13,6 +13,7 @@ module('Unit | Service | registry-context', function (hooks) {
             publisher_url: 'https://registry.example.test',
             checkout_available: false,
             instance_kind: 'cloud',
+            organization: { id: 'org_9sz9sh8ivz', slug: 'registry-demo-buyer', name: 'Registry Demo Buyer' },
         };
         const context = this.owner.lookup('service:registry-context');
 
@@ -25,6 +26,7 @@ module('Unit | Service | registry-context', function (hooks) {
         assert.true(context.registered);
         assert.false(context.checkoutAvailable);
         assert.strictEqual(context.instanceKind, 'cloud');
+        assert.strictEqual(context.organizationName, 'Registry Demo Buyer');
     });
 
     test('sidebar counts load separately and a failure keeps the last ones', async function (assert) {
@@ -51,5 +53,6 @@ module('Unit | Service | registry-context', function (hooks) {
         assert.false(context.loaded);
         assert.strictEqual(context.publisherUrl, null);
         assert.false(context.usesService);
+        assert.strictEqual(context.organizationName, null);
     });
 });

@@ -237,13 +237,14 @@ registry-bridge:
       retry: Thử gỡ lại
   purchase:
     title: "Mua {name}"
+    your-organization: tổ chức của bạn trên registry
     finalizing:
       title: Đang hoàn tất giao dịch…
-      body: "Đang xác nhận thanh toán với Stripe và ghi nhận giấy phép cho {company}. Đừng đóng tab này."
+      body: "Đang xác nhận thanh toán với Stripe và ghi nhận giấy phép cho {organization}. Đừng đóng tab này."
     success:
       badge: Đã thanh toán
       title: "{name} giờ là của bạn"
-      body: "Giấy phép đã gắn với {company} và hiển thị trong mục Đã mua."
+      body: "Giấy phép thuộc về {organization}, nơi phiên bản này đã đăng ký, và hiển thị trong mục Đã mua."
       receipt: Biên lai Stripe
       install-now: Cài đặt ngay
       later: Để sau
@@ -292,14 +293,25 @@ registry-bridge:
     columns:
       extension: Tiện ích
       price: Giá
+      licence: Giấy phép
       activations: Lượt kích hoạt
       install-status: Trạng thái cài đặt
       receipt: Biên lai
     status:
       installed: "Đã cài v{version}"
+    licence:
+      active: Đang hiệu lực
+      refunded: Đã hoàn tiền
+      revoked: Đã thu hồi
+      inactive: Không hiệu lực
+      reason:
+        refunded: Khoản thanh toán đã được hoàn tiền. Việc cài đặt và cập nhật dừng lại; các phiên bản đang chạy tiện ích vẫn giữ chỗ.
+        disputed: Khoản thanh toán đang bị khiếu nại với ngân hàng phát hành thẻ. Việc cài đặt và cập nhật dừng lại cho đến khi registry khôi phục giấy phép.
+        staff: Registry đã thu hồi giấy phép. Việc cài đặt và cập nhật dừng lại; các phiên bản đang chạy tiện ích vẫn giữ chỗ.
+        other: Giấy phép này không còn cho phép cài đặt hoặc cập nhật.
     empty:
       title: Chưa mua tiện ích nào
-      body: "Các tiện ích trả phí bạn mua cho {company} sẽ hiển thị ở đây cùng biên lai và trạng thái cài đặt. Tiện ích miễn phí sẽ vào thẳng mục Đã cài đặt."
+      body: "Các tiện ích trả phí đã mua cho {organization} sẽ hiển thị ở đây cùng biên lai và trạng thái cài đặt. Tiện ích miễn phí sẽ vào thẳng mục Đã cài đặt."
       browse: Duyệt tiện ích trả phí
   admin:
     config:

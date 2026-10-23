@@ -87,6 +87,25 @@ class RegistryConfig
     }
 
     /**
+     * The registry organization this instance is registered to (`id`, `slug`, `name`): it owns the licences
+     * bought here, not the console company. Null before registration.
+     *
+     * @return array{id: string|null, slug: string|null, name: string|null}|null
+     */
+    public function organization(): ?array
+    {
+        $organization = $this->instance()['organization'] ?? null;
+        if (!is_array($organization)) {
+            return null;
+        }
+
+        $value = fn (string $key) => is_string($organization[$key] ?? null) && $organization[$key] !== '' ? $organization[$key] : null;
+        $out   = ['id' => $value('id'), 'slug' => $value('slug'), 'name' => $value('name')];
+
+        return array_filter($out) !== [] ? $out : null;
+    }
+
+    /**
      * Instance kind reported at registration and used to match an extension's hosting.
      */
     public function instanceKind(): string

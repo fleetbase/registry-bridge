@@ -22,7 +22,7 @@
     <:default as |rows|>
         {{#if this.load.isRunning}}
             <div class="p-4" aria-busy="true" data-test-purchased-loading>
-                {{#if this.isTable}}<Skeleton::Table @rows={{7}} @columns={{6}} @checkbox={{false}} />{{else}}<Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />{{/if}}
+                {{#if this.isTable}}<Skeleton::Table @rows={{7}} @columns={{7}} @checkbox={{false}} />{{else}}<Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />{{/if}}
             </div>
         {{else if this.error}}
             <div class="p-4" data-test-purchased-error>
@@ -43,7 +43,7 @@
         "table/empty-state"
         icon="bag-shopping"
         title=(t "registry-bridge.purchased.empty.title")
-        description=(t "registry-bridge.purchased.empty.body" company=(t "registry-bridge.common.this-organization"))
+        description=(t "registry-bridge.purchased.empty.body" organization=this.organizationName)
         filteredTitle=(t "registry-bridge.installed.empty.filtered")
         primaryText=(t "registry-bridge.purchased.empty.browse")
         primaryIcon="shapes"
@@ -52,7 +52,7 @@
                 data-test-purchased-table
             />
         {{else}}
-            <Layout::Resource::CardsGrid @resource="registry-extension" @data={{rows}} @gap="sm" @columns="4" @containerClass="p-4" @emptyStateText={{t "registry-bridge.purchased.empty.body" company=(t "registry-bridge.common.this-organization")}} as |Item|>
+            <Layout::Resource::CardsGrid @resource="registry-extension" @data={{rows}} @gap="sm" @columns="4" @containerClass="p-4" @emptyStateText={{t "registry-bridge.purchased.empty.body" organization=this.organizationName}} as |Item|>
                 <ExtensionCard @resource={{Item.model}} />
             </Layout::Resource::CardsGrid>
         {{/if}}

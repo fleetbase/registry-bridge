@@ -71,7 +71,6 @@ export default class ExtensionPurchaseService extends Service {
     @service urlSearchParams;
     @service extensionPanel;
     @service extensionInstaller;
-    @service currentUser;
     @service registryContext;
     @tracked lastError = null;
     @tracked isStarting = false;
@@ -161,9 +160,12 @@ export default class ExtensionPurchaseService extends Service {
         if (status === 'completed') {
             this.registryContext.loadCounts();
         }
+        // The context may still have been loading when Finalizing opened
+        await this.registryContext.load();
         this.modalsManager.setOptions({
             phase,
             extension: refreshed ?? extension,
+            organizationName: this.registryContext.organizationName,
             receiptUrl: result?.receipt_url ?? null,
             serviceStatus: result?.service_status ?? null,
             amount: result?.purchase?.amount_total ?? null,
@@ -209,7 +211,7 @@ export default class ExtensionPurchaseService extends Service {
             phase,
             extension,
             handoff,
-            companyName: this.currentUser.company?.name ?? null,
+            organizationName: this.registryContext.organizationName,
             backdropClose: false,
             closeButton: false,
             keepOpen: true,

@@ -237,13 +237,14 @@ registry-bridge:
       retry: Retry uninstall
   purchase:
     title: "Purchase {name}"
+    your-organization: your registry organization
     finalizing:
       title: Finalizing purchase…
-      body: "Confirming payment with Stripe and recording the licence for {company}. Do not close this tab."
+      body: "Confirming payment with Stripe and recording the licence for {organization}. Do not close this tab."
     success:
       badge: Paid
       title: "{name} is yours"
-      body: "The licence is attached to {company} and listed under Purchased."
+      body: "The licence belongs to {organization}, which this instance is registered to, and is listed under Purchased."
       receipt: Stripe receipt
       install-now: Install now
       later: Later
@@ -292,14 +293,25 @@ registry-bridge:
     columns:
       extension: Extension
       price: Price
+      licence: Licence
       activations: Activations
       install-status: Install status
       receipt: Receipt
     status:
       installed: "Installed v{version}"
+    licence:
+      active: Active
+      refunded: Refunded
+      revoked: Revoked
+      inactive: Inactive
+      reason:
+        refunded: The payment was refunded. Installs and updates stop; instances already running it keep their seat.
+        disputed: The payment is disputed with the card issuer. Installs and updates stop until the registry reinstates the licence.
+        staff: Revoked by the registry. Installs and updates stop; instances already running it keep their seat.
+        other: This licence no longer allows installs or updates.
     empty:
       title: No purchased extensions
-      body: "Paid extensions you buy for {company} appear here with their receipts and install status. Free extensions go straight to Installed."
+      body: "Paid extensions bought for {organization} appear here with their receipts and install status. Free extensions go straight to Installed."
       browse: Browse paid extensions
   admin:
     config:

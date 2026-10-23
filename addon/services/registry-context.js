@@ -6,8 +6,9 @@ export const CONTEXT_NAMESPACE = '~registry/v1';
 /**
  * What every console user needs to know about the Registry Service this
  * instance talks to (GET ~registry/v1/registry-extensions/context): its URL,
- * whether the instance is registered, the publisher portal to link to and
- * whether paid extensions can be bought here. Also the sidebar counts
+ * whether the instance is registered, the registry organization that owns
+ * its licences, the publisher portal to link to and whether paid extensions
+ * can be bought here. Also the sidebar counts
  * (GET ~registry/v1/registry-extensions/counts).
  */
 export default class RegistryContextService extends Service {
@@ -39,6 +40,11 @@ export default class RegistryContextService extends Service {
 
     get instanceKind() {
         return this.context.instance_kind ?? 'self_hosted';
+    }
+
+    /** The registry organization this instance is registered to; it owns the licences bought here, not the console company. */
+    get organizationName() {
+        return this.context.organization?.name || null;
     }
 
     countOf(key) {

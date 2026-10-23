@@ -171,7 +171,9 @@ class ServiceCatalog
     }
 
     /**
-     * Extensions the instance's organization holds an active paid licence for.
+     * Extensions the instance's organization bought: active paid licences, and paid licences the service has
+     * since revoked (refund, dispute, staff) so their state and receipt stay visible. A revoked licence does
+     * not entitle installs; `is_purchased` stays false for it and `meta.licence_state` says why.
      *
      * @param array<int, string> $localPackages
      *
@@ -186,7 +188,7 @@ class ServiceCatalog
 
         $purchased = [];
         foreach ($state['licences'] as $id => $licence) {
-            if (!static::isPaidLicence($licence)) {
+            if (!static::isPaidKind($licence)) {
                 continue;
             }
 
@@ -283,8 +285,8 @@ class ServiceCatalog
                 continue;
             }
 
-            // Prefer an active paid licence over a free one for the same extension
-            if (!isset($licences[$id]) || static::isPaidLicence($licence)) {
+            // Prefer an active paid licence, then a revoked paid one (kept for its state and receipt), then any other
+            if (!isset($licences[$id]) || static::licenceRank($licence) > static::licenceRank($licences[$id])) {
                 $licences[$id] = $licence;
             }
         }
@@ -408,6 +410,7 @@ class ServiceCatalog
                 'compat'                 => Arr::get($listing, 'compat', Arr::get($release, 'compat')),
                 'latest_release'         => $release ?: null,
                 'licence'                => $licence,
+                'licence_state'          => static::licenceState($licence),
                 'install_blocked_reason' => $blockedReason,
                 'install_blocked_code'   => $blocked['code'] ?? null,
                 'purchase_available'     => ($blocked['code'] ?? null) === 'licence_required' && $checkout,
@@ -679,7 +682,47 @@ class ServiceCatalog
      */
     public static function isPaidLicence(array $licence): bool
     {
-        return ($licence['kind'] ?? null) === 'paid' && ($licence['status'] ?? null) === 'active';
+        return static::isPaidKind($licence) && ($licence['status'] ?? null) === 'active';
+    }
+
+    /**
+     * Whether the licence was bought, whatever its status now. Not an entitlement: see `isPaidLicence()`.
+     *
+     * @param array<string, mixed> $licence
+     */
+    public static function isPaidKind(array $licence): bool
+    {
+        return ($licence['kind'] ?? null) === 'paid';
+    }
+
+    /**
+     * What the console shows for a licence: `active`, `refunded` (revoked by a refund), `revoked` (dispute,
+     * staff or a reason this bridge does not know), or the service's status as is; null without a licence.
+     *
+     * @param array<string, mixed>|null $licence
+     */
+    public static function licenceState(?array $licence): ?string
+    {
+        $status = static::str($licence['status'] ?? '');
+        if ($status === '') {
+            return null;
+        }
+
+        if ($status === 'revoked') {
+            return static::str($licence['revoked_reason'] ?? '') === 'refunded' ? 'refunded' : 'revoked';
+        }
+
+        return $status;
+    }
+
+    /**
+     * Which licence `buildState()` keeps when an organization holds several for one extension.
+     *
+     * @param array<string, mixed> $licence
+     */
+    protected static function licenceRank(array $licence): int
+    {
+        return static::isPaidLicence($licence) ? 2 : (static::isPaidKind($licence) ? 1 : 0);
     }
 
     /**

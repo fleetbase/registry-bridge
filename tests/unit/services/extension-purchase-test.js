@@ -25,6 +25,8 @@ class PanelStub extends Service {
 
 class ContextStub extends Service {
     countLoads = 0;
+    organizationName = 'Registry Demo Buyer';
+    async load() {}
     loadCounts() {
         this.countLoads++;
     }
@@ -122,6 +124,8 @@ module('Unit | Service | extension-purchase', function (hooks) {
         assert.strictEqual(this.modals.options.amount, 3190, 'the amount paid, tax included');
         assert.true(this.modals.options.extension.is_purchased, 'the panel extension is reloaded');
         assert.strictEqual(this.owner.lookup('service:registry-context').countLoads, 1, 'the sidebar counts refresh');
+        assert.strictEqual(this.modals.options.organizationName, 'Registry Demo Buyer', 'the licence belongs to the registry organization');
+        assert.strictEqual(this.modals.options.companyName, undefined, 'not the console company');
     });
 
     test('the hand-off falls back to session storage when Stripe drops it', async function (assert) {
