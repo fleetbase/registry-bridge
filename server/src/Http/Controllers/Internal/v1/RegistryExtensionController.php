@@ -90,6 +90,100 @@ class RegistryExtensionController extends RegistryBridgeController
     }
 
     /**
+     * Find one extension. Registry Service listings (`ext_…` ids or slugs) are read from the service and
+     * decorated with this instance's install and licence state; anything else is a local record.
+     *
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Resources\Json\JsonResource|array<string, mixed>
+     */
+    public function findRecord(Request $request, $id)
+    {
+        $config = RegistryConfig::current();
+        if ($config->usesService() && !RegistryExtension::where('public_id', $id)->orWhere('uuid', $id)->exists()) {
+            try {
+                $extension = ServiceCatalog::find((string) $id, RegistryClient::fromConfig($config), $config, CentralCatalog::installedPackageNames(session('company')));
+            } catch (RegistryException $e) {
+                return response()->error($e->getMessage(), 503);
+            }
+
+            if ($extension === null) {
+                return response()->error('Extension not found.', 404);
+            }
+
+            return response()->json(['registryExtension' => $extension]);
+        }
+
+        return parent::findRecord($request, $id);
+    }
+
+    /**
+     * Versions of an extension for the console's Versions tab.
+     *
+     * Registry Service listings return their published and yanked releases; other records have no release
+     * history, so only the current bundle version is returned with `supported: false`.
+     *
+     * @return \Illuminate\Http\JsonResponse `{supported, latest, channels, releases}`
+     */
+    public function releases(Request $request, string $id)
+    {
+        $config = RegistryConfig::current();
+        $local  = RegistryExtension::where('public_id', $id)->orWhere('uuid', $id)->with('currentBundle')->first();
+
+        if ($local === null && $config->usesService()) {
+            try {
+                $releases = ServiceCatalog::releases($id, RegistryClient::fromConfig($config), $request->input('installed_version'));
+            } catch (RegistryException $e) {
+                return response()->error($e->getMessage(), 503);
+            }
+
+            if ($releases === null) {
+                return response()->error('Extension not found.', 404);
+            }
+
+            return response()->json(['supported' => true, ...$releases]);
+        }
+
+        $version = $local?->currentBundle?->version;
+
+        return response()->json([
+            'supported' => false,
+            'latest'    => $version,
+            'channels'  => [],
+            'releases'  => $version ? [['version' => $version, 'channel' => 'stable', 'status' => 'published', 'is_latest' => true, 'is_installed' => false, 'is_yanked' => false]] : [],
+        ]);
+    }
+
+    /**
+     * What the console needs to know about the registry for every user: whether it talks to the Registry
+     * Service, whether this instance is registered, its kind, the publisher portal to link to and whether
+     * paid extensions can be bought here. No secrets.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function context(Request $request)
+    {
+        $config   = RegistryConfig::current();
+        $features = [];
+        if ($config->usesService() && $config->isRegistered()) {
+            try {
+                $features = RegistryClient::fromConfig($config)->instance()['features'];
+            } catch (RegistryException $e) {
+                // Unreachable or refused: checkout stays off in `auto` mode
+            }
+        }
+
+        return response()->json([
+            'uses_service'       => $config->usesService(),
+            'api_version'        => $config->apiVersion(),
+            'registered'         => $config->isRegistered(),
+            'instance_kind'      => $config->instanceKind(),
+            'service_url'        => $config->serviceUrl(),
+            'publisher_url'      => $config->publisherUrl(),
+            'checkout_available' => $config->checkoutEnabled($features),
+            'facilitator_fee'    => (float) config('registry-bridge.facilitator_fee', 10),
+        ]);
+    }
+
+    /**
      * Creates a record with request payload.
      *
      * @return \Illuminate\Http\Response

@@ -58,6 +58,7 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                 $router->group(['prefix' => 'installer'], function ($router) {
                     $router->post('install', 'ExtensionInstallerController@install');
                     $router->post('uninstall', 'ExtensionInstallerController@uninstall');
+                    $router->post('update', 'ExtensionInstallerController@update');
                     $router->get('jobs/{id}', 'ExtensionInstallerController@job');
                 });
 
@@ -71,7 +72,15 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                     $router->get('author-received', 'RegistryPaymentsController@getAuthorReceivedPayments');
                 });
 
+                // Registry Service checkout (Phase 4)
+                $router->group(['prefix' => 'purchases'], function ($router) {
+                    $router->post('checkout', 'ServicePurchaseController@checkout');
+                    $router->get('{handoff}', 'ServicePurchaseController@handoff');
+                });
+
                 $router->fleetbaseRoutes('registry-extensions', function ($router, $controller) {
+                    $router->get('context', $controller('context'));
+                    $router->get('{id}/releases', $controller('releases'));
                     $router->post('{id}/submit', $controller('submit'));
                     $router->post('approve', $controller('approve'));
                     $router->post('reject', $controller('reject'));

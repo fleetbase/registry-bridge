@@ -66,6 +66,11 @@ class RegistryClient
 
     public const INSTANCE_INSTALLS_PATH = 'v1/instances/me/installs';
 
+    /** Phase 4: hosted Stripe Checkout for the instance's organization, and the hand-off polled after it. */
+    public const INSTANCE_CHECKOUT_PATH = 'v1/instances/me/purchases/checkout';
+
+    public const INSTANCE_PURCHASES_PATH = 'v1/instances/me/purchases';
+
     protected const CACHE_PREFIX = 'registry-bridge:registry-client';
 
     protected string $host;
@@ -255,6 +260,37 @@ class RegistryClient
     }
 
     /**
+     * v2: published and yanked releases of a listing (`GET /v1/catalog/extensions/{slug}/releases`), newest
+     * first, or null when the listing does not exist.
+     *
+     * @return array{extension: string|null, latest: string|null, channels: array<string, string>, releases: array<int, array<string, mixed>>}|null
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function catalogReleases(string $slug): ?array
+    {
+        try {
+            $payload = $this->cachedGet(static::CATALOG_EXTENSIONS_PATH . '/' . rawurlencode($slug) . '/releases');
+        } catch (RegistryServiceException $e) {
+            if ($e->status() === 404) {
+                return null;
+            }
+
+            throw $e;
+        }
+
+        $payload  = is_array($payload) ? static::unwrap($payload) : [];
+        $channels = is_array($payload['channels'] ?? null) ? array_filter($payload['channels'], 'is_string') : [];
+
+        return [
+            'extension' => is_string($payload['extension'] ?? null) ? $payload['extension'] : null,
+            'latest'    => is_string($payload['latest'] ?? null) ? $payload['latest'] : null,
+            'channels'  => $channels,
+            'releases'  => is_array($payload['releases'] ?? null) ? array_values(array_filter($payload['releases'], 'is_array')) : [],
+        ];
+    }
+
+    /**
      * v2: categories with published extension counts (`GET /v1/catalog/categories`).
      *
      * @return array<int, array<string, mixed>>
@@ -269,7 +305,10 @@ class RegistryClient
     /**
      * v2: this instance, its organization and the organization's licences (`GET /v1/instances/me`).
      *
-     * @return array{instance: array<string, mixed>, licences: array<int, array<string, mixed>>}
+     * `features` lists what the service supports for instances (`checkout` once Phase 4 ships); empty when the
+     * service does not say.
+     *
+     * @return array{instance: array<string, mixed>, licences: array<int, array<string, mixed>>, features: array<string, mixed>}
      *
      * @throws RegistryUnavailableException|RegistryServiceException
      */
@@ -282,7 +321,51 @@ class RegistryClient
         return [
             'instance' => is_array($payload['instance'] ?? null) ? $payload['instance'] : [],
             'licences' => is_array($payload['licences'] ?? null) ? array_values(array_filter($payload['licences'], 'is_array')) : [],
+            'features' => is_array($payload['features'] ?? null) ? $payload['features'] : [],
         ];
+    }
+
+    /**
+     * v2 (Phase 4): start a hosted Stripe Checkout for the organization (`POST /v1/instances/me/purchases/checkout`).
+     *
+     * A service without the endpoint answers 404 or 405, which surfaces as a `RegistryServiceException`.
+     *
+     * @param array<string, mixed> $payload `extension` (id or slug), `return_url`, optional `cancel_url`, `buyer_email`
+     *
+     * @return array{url: string, handoff: string}
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function createCheckout(array $payload): array
+    {
+        $this->requireToken();
+        $body = static::unwrap($this->send('post', static::INSTANCE_CHECKOUT_PATH, array_filter($payload, fn ($value) => $value !== null && $value !== '')));
+
+        $url     = $body['url'] ?? $body['checkout_url'] ?? null;
+        $handoff = $body['handoff'] ?? $body['handoff_id'] ?? null;
+        if (!is_string($url) || $url === '' || !is_string($handoff) || $handoff === '') {
+            throw new RegistryServiceException('The registry service did not return a checkout URL and hand-off id.', 502);
+        }
+
+        return ['url' => $url, 'handoff' => $handoff];
+    }
+
+    /**
+     * v2 (Phase 4): the status of a checkout hand-off (`GET /v1/instances/me/purchases/{handoff}`), never cached.
+     *
+     * @return array<string, mixed> at least `status`
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function purchase(string $handoff): array
+    {
+        $this->requireToken();
+        $body = static::unwrap($this->send('get', static::INSTANCE_PURCHASES_PATH . '/' . static::encodePathSegment($handoff)));
+        if (($body['status'] ?? null) !== null) {
+            $this->forgetInstanceState();
+        }
+
+        return $body;
     }
 
     /**
@@ -483,7 +566,11 @@ class RegistryClient
     {
         try {
             $request  = $this->request($withToken)->asJson();
-            $response = $method === 'delete' ? $request->delete($path, $payload) : $request->post($path, $payload);
+            $response = match ($method) {
+                'delete' => $request->delete($path, $payload),
+                'get'    => $request->get($path, $payload),
+                default  => $request->post($path, $payload),
+            };
         } catch (\Throwable $e) {
             throw new RegistryUnavailableException('Unable to reach the extensions registry at ' . $this->host . ': ' . $e->getMessage(), 0, $e);
         }

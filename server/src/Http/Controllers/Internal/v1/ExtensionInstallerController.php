@@ -47,6 +47,15 @@ class ExtensionInstallerController extends Controller
     }
 
     /**
+     * Queue an update of an installed extension, to `version` or the newest compatible release. Same
+     * responses as install(); progress arrives on `install.{company}.{extension}`.
+     */
+    public function update(InstallExtensionRequest $request, InstallerService $installer)
+    {
+        return $this->enqueue($installer, 'update', $request);
+    }
+
+    /**
      * An installer job of the current company: status, stage, progress, queue
      * position and, once finished, the result (failed stage, message and the
      * last log lines on failure).
@@ -83,7 +92,7 @@ class ExtensionInstallerController extends Controller
             ? RegistryServiceInstall::where(['company_uuid' => session('company'), 'extension_id' => $job['extension']['id'] ?? null])->first()
             : RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $job['extension']['uuid'] ?? null])->first();
 
-        return response()->json(['status' => 'ok', 'job' => $job, $action === 'install' ? 'install' : 'uninstalled' => $action === 'install' ? $install : $install === null]);
+        return response()->json(['status' => 'ok', 'job' => $job, $action === 'uninstall' ? 'uninstalled' : 'install' => $action === 'uninstall' ? $install === null : $install]);
     }
 
     /**

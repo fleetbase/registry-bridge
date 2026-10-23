@@ -174,6 +174,40 @@ class RegistryConfig
     }
 
     /**
+     * Publisher portal URL (the service's website), or null without a service.
+     */
+    public function publisherUrl(): ?string
+    {
+        $url = $this->string('publisher_url');
+        if ($url !== '') {
+            return static::normalizeUrl($url);
+        }
+
+        return $this->usesService() ? $this->serviceUrl() : null;
+    }
+
+    /**
+     * Whether purchases go through the service checkout, given what the service advertises.
+     *
+     * `checkout` is `auto` (follow the service's `features.checkout`), or a boolean to force it.
+     *
+     * @param array<string, mixed> $features `features` from `GET /v1/instances/me`
+     */
+    public function checkoutEnabled(array $features = []): bool
+    {
+        if (!$this->usesService() || !$this->isRegistered()) {
+            return false;
+        }
+
+        $mode = $this->registry['checkout'] ?? 'auto';
+        if (is_string($mode) && strtolower(trim($mode)) === 'auto') {
+            return Utils::castBoolean($features['checkout'] ?? false) === true;
+        }
+
+        return Utils::castBoolean($mode) === true;
+    }
+
+    /**
      * Prefix a URL with https:// when it has no scheme and drop the trailing slash.
      */
     public static function normalizeUrl(string $url): string

@@ -33,6 +33,11 @@ return [
         // `self_hosted` or `cloud`; defaults to `cloud` when `self_hosted` (this instance is the v1 registry) is true.
         'instance_kind' => env('REGISTRY_INSTANCE_KIND'),
         'instance' => [],
+        // Publisher portal the console links to (the service's website). Defaults to the service URL.
+        'publisher_url' => env('REGISTRY_PUBLISHER_URL'),
+        // Purchases through the service checkout (Phase 4): `auto` follows `features.checkout` from
+        // GET /v1/instances/me, `true` or `false` force it on or off.
+        'checkout' => env('REGISTRY_SERVICE_CHECKOUT', 'auto'),
     ],
     'stripe' => [
         'key' => env('STRIPE_KEY', env('STRIPE_API_KEY')),

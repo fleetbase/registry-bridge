@@ -41,19 +41,35 @@ class ServiceCatalog
      */
     public static function query(Request $request, RegistryClient $client, RegistryConfig $config, array $localPackages = []): LengthAwarePaginator
     {
-        $search   = trim(static::str($request->input('query', '')));
-        $category = trim(static::str($request->input('category', '')));
-        $limit    = static::int($request->input('limit', static::DEFAULT_LIMIT), static::DEFAULT_LIMIT);
-        $page     = max(1, static::int($request->input('page', 1), 1));
+        $search        = trim(static::str($request->input('query', '')));
+        $category      = trim(static::str($request->input('category', '')));
+        $limit         = static::int($request->input('limit', static::DEFAULT_LIMIT), static::DEFAULT_LIMIT);
+        $page          = max(1, static::int($request->input('page', 1), 1));
+        $hideInstalled = Utils::castBoolean($request->input('hide_installed', false)) === true;
 
         $filters = array_filter([
             'q'        => $search,
             'category' => $category,
-            'hosting'  => $config->instanceKind(),
-            'sort'     => static::str($request->input('sort', '')),
+            'pricing'  => static::pricingFilter($request->input('pricing')),
+            'hosting'  => static::hostingFilter($request->input('hosting'), $config->instanceKind()),
+            'sort'     => static::sortFilter($request->input('sort')),
         ], fn ($value) => $value !== '');
 
         $state = static::state($client, $config, $localPackages);
+
+        // Installed state is only known here, so hiding installed listings pages over the whole filtered catalog
+        if ($hideInstalled) {
+            $items = array_values(array_filter(
+                static::transformMany($client->allCatalogExtensions($filters), $state, $client->host()),
+                fn (array $item) => $item['is_installed'] !== true
+            ));
+            $limit = $limit === -1 ? max(1, count($items)) : max(1, min($limit, static::MAX_LIMIT));
+
+            return new LengthAwarePaginator(array_slice($items, ($page - 1) * $limit, $limit), count($items), $limit, $page, [
+                'path'  => $request->url(),
+                'query' => $request->query(),
+            ]);
+        }
 
         if ($limit === -1) {
             $listings = $client->allCatalogExtensions($filters);
@@ -213,7 +229,7 @@ class ServiceCatalog
      *
      * @param array<int, string> $localPackages
      *
-     * @return array{registered: bool, kind: string, installed: array<string, array<string, mixed>>, licences: array<string, array<string, mixed>>, local_packages: array<int, string>, local_ids: array<int, string>, error: string|null}
+     * @return array{registered: bool, kind: string, checkout: bool, installed: array<string, array<string, mixed>>, licences: array<string, array<string, mixed>>, local_packages: array<int, string>, local_ids: array<int, string>, error: string|null}
      */
     public static function state(RegistryClient $client, RegistryConfig $config, array $localPackages = []): array
     {
@@ -230,7 +246,7 @@ class ServiceCatalog
             }
         }
 
-        $state          = static::buildState($me, $updates, $localPackages, $client->hasToken(), $config->instanceKind());
+        $state          = static::buildState($me, $updates, $localPackages, $client->hasToken(), $config->instanceKind(), $config->checkoutEnabled(static::arr($me['features'] ?? null)));
         $state['error'] = $error;
 
         return $state;
@@ -242,10 +258,11 @@ class ServiceCatalog
      * @param array<string, mixed> $me            `GET /v1/instances/me` body
      * @param array<string, mixed> $updates       `GET /v1/instances/me/updates` body
      * @param array<int, string>   $localPackages
+     * @param bool                 $checkout      whether paid listings can be bought through the service checkout
      *
-     * @return array{registered: bool, kind: string, installed: array<string, array<string, mixed>>, licences: array<string, array<string, mixed>>, local_packages: array<int, string>, local_ids: array<int, string>, error: string|null}
+     * @return array{registered: bool, kind: string, checkout: bool, installed: array<string, array<string, mixed>>, licences: array<string, array<string, mixed>>, local_packages: array<int, string>, local_ids: array<int, string>, error: string|null}
      */
-    public static function buildState(array $me = [], array $updates = [], array $localPackages = [], bool $registered = false, string $kind = RegistryConfig::KIND_SELF_HOSTED): array
+    public static function buildState(array $me = [], array $updates = [], array $localPackages = [], bool $registered = false, string $kind = RegistryConfig::KIND_SELF_HOSTED, bool $checkout = false): array
     {
         $installed = [];
         foreach ((array) ($updates['data'] ?? []) as $entry) {
@@ -271,6 +288,7 @@ class ServiceCatalog
         return [
             'registered'     => $registered,
             'kind'           => $kind,
+            'checkout'       => $checkout,
             'installed'      => $installed,
             'licences'       => $licences,
             'local_packages' => array_values(array_filter($localPackages, fn ($name) => is_string($name) && $name !== '')),
@@ -325,7 +343,9 @@ class ServiceCatalog
         $installedVersion = $update ? static::str(Arr::get($update, 'installed.version')) : '';
         $updateVersion    = $update ? static::str(Arr::get($update, 'latest.version')) : '';
 
-        $blockedReason = static::installBlockedReason($registered, $hosting, $kind, $isPaid, $isPurchased, $names, $latest);
+        $checkout      = (bool) ($state['checkout'] ?? false);
+        $blocked       = static::installBlock($registered, $hosting, $kind, $isPaid, $isPurchased, $names, $latest, $checkout);
+        $blockedReason = $blocked['reason'] ?? null;
 
         return [
             'id'                       => $id,
@@ -396,6 +416,8 @@ class ServiceCatalog
                 'latest_release'         => $release ?: null,
                 'licence'                => $licence,
                 'install_blocked_reason' => $blockedReason,
+                'install_blocked_code'   => $blocked['code'] ?? null,
+                'purchase_available'     => ($blocked['code'] ?? null) === 'licence_required' && $checkout,
                 'versions'               => array_values((array) Arr::get($listing, 'versions', [])),
             ],
             'published_at'             => Arr::get($listing, 'published_at'),
@@ -445,6 +467,93 @@ class ServiceCatalog
     }
 
     /**
+     * The service `pricing` filter: `free`, `paid`, or empty for both.
+     */
+    public static function pricingFilter(mixed $pricing): string
+    {
+        $pricing = strtolower(trim(static::str($pricing)));
+
+        return in_array($pricing, ['free', 'paid'], true) ? $pricing : '';
+    }
+
+    /**
+     * The service `hosting` filter. Listings that exclude this instance's kind stay hidden, so the only
+     * narrowing an operator can ask for is `both` (listings that run on cloud and self-hosted alike).
+     */
+    public static function hostingFilter(mixed $hosting, string $kind): string
+    {
+        return strtolower(trim(static::str($hosting))) === 'both' ? 'both' : $kind;
+    }
+
+    /**
+     * The service `sort`: `popular` (default), `newest`, `updated`, `name` or `price`.
+     */
+    public static function sortFilter(mixed $sort): string
+    {
+        $sort = strtolower(trim(static::str($sort)));
+
+        return in_array($sort, ['popular', 'newest', 'updated', 'name', 'price'], true) ? $sort : '';
+    }
+
+    /**
+     * Releases of a listing for the console's Versions tab, newest first, or null when the service does not
+     * have the listing.
+     *
+     * @return array{latest: string|null, channels: array<string, string>, releases: array<int, array<string, mixed>>}|null
+     *
+     * @throws RegistryException
+     */
+    public static function releases(string $id, RegistryClient $client, ?string $installedVersion = null): ?array
+    {
+        $payload = $client->catalogReleases($id);
+        if ($payload === null) {
+            return null;
+        }
+
+        return static::transformReleases($payload, $installedVersion);
+    }
+
+    /**
+     * Map a releases payload: each release with `is_latest`, `is_installed` and `is_yanked` flags.
+     *
+     * @param array<string, mixed> $payload `{latest, channels, releases}` from the service
+     *
+     * @return array{latest: string|null, channels: array<string, string>, releases: array<int, array<string, mixed>>}
+     */
+    public static function transformReleases(array $payload, ?string $installedVersion = null): array
+    {
+        $latest   = static::str($payload['latest'] ?? '') ?: null;
+        $releases = [];
+        foreach ((array) ($payload['releases'] ?? []) as $release) {
+            if (!is_array($release) || static::str($release['version'] ?? '') === '') {
+                continue;
+            }
+
+            $version    = static::str($release['version']);
+            $releases[] = [
+                'id'           => $release['id'] ?? null,
+                'version'      => $version,
+                'channel'      => static::str($release['channel'] ?? '') ?: 'stable',
+                'status'       => static::str($release['status'] ?? '') ?: 'published',
+                'compat'       => is_array($release['compat'] ?? null) ? $release['compat'] : [],
+                'size_bytes'   => static::int($release['size_bytes'] ?? 0),
+                'notes'        => $release['notes'] ?? null,
+                'published_at' => $release['published_at'] ?? null,
+                'yanked_at'    => $release['yanked_at'] ?? null,
+                'is_latest'    => $version === $latest,
+                'is_installed' => $installedVersion !== null && $version === $installedVersion,
+                'is_yanked'    => ($release['status'] ?? null) === 'yanked' || ($release['yanked_at'] ?? null) !== null,
+            ];
+        }
+
+        return [
+            'latest'   => $latest,
+            'channels' => array_filter((array) ($payload['channels'] ?? []), 'is_string'),
+            'releases' => $releases,
+        ];
+    }
+
+    /**
      * `{npm, composer}` package names a listing declares.
      *
      * @param array<string, mixed> $listing
@@ -484,24 +593,39 @@ class ServiceCatalog
      *
      * @param array<int, string> $packageNames
      */
-    public static function installBlockedReason(bool $registered, string $hosting, string $kind, bool $isPaid, bool $isPurchased, array $packageNames, string $version): ?string
+    public static function installBlockedReason(bool $registered, string $hosting, string $kind, bool $isPaid, bool $isPurchased, array $packageNames, string $version, bool $checkout = false): ?string
+    {
+        return static::installBlock($registered, $hosting, $kind, $isPaid, $isPurchased, $packageNames, $version, $checkout)['reason'] ?? null;
+    }
+
+    /**
+     * Why this instance cannot install a listing, as a code the console branches on (`not_registered`,
+     * `hosting`, `licence_required`, `no_release`) and the sentence it shows, or null when it can.
+     *
+     * @param array<int, string> $packageNames
+     *
+     * @return array{code: string, reason: string}|null
+     */
+    public static function installBlock(bool $registered, string $hosting, string $kind, bool $isPaid, bool $isPurchased, array $packageNames, string $version, bool $checkout = false): ?array
     {
         if (!$registered) {
-            return 'Register this instance with the registry service to install extensions.';
+            return ['code' => 'not_registered', 'reason' => 'Register this instance with the registry service to install extensions.'];
         }
 
         if ($hosting !== 'both' && $hosting !== $kind) {
-            return $hosting === RegistryConfig::KIND_CLOUD
+            return ['code' => 'hosting', 'reason' => $hosting === RegistryConfig::KIND_CLOUD
                 ? 'This extension is only available on Fleetbase Cloud.'
-                : 'This extension is only available on self-hosted instances.';
+                : 'This extension is only available on self-hosted instances.'];
         }
 
         if ($isPaid && !$isPurchased) {
-            return 'Your organization does not hold a licence for this extension. Purchasing through the registry service is not available yet.';
+            return ['code' => 'licence_required', 'reason' => $checkout
+                ? 'Purchase a licence for your organization to install this extension.'
+                : 'Your organization does not hold a licence for this extension. Purchasing through the registry service is not available yet.'];
         }
 
         if ($packageNames === [] || $version === '') {
-            return 'This extension has no published release to install.';
+            return ['code' => 'no_release', 'reason' => 'This extension has no published release to install.'];
         }
 
         return null;
