@@ -18,6 +18,12 @@ use Fleetbase\RegistryBridge\Support\ServiceCatalog;
  * engine's npm scope. Credentials are not part of the release; they come from
  * ServicePackageCredentials per process.
  *
+ * When the release carries a prebuilt engine dist (`dist: {sha256, size,
+ * built_against}` on catalog releases), it becomes the release's DIST artifact
+ * at `<service>/npm/<engine>/-/dist/<version>`, verified by that sha256 and
+ * downloaded with the instance token (PackageAuth::downloadHeaders), so the
+ * engine installs as a runtime engine without a console build.
+ *
  * Licences are checked by the instance API when the install starts (see
  * ServiceInstallReporter), not here.
  */
@@ -98,6 +104,7 @@ class ServiceReleaseSource implements ReleaseSource
         $packages   = ServiceCatalog::packages($listing);
         $auth       = new PackageAuth($this->config);
         $repository = $packages['composer'] !== null ? $auth->composerRepository() : null;
+        $dist       = $version === $latest ? ($release['dist'] ?? null) : self::versionEntry($listing, $version)['dist'] ?? null;
 
         return new Release(
             extension: $extension,
@@ -106,11 +113,46 @@ class ServiceReleaseSource implements ReleaseSource
             composerConstraint: $packages['composer'] !== null ? $version : null,
             enginePackage: $packages['npm'],
             engineConstraint: $packages['npm'] !== null ? $version : null,
-            artifacts: [],
+            artifacts: $packages['npm'] !== null ? self::distArtifacts($auth, $packages['npm'], $version, $dist) : [],
             source: ExtensionRef::REGISTRY_SERVICE,
             engineTarball: $packages['npm'] !== null ? $auth->npmTarballUrl($packages['npm'], $version) : null,
             composerRepository: $repository !== null ? ['name' => PackageAuth::COMPOSER_REPOSITORY_NAME, ...$repository] : null,
         );
+    }
+
+    /**
+     * The prebuilt dist artifact for a release whose payload has a usable `dist`; none for releases without one
+     * or from a service that does not serve dists yet.
+     *
+     * @return array<int, Artifact>
+     */
+    private static function distArtifacts(PackageAuth $auth, string $enginePackage, string $version, mixed $dist): array
+    {
+        $sha256 = is_array($dist) ? self::string($dist['sha256'] ?? null) : null;
+        $url    = $auth->npmDistUrl($enginePackage, $version);
+        if ($sha256 === null || !preg_match('/^[a-f0-9]{64}$/i', $sha256) || $url === null) {
+            return [];
+        }
+
+        $basename = str_contains($enginePackage, '/') ? substr($enginePackage, strrpos($enginePackage, '/') + 1) : $enginePackage;
+
+        return [new Artifact(Artifact::DIST, $url, 'sha256-' . strtolower($sha256), $basename . '-' . $version . '-dist')];
+    }
+
+    /**
+     * @param array<string, mixed> $listing
+     *
+     * @return array<string, mixed>
+     */
+    private static function versionEntry(array $listing, string $version): array
+    {
+        foreach ((array) ($listing['versions'] ?? []) as $entry) {
+            if (is_array($entry) && ($entry['version'] ?? null) === $version) {
+                return $entry;
+            }
+        }
+
+        return [];
     }
 
     /**
