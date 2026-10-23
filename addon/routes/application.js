@@ -24,8 +24,9 @@ export default class ApplicationRoute extends Route {
         return this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' }).catch(() => []);
     }
 
-    setupController() {
+    setupController(controller, model) {
         super.setupController(...arguments);
+        controller.rememberCategoryCounts(model);
         this.registryContext.load();
         this.registryContext.loadCounts();
         this.restoreFromUrl();

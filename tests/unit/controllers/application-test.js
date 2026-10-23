@@ -31,4 +31,16 @@ module('Unit | Controller | application', function (hooks) {
             { name: 'Warehouse', slug: 'warehouse', icon: undefined, model: { slug: 'warehouse' }, count: null },
         ]);
     });
+
+    test('category counts survive an embedded category without its count', function (assert) {
+        const controller = this.owner.lookup('controller:application');
+        const fleet = { name: 'Fleet', slug: 'fleet', meta: { extensions_count: 3 } };
+        controller.model = [fleet];
+        controller.rememberCategoryCounts(controller.model);
+
+        // What ember-data does when an Explore result embeds the same category.
+        fleet.meta = { source: 'registry-service', extensions_count: null };
+
+        assert.strictEqual(controller.sidebarCategories[0].count, '3');
+    });
 });

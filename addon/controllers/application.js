@@ -1,9 +1,25 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { isArray } from '@ember/array';
+import { tracked } from '@glimmer/tracking';
 
 export default class ApplicationController extends Controller {
     @service registryContext;
+
+    /**
+     * Listing counts by category slug, taken when the categories load. Explore results embed each
+     * extension's category (same id, `meta.extensions_count: null`), and ember-data merges that into
+     * the sidebar's category records, so the live `meta` loses the count for every category in use.
+     */
+    @tracked categoryCounts = null;
+
+    rememberCategoryCounts(categories) {
+        const counts = {};
+        for (const category of isArray(categories) ? categories : []) {
+            counts[category.slug] = category.meta?.extensions_count ?? category.extensions_count;
+        }
+        this.categoryCounts = counts;
+    }
 
     /** Installed count for the sidebar, with the updates waiting when there are any (`7 · 2↑`). */
     get installedCount() {
@@ -28,7 +44,8 @@ export default class ApplicationController extends Controller {
     get sidebarCategories() {
         const categories = isArray(this.model) ? this.model : [];
         return categories.map((category) => {
-            const count = category.meta?.extensions_count ?? category.extensions_count;
+            const remembered = this.categoryCounts?.[category.slug];
+            const count = remembered ?? category.meta?.extensions_count ?? category.extensions_count;
             return {
                 name: category.name,
                 slug: category.slug,
