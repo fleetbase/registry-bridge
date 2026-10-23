@@ -34,6 +34,7 @@ const HELLO_ID      = 'ext_lx52k33erf';
 const HELLO_NPM     = '@registry-demo/hello-engine';
 const HELLO_API     = 'registry-demo/hello-api';
 const HELLO_TARBALL = RegistryServiceFake::SERVICE_URL . '/npm/@registry-demo/hello-engine/-/hello-engine-1.0.0.tgz';
+const HELLO_DIST    = RegistryServiceFake::SERVICE_URL . '/npm/@registry-demo/hello-engine/-/dist/1.0.0';
 
 /**
  * The free demo listing as the detail endpoint returns it (recorded summary plus its versions).
@@ -63,10 +64,28 @@ function helloJob(string $action = 'install', array $overrides = []): array
     return ['id' => 'job-' . $action, 'action' => $action, 'extension' => helloRef()->toArray(), 'version' => null, 'company' => 'company-1', 'user' => 'user-1', ...$overrides];
 }
 
-function serviceInstaller(InstallerSandbox $sandbox, RegistryConfig $config): ExtensionInstaller
+/**
+ * The demo listing with a prebuilt dist on its latest release, as the service serves it at HELLO_DIST.
+ *
+ * @return array{0: array<string, mixed>, 1: string} the listing and the dist archive
+ */
+function helloListingWithDist(InstallerSandbox $sandbox): array
+{
+    $archive                           = $sandbox->buildDist('1.0.0', ['name' => HELLO_NPM]);
+    $listing                           = helloListing();
+    $listing['latest_release']['dist'] = ['size' => filesize($archive), 'sha256' => hash_file('sha256', $archive), 'integrity' => null, 'built_against' => ['@fleetbase/ember-ui' => InstallerSandbox::UI, '@fleetbase/ember-core' => InstallerSandbox::CORE]];
+
+    return [$listing, $archive];
+}
+
+/**
+ * @param callable(string $url, string $target, array<string, string> $headers): void|null $fetcher HTTP downloads
+ */
+function serviceInstaller(InstallerSandbox $sandbox, RegistryConfig $config, ?callable $fetcher = null): ExtensionInstaller
 {
     $client = RegistryClient::fromConfig($config);
     $paths  = $sandbox->config();
+    $auth   = new PackageAuth($config);
 
     return new ExtensionInstaller(
         $paths,
@@ -75,7 +94,7 @@ function serviceInstaller(InstallerSandbox $sandbox, RegistryConfig $config): Ex
         $sandbox->publisher,
         new PhpEngineCompat(),
         $sandbox->recorder,
-        new ArtifactDownloader($paths->requireChecksums),
+        new ArtifactDownloader($paths->requireChecksums, null, $fetcher, fn (string $url) => $auth->downloadHeaders($url)),
         new ServiceInstallReporter($client, $config),
         new ServicePackageCredentials(new PackageAuth($config), $paths->composerBinary, $paths->pnpmBinary),
     );
@@ -147,6 +166,108 @@ test('a service release installs from the service package endpoints with credent
     ])
         ->and($this->sandbox->recorder->isInstalled('company-1', helloRef()))->toBeTrue()
         ->and(json_decode((string) file_get_contents($this->sandbox->console . '/package.json'), true)['dependencies'][HELLO_NPM])->toBe(HELLO_TARBALL);
+});
+
+test('a service release with a prebuilt dist installs as a runtime engine, downloaded with the instance token', function () {
+    [$listing, $archive] = helloListingWithDist($this->sandbox);
+    $this->service->respondWith('GET', 'v1/catalog/extensions/' . HELLO_ID, 200, $listing);
+    $this->service->on('POST', 'v1/instances/me/installs', 'instances-installs-installing', 'instances-installs-installed');
+    $downloads = [];
+    $fetcher   = function (string $url, string $target, array $headers) use ($archive, &$downloads) {
+        $downloads[] = [$url, $headers];
+        copy($archive, $target);
+    };
+
+    $result = serviceInstaller($this->sandbox, RegistryServiceFake::config(), $fetcher)->run(helloJob());
+
+    expect($result['status'])->toBe('completed')
+        ->and($result['mode'])->toBe('runtime')
+        ->and($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'caches', 'record'])
+        ->and($result['release']['engine']['prebuilt'])->toBeTrue()
+        ->and($result['release']['artifacts'])->toBe([['role' => 'dist', 'uri' => HELLO_DIST, 'checksum' => 'sha256-' . hash_file('sha256', $archive), 'filename' => 'hello-engine-1.0.0-dist']])
+        ->and($downloads)->toBe([[HELLO_DIST, ['Authorization' => 'Bearer ' . RegistryServiceFake::INSTANCE_TOKEN]]])
+        ->and($this->sandbox->runner->commands())->toBe([
+            'composer config repositories.fleetbase-registry-service {"type":"composer","url":"https://registry.example.test/composer","canonical":false}',
+            'composer require ' . HELLO_API . ':1.0.0 --no-interaction',
+            'php artisan config:clear',
+            'php artisan route:clear',
+            'php artisan view:clear',
+            'php artisan event:clear',
+            'php artisan queue:restart',
+        ])
+        ->and($this->sandbox->manifest()->has(HELLO_NPM))->toBeTrue()
+        ->and(is_file($this->sandbox->runtime . '/' . HELLO_NPM . '/manifest.json'))->toBeTrue()
+        ->and($this->sandbox->recorder->installs['company-1'][HELLO_ID])->toMatchArray(['version' => '1.0.0', 'mode' => 'runtime', 'source' => 'registry-service']);
+    expect(json_encode($result))->not->toContain(RegistryServiceFake::INSTANCE_TOKEN);
+});
+
+test('a dist whose checksum does not match the service payload fails the download before anything changes', function () {
+    [$listing, $archive]                         = helloListingWithDist($this->sandbox);
+    $listing['latest_release']['dist']['sha256'] = str_repeat('0', 64);
+    $this->service->respondWith('GET', 'v1/catalog/extensions/' . HELLO_ID, 200, $listing);
+    $this->service->on('POST', 'v1/instances/me/installs', 'instances-installs-installing', 'instances-installs-failed');
+
+    $result = serviceInstaller($this->sandbox, RegistryServiceFake::config(), fn (string $url, string $target) => copy($archive, $target))->run(helloJob());
+
+    expect($result['status'])->toBe('failed')
+        ->and($result['failed_stage'])->toBe('download')
+        ->and($result['message'])->toContain('Checksum mismatch for the dist artifact')
+        ->and($this->sandbox->runner->calls)->toBe([]);
+});
+
+test('a console that cannot take the prebuilt dist installs the engine package and rebuilds instead', function (string $reason) {
+    [$listing, $archive] = helloListingWithDist($this->sandbox);
+    $this->service->respondWith('GET', 'v1/catalog/extensions/' . HELLO_ID, 200, $listing);
+    $this->service->on('POST', 'v1/instances/me/installs', 'instances-installs-installing', 'instances-installs-installed');
+    match ($reason) {
+        'built in'        => $this->sandbox->runner->run(['pnpm', 'add', HELLO_NPM . '@' . HELLO_TARBALL], $this->sandbox->console),
+        'no host modules' => unlink($this->sandbox->console . '/dist/host-modules.json'),
+        'incompatible'    => $this->sandbox->writeHostModules('0.5.1'),
+    };
+    $this->sandbox->runner->calls = [];
+
+    $result = serviceInstaller($this->sandbox, RegistryServiceFake::config(), fn (string $url, string $target) => copy($archive, $target))->run(helloJob());
+
+    expect($result['status'])->toBe('completed')
+        ->and($result['mode'])->toBe('build')
+        ->and($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'build', 'caches', 'record'])
+        ->and($result['prebuilt_skipped'])->toContain(match ($reason) {
+            'built in'        => 'is built into this console',
+            'no host modules' => 'no host-modules.json',
+            'incompatible'    => 'not compatible',
+        })
+        ->and($this->sandbox->runner->commands())->toContain('pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL . ' --config.ignore-workspace-root-check=true', 'pnpm build --environment production')
+        ->and($this->sandbox->manifest()->has(HELLO_NPM))->toBeFalse();
+})->with(['built in', 'no host modules', 'incompatible']);
+
+test('a release from an older service without dist metadata keeps the rebuild path', function () {
+    $release = (new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config()))->release(helloRef(), helloListing());
+
+    expect($release->artifacts)->toBe([])
+        ->and($release->hasPrebuiltEngine())->toBeFalse();
+});
+
+test('an older version takes the dist from its versions entry', function () {
+    $listing             = helloListing();
+    $listing['versions'] = [
+        ['id' => 'rel_fshrg663og', 'version' => '1.0.0', 'channel' => 'stable', 'dist' => null],
+        ['id' => 'rel_old', 'version' => '0.9.0', 'channel' => 'stable', 'dist' => ['size' => 10, 'sha256' => str_repeat('AB', 32), 'integrity' => null, 'built_against' => []]],
+    ];
+    $source = new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config());
+
+    $old = $source->release(helloRef(), $listing, '0.9.0');
+    expect($old->artifact('dist')?->uri)->toBe(RegistryServiceFake::SERVICE_URL . '/npm/@registry-demo/hello-engine/-/dist/0.9.0')
+        ->and($old->artifact('dist')?->checksum)->toBe('sha256-' . str_repeat('ab', 32))
+        ->and($source->release(helloRef(), $listing, '1.0.0')->artifacts)->toBe([]);
+});
+
+test('download headers carry the instance token only to the configured service', function () {
+    $auth = new PackageAuth(RegistryServiceFake::config());
+
+    expect($auth->downloadHeaders(HELLO_DIST))->toBe(['Authorization' => 'Bearer ' . RegistryServiceFake::INSTANCE_TOKEN])
+        ->and($auth->downloadHeaders('https://cdn.example.test/npm/x/-/dist/1.0.0'))->toBe([])
+        ->and($auth->downloadHeaders(RegistryServiceFake::SERVICE_URL . '.evil.test/npm/x'))->toBe([])
+        ->and((new PackageAuth(RegistryServiceFake::config(['instance_token' => null])))->downloadHeaders(HELLO_DIST))->toBe([]);
 });
 
 test('a licence refusal from the service stops the job before anything changes', function () {

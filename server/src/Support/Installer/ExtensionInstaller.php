@@ -156,16 +156,27 @@ class ExtensionInstaller
         }
 
         if ($release->enginePackage !== null) {
-            if ($ctx->engineRelease) {
-                $this->stage($ctx, 'engine', 'engine.install', fn () => $this->installPrebuiltEngine($ctx));
-            } else {
-                $this->stage($ctx, 'engine', 'engine.install', function () use ($ctx, $release) {
-                    $ctx->snapshot()->flag('pnpm');
-                    // A console whose pnpm-workspace.yaml lists packages (local engine links in development) is a
-                    // workspace root, and pnpm refuses a root `add` without this (ERR_PNPM_ADDING_TO_ROOT).
-                    $this->exec($ctx, [$this->config->pnpmBinary, 'add', (string) $release->engineRequirement(), '--config.ignore-workspace-root-check=true'], $this->config->consolePath, 'engine.install', [OutputProgress::class, 'pnpmInstallOutputProgress']);
-                    $ctx->result['mode'] = 'build';
-                });
+            $rebuild = $ctx->engineRelease === null;
+            $this->stage($ctx, 'engine', 'engine.install', function () use ($ctx, $release, &$rebuild) {
+                if (!$rebuild) {
+                    $refusal = $this->prebuiltRefusal($ctx, $release);
+                    if ($refusal === null) {
+                        $this->installPrebuiltEngine($ctx);
+
+                        return;
+                    }
+                    // A Registry Service release always has its engine package on the service, so a console that
+                    // cannot take the prebuilt dist installs that and rebuilds instead (D3: rebuild only as fallback).
+                    if ($release->source !== ExtensionRef::REGISTRY_SERVICE) {
+                        throw new \RuntimeException($refusal);
+                    }
+                    $ctx->log->add($refusal . ' Installing the engine package and rebuilding the console instead.');
+                    $ctx->result['prebuilt_skipped'] = $refusal;
+                    $rebuild                         = true;
+                }
+                $this->addEnginePackage($ctx, $release);
+            });
+            if ($rebuild) {
                 $this->stage($ctx, 'build', 'console.build', fn () => $this->buildConsole($ctx));
             }
         }
@@ -228,20 +239,54 @@ class ExtensionInstaller
         $this->stage($ctx, 'record', 'install.record', fn () => $this->recorder->remove($ctx->company, $ctx->extension));
     }
 
-    private function installPrebuiltEngine(InstallContext $ctx): void
+    /**
+     * Why this console cannot take the unpacked prebuilt engine, or null when it can.
+     */
+    private function prebuiltRefusal(InstallContext $ctx, Release $release): ?string
     {
-        $engine      = $ctx->engineRelease ?? throw new \LogicException('The prebuilt engine is unpacked in the download stage.');
+        $engine = $ctx->engineRelease ?? throw new \LogicException('The prebuilt engine is unpacked in the download stage.');
+
+        // Every Registry Service install before prebuilt dists were served was built into the console; a runtime
+        // copy beside the built one would load the engine twice, so those keep updating by rebuild.
+        if ($release->source === ExtensionRef::REGISTRY_SERVICE && $this->consoleDepends($engine->name()) && !$this->manifest()->has($engine->name())) {
+            return sprintf('%s is built into this console, so it is updated by a rebuild.', $engine->name());
+        }
+
         $hostModules = $this->config->hostModulesFile();
         if (!is_file($hostModules)) {
-            throw new \RuntimeException(sprintf('The console build has no host-modules.json (looked for %s). Rebuild the console with a version that writes it before installing prebuilt engines.', $hostModules));
+            return sprintf('The console build has no host-modules.json (looked for %s). Rebuild the console with a version that writes it before installing prebuilt engines.', $hostModules);
         }
 
         $compat                 = $this->compat->check($engine->manifestPath(), $hostModules, $this->config->compatPolicy);
         $ctx->result['compat']  = $compat->toArray();
         $ctx->log->add(sprintf('Compatibility (%s policy): %s', $this->config->compatPolicy, $compat->compatible ? 'compatible' : $compat->summary()));
-        if (!$compat->compatible) {
-            throw new \RuntimeException('The prebuilt engine is not compatible with this console: ' . $compat->summary());
+
+        return $compat->compatible ? null : 'The prebuilt engine is not compatible with this console: ' . $compat->summary();
+    }
+
+    /**
+     * `pnpm add` the engine package for a console build. A runtime copy of the same engine is removed (the
+     * snapshot restores it on failure), so the rebuilt console does not load it twice.
+     */
+    private function addEnginePackage(InstallContext $ctx, Release $release): void
+    {
+        $engine = (string) $release->enginePackage;
+        if ($this->manifest()->has($engine)) {
+            $this->manifest()->remove($engine);
+            Files::delete($this->config->engineDirectory($engine));
+            $ctx->log->add(sprintf('Removed the runtime copy of %s', $engine));
         }
+
+        $ctx->snapshot()->flag('pnpm');
+        // A console whose pnpm-workspace.yaml lists packages (local engine links in development) is a
+        // workspace root, and pnpm refuses a root `add` without this (ERR_PNPM_ADDING_TO_ROOT).
+        $this->exec($ctx, [$this->config->pnpmBinary, 'add', (string) $release->engineRequirement(), '--config.ignore-workspace-root-check=true'], $this->config->consolePath, 'engine.install', [OutputProgress::class, 'pnpmInstallOutputProgress']);
+        $ctx->result['mode'] = 'build';
+    }
+
+    private function installPrebuiltEngine(InstallContext $ctx): void
+    {
+        $engine = $ctx->engineRelease ?? throw new \LogicException('The prebuilt engine is unpacked in the download stage.');
         $this->emit($ctx, 'engine.install', 40);
 
         $target = $this->config->engineDirectory($engine->name());

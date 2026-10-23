@@ -163,6 +163,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
             return new ArtifactDownloader(
                 $app->make(InstallerConfig::class)->requireChecksums,
                 fn (string $disk, string $path) => Storage::disk($disk)->readStream($path),
+                null,
+                fn (string $url) => (new PackageAuth(RegistryConfig::current()))->downloadHeaders($url),
             );
         });
 

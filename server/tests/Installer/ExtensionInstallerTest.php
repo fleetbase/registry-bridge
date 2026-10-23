@@ -136,6 +136,29 @@ test('a console build keeps the runtime engines already unpacked in dist', funct
     expect(array_column($sandbox->manifest()->all(), 'name'))->toBe([InstallerSandbox::ENGINE]);
 });
 
+test('an update built into the console removes the runtime copy of the engine, and a failure restores it', function () {
+    $sandbox = $this->sandbox;
+    $sandbox->release('1.0.0');
+    expect($sandbox->installer()->run($sandbox->job())['mode'])->toBe('runtime');
+    $previous = sandboxState($sandbox);
+
+    $sandbox->release('1.1.0', dist: false);
+    $sandbox->runner->on(['pnpm', 'build'], 1);
+    $failed = $sandbox->installer()->run($sandbox->job('update', ['version' => '1.1.0']));
+
+    expect($failed['failed_stage'])->toBe('build');
+    expect(sandboxState($sandbox))->toBe($previous);
+    expect(is_file($this->engineDir . '/assets/engine.js'))->toBeTrue();
+
+    $sandbox->runner->on(['pnpm', 'build'], 0);
+    $updated = $sandbox->installer()->run($sandbox->job('update', ['id' => 'job-update-2', 'version' => '1.1.0']));
+
+    expect($updated['mode'])->toBe('build');
+    expect($sandbox->manifest()->has(InstallerSandbox::ENGINE))->toBeFalse();
+    expect(is_dir($this->engineDir))->toBeFalse();
+    expect($sandbox->runner->commands())->toContain('pnpm add @acme/widgets-engine@1.1.0 --config.ignore-workspace-root-check=true');
+});
+
 test('a composer failure rolls back the snapshot and reports the stage and the last 50 log lines', function () {
     $sandbox = $this->sandbox;
     $sandbox->release('1.0.0');
