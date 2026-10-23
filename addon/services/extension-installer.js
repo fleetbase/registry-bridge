@@ -69,6 +69,7 @@ export default class ExtensionInstallerService extends Service {
     @service fetch;
     @service intl;
     @service abilities;
+    @service registryContext;
 
     /** Seconds before the console reloads after a finished job. */
     reloadAfter = 8;
@@ -172,6 +173,7 @@ export default class ExtensionInstallerService extends Service {
             if (job.status === 'completed') {
                 const key = jobAction === 'uninstall' ? 'uninstalled' : jobAction === 'update' ? 'updated' : 'installed';
                 this.notifications.info(this.intl.t(`registry-bridge.installer.${key}`, { extensionName: extension.name }));
+                this.registryContext.loadCounts();
                 if (typeof onCompleted === 'function') {
                     onCompleted(job);
                 }

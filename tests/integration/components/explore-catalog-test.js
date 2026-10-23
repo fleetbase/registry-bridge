@@ -111,4 +111,29 @@ module('Integration | Component | explore-catalog', function (hooks) {
         assert.strictEqual(this.catalog.hosting, null);
         assert.strictEqual(this.catalog.page, 1);
     });
+
+    test('an unregistered instance is told once that it can browse but not install', async function (assert) {
+        stubStoreQuery(this.owner, page(listings));
+        const context = this.owner.lookup('service:registry-context');
+        context.context = { service_url: 'https://registry.example.test', registered: false };
+        context.loaded = true;
+        await this.catalog.load.perform();
+        await render(hbs`<ExploreCatalog @catalog={{this.catalog}} />`);
+
+        assert.dom('[data-test-explore-registration]').includesText('not registered with the registry service');
+        assert.dom('[data-test-explore-registration]').includesText('Ask an admin');
+        assert.dom('[data-test-extension-card]').exists({ count: 2 }, 'the catalog still shows');
+
+        context.context = { ...context.context, registered: true };
+        await settled();
+        assert.dom('[data-test-explore-registration]').doesNotExist();
+    });
+
+    test('the hosting facet offers each kind', function (assert) {
+        const hosting = this.catalog.facetColumns.find((column) => column.filterParam === 'hosting');
+        assert.deepEqual(
+            hosting.filterOptions.map((option) => option.value),
+            ['self_hosted', 'cloud', 'both']
+        );
+    });
 });

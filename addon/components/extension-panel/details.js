@@ -10,7 +10,6 @@ const HOSTING = { both: 'both', cloud: 'cloud', self_hosted: 'self-hosted' };
  * pricing, each row only when the listing has it.
  */
 export default class ExtensionPanelDetailsComponent extends Component {
-    @service registryContext;
     @service intl;
 
     get extension() {
@@ -46,7 +45,6 @@ export default class ExtensionPanelDetailsComponent extends Component {
                     : this.intl.t('registry-bridge.detail.pricing-one-time', {
                           price: formatCurrency(price.amount, price.currency),
                           currency: price.currency,
-                          percent: this.registryContext.facilitatorFee,
                       }),
             },
         ].filter((row) => row.value || row.url);

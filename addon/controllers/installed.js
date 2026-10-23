@@ -84,7 +84,7 @@ export default class InstalledController extends Controller {
                 class: 'text-red-500',
                 fn: this.uninstall,
                 permission: PERMISSIONS.uninstall,
-                isVisible: (extension) => extension.core_service !== true,
+                isVisible: (extension) => extension.core_extension !== true,
             },
         ];
     }

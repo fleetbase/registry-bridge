@@ -4,19 +4,21 @@ import { tracked } from '@glimmer/tracking';
 export const CONTEXT_NAMESPACE = '~registry/v1';
 
 /**
- * What every console user needs to know about the registry this instance
- * talks to (GET ~registry/v1/registry-extensions/context): whether it uses
- * the Registry Service, whether the instance is registered, the publisher
- * portal to link to and whether paid extensions can be bought here.
+ * What every console user needs to know about the Registry Service this
+ * instance talks to (GET ~registry/v1/registry-extensions/context): its URL,
+ * whether the instance is registered, the publisher portal to link to and
+ * whether paid extensions can be bought here. Also the sidebar counts
+ * (GET ~registry/v1/registry-extensions/counts).
  */
 export default class RegistryContextService extends Service {
     @service fetch;
     @tracked context = {};
+    @tracked counts = {};
     @tracked loaded = false;
     #pending = null;
 
     get usesService() {
-        return this.context.uses_service === true;
+        return Boolean(this.context.service_url);
     }
 
     get registered() {
@@ -35,8 +37,26 @@ export default class RegistryContextService extends Service {
         return this.context.checkout_available === true;
     }
 
-    get facilitatorFee() {
-        return Number(this.context.facilitator_fee ?? 10);
+    get instanceKind() {
+        return this.context.instance_kind ?? 'self_hosted';
+    }
+
+    countOf(key) {
+        const value = this.counts?.[key];
+        return Number.isFinite(Number(value)) && value !== null && value !== undefined ? Number(value) : null;
+    }
+
+    /**
+     * Refresh the sidebar counts (installed, updates, purchased). Failures keep
+     * the last counts; the sidebar then shows none.
+     */
+    async loadCounts() {
+        try {
+            this.counts = (await this.fetch.get('registry-extensions/counts', {}, { namespace: CONTEXT_NAMESPACE })) ?? {};
+        } catch {
+            // counts are decoration only
+        }
+        return this.counts;
     }
 
     /**

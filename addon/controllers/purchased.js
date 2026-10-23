@@ -59,7 +59,7 @@ export default class PurchasedController extends Controller {
                         icon: 'download',
                         fn: this.install,
                         permission: PERMISSIONS.install,
-                        isVisible: (extension) => extension.is_installed !== true && extension.self_managed !== true && extension.is_installable !== false,
+                        isVisible: (extension) => extension.is_installed !== true && extension.is_installable !== false,
                     },
                     { label: this.intl.t('registry-bridge.common.about'), icon: 'circle-info', fn: this.about },
                 ],

@@ -1,31 +1,4 @@
 <div class="extension-panel-section space-y-4" data-test-extension-panel-overview>
-    {{#if @extension.self_managed}}
-        <section class="space-y-3" aria-labelledby="self-managed-title" data-test-self-managed>
-            <InfoBlock @type="info" @icon="server">
-                <strong id="self-managed-title">{{t "registry-bridge.self-managed.title"}}</strong>
-                {{t "registry-bridge.self-managed.what"}}
-            </InfoBlock>
-            <ol class="extension-panel-steps">
-                <li>
-                    <div class="font-semibold">{{t "registry-bridge.self-managed.step.token"}}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">{{t "registry-bridge.self-managed.step.token-help"}}</div>
-                </li>
-                <li>
-                    <div class="font-semibold">{{t "registry-bridge.self-managed.step.cli"}}</div>
-                    <ClickToCopy @value="npm i -g @fleetbase/cli"><code>npm i -g @fleetbase/cli</code></ClickToCopy>
-                </li>
-                <li>
-                    <div class="font-semibold">{{t "registry-bridge.self-managed.step.auth"}}</div>
-                    <ClickToCopy @value={{concat "flb set-auth <YOUR_TOKEN> --registry " this.registryHost}}><code>flb set-auth &lt;YOUR_TOKEN&gt; --registry {{this.registryHost}}</code></ClickToCopy>
-                </li>
-                <li>
-                    <div class="font-semibold">{{t "registry-bridge.self-managed.step.install"}}</div>
-                    <ClickToCopy @value={{concat "flb install " this.installTarget}}><code>flb install {{this.installTarget}}</code></ClickToCopy>
-                </li>
-            </ol>
-        </section>
-    {{/if}}
-
     {{#if @extension.description}}
         <p class="text-sm dark:text-gray-200" data-test-extension-panel-description>{{@extension.description}}</p>
     {{/if}}

@@ -1,134 +1,338 @@
 registry-bridge:
-  extension-name: Cầu nối Đăng ký
+  extension-name: Cầu nối kho tiện ích
   common:
     install: Cài đặt
     uninstall: Gỡ cài đặt
-    approve: Phê duyệt
-    reject: Từ chối
-    details: Chi tiết
     about: Giới thiệu
-    about-extension: Giới thiệu {extensionName}
-  component:
-    extension-details-modal:
-      extension: Tiện ích mở rộng
-      author: Tác giả
-      overview: Tổng quan
-      details: Chi tiết
-      version: Phiên bản
+    retry: Thử lại
+    close: Đóng
+    cancel: Hủy
+    this-organization: tổ chức này
+  installer:
+    starting: Đang bắt đầu…
+    queued-next: Đang chờ, sắp đến lượt…
+    queued-behind: "Đang chờ sau {count, plural, other {# tác vụ}}…"
+    completed: Xong.
+    failed: Tác vụ thất bại.
+    failed-at: "Thất bại ở bước: {step}"
+    rolled-back: Mọi thay đổi đã được hoàn tác; phiên bản trở lại như trước.
+    rebuild-required: Bảng điều khiển đã được dựng lại trong lúc chạy tác vụ; hãy dựng lại lần nữa để gỡ tiện ích khỏi bảng điều khiển.
+    show-log: Xem nhật ký
+    retry: Thử lại
+    reloading: "Xong. Bảng điều khiển sẽ tải lại sau {seconds} giây…"
+    installed: "Đã cài đặt {extensionName}."
+    uninstalled: "Đã gỡ cài đặt {extensionName}."
+    updated: "Đã cập nhật {extensionName}."
+    steps:
+      resolve: Đang xác định bản phát hành…
+      download: Đang tải xuống và xác minh bản phát hành…
+      snapshot: Đang lưu điểm khôi phục…
+      server-install: Đang cài đặt gói máy chủ…
+      server-uninstall: Đang gỡ gói máy chủ…
+      engine-install: Đang cài đặt engine bảng điều khiển…
+      engine-uninstall: Đang gỡ engine bảng điều khiển…
+      console-build: Đang dựng lại bảng điều khiển (có thể mất một lúc)…
+      cache-clear: Đang xóa bộ nhớ đệm…
+      record: Đang hoàn tất…
+      rollback: Đang hoàn tác thay đổi…
+  sidebar:
+    installed: Đã cài đặt
+    purchased: Đã mua
+    explore: Khám phá
+    explore-all: Khám phá tất cả
+    developers: Nhà phát triển
+    publisher-portal: Cổng nhà phát hành
+  explore:
+    title: Khám phá tiện ích
+    count: "{count, plural, other {# tiện ích}}"
+    search-placeholder: Tìm tiện ích, thẻ, nhà phát hành
+    category-title: "{categoryName}"
+    loading: Đang tải tiện ích
+    filters:
+      category: Danh mục
+      pricing: Giá
+      hosting: Hình thức lưu trữ
+      hide-installed: Ẩn tiện ích đã cài
+      sort: Sắp xếp
+      active: Bộ lọc đang dùng
+      remove: "Bỏ bộ lọc {filter}"
+    sort:
+      popular: Cài đặt nhiều nhất
+      newest: Mới nhất
+      updated: Cập nhật gần đây
+      name: Tên
+    pricing:
+      free: Miễn phí
+      paid: Trả phí
+    hosting:
+      self_hosted: Tự lưu trữ
+      cloud: Fleetbase Cloud
+      both: Đám mây và tự lưu trữ
+    layout:
+      label: Bố cục
+      grid: Lưới
+      table: Bảng
+    columns:
+      extension: Tiện ích
+      category: Danh mục
+      publisher: Nhà phát hành
+      status: Giá và trạng thái
       updated: Cập nhật
-      website: Trang web
-      self-managed: Tự quản lý
-      self-managed-help-text: Một tiện ích mở rộng tự quản lý được thiết kế cho người dùng tự lưu trữ Fleetbase trên máy chủ của riêng họ, ngoài môi trường đám mây/SaaS. Những tiện ích mở rộng này yêu cầu cài đặt và cấu hình thủ công. Nếu bạn đang sử dụng Fleetbase như một phiên bản tự lưu trữ, bạn có thể sử dụng những tiện ích mở rộng này để thêm các tính năng bổ sung. Tuy nhiên, chúng không có sẵn cho người dùng đám mây/SaaS.
-    extension-pending-publish-viewer:
-      content-panel-title: Các tiện ích mở rộng đang chờ xuất bản
-      focused-extension-title: >
-        Chi tiết {extensionName}
-      download-bundle: Tải gói
-      view-details: Xem chi tiết
-      no-extensions-awaiting-publish: Không có tiện ích mở rộng nào đang chờ xuất bản
-    extension-reviewer-control:
-      content-panel-title: Các tiện ích mở rộng đang chờ xem xét
-      focused-extension-title: >
-        Chi tiết {extensionName}
-      approve-confirm-title: Bạn có chắc chắn muốn phê duyệt tiện ích mở rộng này không?
-      approve-confirm-body: Tiện ích mở rộng này nên được kiểm tra kỹ lưỡng trong cả môi trường phát triển và kiểm thử và kiểm tra tuân thủ cũng như các vấn đề bảo mật. Khi được phê duyệt, tiện ích mở rộng sẽ cần phải được xuất bản thủ công lên đăng ký.
-      decline-confirm-title: Bạn có chắc chắn muốn từ chối tiện ích mở rộng này không?
-      decline-confirm-body: Tiện ích mở rộng này sẽ bị từ chối, nhưng tác giả sẽ có cơ hội để sửa chữa và nộp lại để xem xét.
-      download-bundle: Tải gói
-      view-details: Xem chi tiết
-      approve: Phê duyệt
-      reject: Từ chối
-      no-extensions-awaiting-review: Không có tiện ích mở rộng nào đang chờ xem xét
-  installed:
-    title: Các tiện ích mở rộng đã cài đặt
-  purchased:
-    title: Các tiện ích mở rộng đã mua
-  developers:
-    extensions:
-      extensions: Tiện ích mở rộng
-      create-new-extension: Tạo tiện ích mở rộng mới
-      new-extension: Tiện ích mở rộng mới
-      extension: Tiện ích mở rộng
-      submission: Nộp đơn
+    empty:
+      title: Chưa có tiện ích nào được phát hành trên kho này
+      body: "Bảng điều khiển này đang kết nối với {host}. Tiện ích sẽ xuất hiện ở đây khi nhà phát hành gửi lên và đội ngũ kho phê duyệt."
+      check-config: Kiểm tra cấu hình kho
+      publish: Phát hành tiện ích
+    no-results:
+      title: "Không có tiện ích nào khớp với “{query}”"
+      filtered-title: Không có tiện ích nào khớp với các bộ lọc này
+      body: Hãy thử từ khóa rộng hơn, bỏ bớt bộ lọc hoặc duyệt theo danh mục. Tìm kiếm bao gồm tên, phụ đề, thẻ và nhà phát hành.
+      clear: Xóa tìm kiếm và bộ lọc
+    error:
+      title: Kho tiện ích không phản hồi
+      body: "Không thể kết nối tới {host} hoặc yêu cầu bị từ chối. Hãy thử lại sau giây lát; nếu vẫn lỗi, quản trị viên có thể kiểm tra Quản trị → Cấu hình kho."
+    registration:
+      body: Phiên bản này chưa được đăng ký với dịch vụ kho, nên có thể duyệt tiện ích nhưng chưa thể cài đặt hoặc mua.
+      action: Đăng ký phiên bản này
+      ask-admin: Hãy nhờ quản trị viên đăng ký tại Quản trị → Cấu hình kho.
+  card:
+    free: Miễn phí
+    purchased: Đã mua
+    on-sale: Đang giảm giá
+    installed: Đã cài đặt
+    installed-version: "Đã cài v{version}"
+    update: "Cập nhật v{version}"
+    update-to: "Cập nhật lên v{version}"
+    ready-to-install: Sẵn sàng cài đặt
+    self-hosted-only: Chỉ tự lưu trữ
+    cloud-only: Chỉ đám mây
+    verified: Nhà phát hành đã xác minh
+    view-details: Xem chi tiết
+    install: Cài đặt
+    no-description: Chưa có mô tả.
+    unavailable: Không khả dụng tại đây
+  detail:
+    tabs:
+      overview: Tổng quan
+      screenshots: Ảnh chụp màn hình
       details: Chi tiết
-      bundles: Gói
-      monetize: Kiếm tiền
-      explore:
-        explore-extensions: Khám phá tiện ích mở rộng
-        explore-category-extensions: >
-          Tiện ích mở rộng {categoryName}
-        no-extensions-published: Chưa có tiện ích mở rộng nào được xuất bản lên registry này
-        no-extensions-published-help: Khi có tiện ích mở rộng được xuất bản lên registry mà bảng điều khiển này kết nối, chúng sẽ hiển thị ở đây.
-        open-registry-config: Mở cấu hình registry
-      extension-form:
-        package-name: Tên gói
-        package-json-name: tên package.json
-        composer-json-name: tên composer.json
-        submission-success-message: Tiện ích mở rộng đã được nộp và đang chờ xem xét.
-        extension-category: Danh mục
-        extension-category-help-text: Chọn danh mục mà người dùng sẽ có thể tìm thấy tiện ích mở rộng của bạn.
-        extension-select-category: Chọn danh mục
-        extension-name: Tên tiện ích mở rộng
-        extension-icon: Biểu tượng tiện ích mở rộng
-        upload-extension-icon: Tải lên biểu tượng
-        extension-description: Mô tả
-        extension-tags: Thẻ
-        extension-add-tags: Thêm từ khóa và thẻ
-        extension-promotional-text: Văn bản quảng cáo
-        details-content-block: Chi tiết tiện ích mở rộng
-        extension-listing-details: Chi tiết niêm yết
-        extension-subtitle: Phụ đề
-        extension-website-url: URL trang web
-        extension-repo-url: URL kho lưu trữ
-        extension-support-url: URL hỗ trợ
-        extension-privacy-policy-url: URL chính sách bảo mật
-        extension-tos-url: URL điều khoản dịch vụ
-        extension-primary-language: Ngôn ngữ chính
-        extension-version: Phiên bản
-        extension-copyright: Bản quyền
-        extension-copyright-help-text: Nhập thông báo bản quyền cho tiện ích mở rộng của bạn. Thông thường bao gồm năm và tên của chủ sở hữu bản quyền hoặc công ty.
-        extension-payment-required: Cần thanh toán
-        extension-payment-required-help-text: Xác định xem có cần thanh toán hoặc đăng ký để người dùng cài đặt tiện ích mở rộng này không.
-        extension-price: Giá
-        extension-price-help-text: Xác định giá thông thường của tiện ích mở rộng. Đây là chi phí tiêu chuẩn để người dùng mua hoặc truy cập tiện ích mở rộng.
-        extension-sale-price: Giá bán
-        extension-sale-price-help-text: Nếu tiện ích mở rộng hiện đang được cung cấp với mức giá giảm, hãy nhập giá bán ở đây. Điều này nên thấp hơn giá thông thường.
-        extension-subscription-required: Cần đăng ký
-        extension-subscription-required-help-text: Xác định xem người dùng phải có đăng ký để cài đặt và sử dụng tiện ích mở rộng này không.
-        extension-subscription-billing-period: Thời gian thanh toán đăng ký
-        extension-subscription-billing-period-placeholder: Chọn thời gian thanh toán
-        extension-subscription-billing-period-help-text: Xác định thời gian thanh toán cho đăng ký. Ví dụ bao gồm hàng tháng, hàng quý, hàng năm hoặc các khoảng thời gian tùy chỉnh khác.
-        extension-subscription-amount: Số tiền đăng ký
-        extension-subscription-amount-help-text: Nhập số tiền tiêu chuẩn được tính cho đăng ký. Điều này nên phản ánh giá thông thường trước bất kỳ giảm giá hoặc điều chỉnh giá theo cấp độ nào.
-        extension-subscription-model: Mô hình đăng ký
-        extension-subscription-model-help-text: Xác định loại mô hình giá đăng ký. Các tùy chọn bao gồm giá cố định, theo cấp độ và dựa trên mức sử dụng.
-        extension-subscription-tiers: Các cấp đăng ký
-        extension-subscription-tiers-help-text: Xác định các cấp giá khác nhau cho đăng ký, nếu có. Bao gồm chi tiết như các cấp độ, giá cho mỗi cấp và bất kỳ tính năng hoặc hạn chế cụ thể nào của mỗi cấp.
-        extension-name-help-text: Nhập tên chính thức của tiện ích mở rộng. Tên này sẽ được hiển thị như một chỉ định chính cho người dùng.
-        extension-icon-help-text: Tải lên một biểu tượng đại diện cho tiện ích mở rộng. Biểu tượng này sẽ được sử dụng trong các danh sách và kết quả tìm kiếm.
-        extension-description-help-text: Cung cấp một mô tả chi tiết về những gì tiện ích mở rộng làm và các tính năng chính của nó. Thông tin này giúp người dùng hiểu chức năng của tiện ích mở rộng.
-        extension-tags-help-text: Thêm từ khóa và thẻ liên quan mô tả tiện ích mở rộng, giúp người dùng tìm thấy nó qua tìm kiếm.
-        extension-promotional-text-help-text: Viết văn bản quảng cáo để làm nổi bật các điểm bán hàng độc đáo của tiện ích mở rộng. Văn bản này sẽ được sử dụng trong các phần tiếp thị hoặc nổi bật.
-        extension-subtitle-help-text: Cung cấp một phụ đề ngắn gọn cung cấp ngữ cảnh hoặc thông tin bổ sung về tiện ích mở rộng.
-        extension-website-url-help-text: Nhập URL đến trang web chính thức của tiện ích mở rộng hoặc trang sản phẩm để biết thêm thông tin.
-        extension-repo-url-help-text: "Cung cấp URL đến kho lưu trữ mã của tiện ích mở rộng (ví dụ: GitHub, GitLab), nếu có."
-        extension-support-url-help-text: Xác định URL nơi người dùng có thể nhận hỗ trợ, đặt câu hỏi hoặc báo cáo sự cố với tiện ích mở rộng.
-        extension-privacy-policy-url-help-text: Liên kết đến tài liệu chính sách bảo mật chi tiết cách dữ liệu người dùng được xử lý và bảo vệ.
-        extension-tos-url-help-text: Liên kết đến tài liệu Điều khoản dịch vụ mà người dùng phải đồng ý trước khi sử dụng tiện ích mở rộng.
-        extension-primary-language-help-text: Xác định ngôn ngữ chính mà tiện ích mở rộng được phát triển hoặc có sẵn.
-        extension-version-help-text: Cho biết phiên bản hiện tại của tiện ích mở rộng. Điều này quan trọng để theo dõi các bản cập nhật và khả năng tương thích.
-        extension-payment-details: Chi tiết thanh toán
-        extension-screenshots: Ảnh chụp màn hình
-        upload-screenshots: Tải lên ảnh chụp màn hình
-        submit-for-review: Nộp để xem xét
-        extension-bundle: Gói tiện ích mở rộng
-        extension-upload-bundle: Tải lên gói tiện ích mở rộng
-        details: Chi tiết
-        bundle-id: ID gói
-        bundle-id-help-text: Định danh của gói hiện đang được xuất bản.
-        extension-id: ID tiện ích mở rộng
-        extension-id-help-text: Định danh duy nhất cho tiện ích mở rộng này.
-        bundles: Gói
-        upload-new-bundle: Tải lên gói mới
-        self-managed: Tự quản lý
-        self-managed-help-text: Kích hoạt tùy chọn này nếu mô-đun của bạn chỉ dành cho các phiên bản tự lưu trữ. Khi chọn tùy chọn này, mô-đun sẽ không có sẵn để cài đặt trên phiên bản đám mây/SaaS của Fleetbase và phải được người dùng cài đặt thủ công trên máy chủ của riêng họ.
+      versions: Phiên bản
+    publisher: Nhà phát hành
+    category: Danh mục
+    updated: "cập nhật {date}"
+    verified-help: Fleetbase đã xác minh danh tính và tài khoản nhận thanh toán của nhà phát hành.
+    compat: "Tương thích với bảng điều khiển Fleetbase {console} và core-api {api}"
+    installs: Lượt cài đặt
+    last-release: Bản phát hành gần nhất
+    support: Hỗ trợ
+    pricing-one-time: "{price} một lần · {currency}"
+    error:
+      title: Không thể tải tiện ích này
+    cta:
+      install: Cài đặt
+      install-note: "Cài đặt và dựng lại bảng điều khiển (khoảng {minutes} phút). Bảng điều khiển sẽ tải lại khi xong."
+      purchase: "Mua với giá {price}"
+      purchase-note: Thanh toán một lần qua Stripe, sau đó cài đặt. Phí trung gian đã bao gồm trong giá.
+      installed: "Đã cài đặt {version}"
+      update-note: "Đã cài v{installedVersion}. Cập nhật sẽ dựng lại bảng điều khiển."
+      unauthorized: Cần quyền
+      unauthorized-note: "Bạn cần quyền “{permission}”. Hãy liên hệ quản trị viên tổ chức."
+      author: Bạn là nhà phát hành tiện ích này. Quản lý trang giới thiệu, bản phát hành và giá trên cổng nhà phát hành.
+      open-portal: Mở trong cổng nhà phát hành
+      register: Đăng ký phiên bản này
+      register-note: Việc cài đặt đi qua dịch vụ kho. Hãy đăng ký phiên bản này một lần tại Quản trị → Cấu hình kho.
+      register-ask-admin: Việc cài đặt đi qua dịch vụ kho. Hãy nhờ quản trị viên đăng ký phiên bản này tại Quản trị → Cấu hình kho.
+      unavailable: Không khả dụng
+      not-available: Hiện chưa thể cài đặt tiện ích này trên phiên bản này.
+    screenshots:
+      previous: Ảnh trước
+      next: Ảnh tiếp theo
+      show: "Xem ảnh {number}"
+      empty: Chưa có ảnh chụp màn hình
+    hosting:
+      both: Đám mây và tự lưu trữ
+      cloud: Chỉ Fleetbase Cloud
+      self-hosted: Chỉ tự lưu trữ
+    fields:
+      version: Phiên bản
+      installed-version: Đã cài
+      updated: Cập nhật
+      publisher: Nhà phát hành
+      packages: Gói
+      website: Trang web
+      repository: Kho mã nguồn
+      support: Hỗ trợ
+      privacy: Chính sách quyền riêng tư
+      terms: Điều khoản
+      languages: Ngôn ngữ
+      copyright: Bản quyền
+      hosting: Hình thức lưu trữ
+      pricing: Giá
+    versions:
+      columns:
+        version: Phiên bản
+        channel: Kênh
+        date: Ngày
+        size: Dung lượng
+        notes: Ghi chú
+      install: Cài phiên bản này
+      switch: Chuyển sang phiên bản này
+      latest: Mới nhất
+      yanked: Đã thu hồi
+      error: Không thể tải lịch sử phát hành.
+      unsupported: Lịch sử phát hành chỉ có cho tiện ích từ dịch vụ kho. Mục này chỉ cho biết phiên bản hiện tại.
+      empty: Chưa có bản phát hành nào
+  install:
+    confirm:
+      title: "Cài đặt {name} {version}?"
+      body: "Thao tác này sẽ cài gói máy chủ và engine bảng điều khiển cho {company}, sau đó dựng lại và tải lại bảng điều khiển. Người dùng khác sẽ thấy tiện ích mới sau lần tải trang tiếp theo."
+      time: "Thường mất khoảng {minutes} phút. Công việc chưa lưu ở các tab khác không bị ảnh hưởng; tab này sẽ tải lại."
+      accept: Cài đặt ngay
+    steps:
+      label: Các bước cài đặt
+      server: Cài gói máy chủ
+      engine: Cài engine bảng điều khiển
+      build: Dựng lại và tải lại bảng điều khiển
+    progress:
+      title: "Đang cài đặt {name}…"
+      button: Đang cài đặt…
+      keep-open: Hãy giữ tab này mở. Bạn vẫn có thể làm việc ở các tab khác; tiến trình được truyền từ máy chủ, nên tải lại trang này sẽ không hủy việc cài đặt.
+    success:
+      badge: Đã cài đặt
+      title: "Đã cài đặt {name} {version}"
+      reload-in: "Bảng điều khiển sẽ tải lại sau {seconds} giây để hiển thị mục mới."
+      reload-cancelled: Bảng điều khiển chưa được tải lại. Hãy tải lại để thấy thay đổi.
+      reload-now: Tải lại ngay
+      stay: Chờ đã, ở lại đây
+    failed:
+      badge: Thất bại
+      title: "Không thể cài đặt {name}"
+      retry: Thử cài lại
+      cli: "Hoặc cài đặt từ máy chủ bằng CLI:"
+  update:
+    confirm:
+      title: "Cập nhật {name} lên {version}?"
+      body: "Thao tác này sẽ cập nhật gói máy chủ và engine bảng điều khiển cho {company} từ v{installedVersion}, sau đó dựng lại và tải lại bảng điều khiển."
+      accept: Cập nhật ngay
+  uninstall:
+    confirm:
+      title: "Gỡ cài đặt {name}?"
+      destructive: Không thể hoàn tác.
+      body: "Thao tác này sẽ gỡ tiện ích và xóa vĩnh viễn cài đặt cùng dữ liệu của nó cho {company}. Bạn có thể cài lại sau, nhưng sẽ không khôi phục được gì."
+      type-to-confirm: "Nhập {name} để xác nhận"
+      time: "Gỡ cài đặt cũng sẽ dựng lại và tải lại bảng điều khiển (khoảng {minutes} phút)."
+      accept: Gỡ cài đặt
+    steps:
+      server: Gỡ gói máy chủ
+      engine: Gỡ engine bảng điều khiển
+      build: Dựng lại và tải lại bảng điều khiển
+    progress:
+      title: "Đang gỡ cài đặt {name}…"
+      button: Đang gỡ cài đặt…
+    success:
+      title: "Đã gỡ cài đặt {name}"
+    failed:
+      title: "Không thể gỡ cài đặt {name}"
+      retry: Thử gỡ lại
+  purchase:
+    title: "Mua {name}"
+    finalizing:
+      title: Đang hoàn tất giao dịch…
+      body: "Đang xác nhận thanh toán với Stripe và ghi nhận giấy phép cho {company}. Đừng đóng tab này."
+    success:
+      badge: Đã thanh toán
+      title: "{name} giờ là của bạn"
+      body: "Giấy phép đã gắn với {company} và hiển thị trong mục Đã mua."
+      receipt: Biên lai Stripe
+      install-now: Cài đặt ngay
+      later: Để sau
+      paid: "Đã thanh toán {amount}, đã bao gồm thuế."
+    failed:
+      badge: Chưa hoàn tất
+      title: Thanh toán không thành công
+      body: "Stripe báo phiên thanh toán ở trạng thái {status}. Không có khoản phí nào bị trừ và không có giấy phép nào được cấp."
+      unknown-status: chưa hoàn tất
+      try-again: Thử lại
+    processing:
+      title: Thanh toán vẫn đang được xác nhận
+      body: Stripe chưa xác nhận thanh toán. Giấy phép sẽ xuất hiện trong mục Đã mua ngay khi được xác nhận; bạn có thể đóng cửa sổ này.
+    cancelled:
+      badge: Đã hủy
+      title: Đã hủy thanh toán
+      body: Bạn đã rời trang thanh toán Stripe trước khi trả tiền. Không có khoản phí nào bị trừ và không có giấy phép nào được cấp.
+  installed:
+    title: Tiện ích đã cài đặt
+    actions: Thao tác
+    update: Cập nhật
+    updates-available: "{count, plural, other {Có # bản cập nhật}}"
+    error: Không thể tải danh sách tiện ích đã cài đặt.
+    columns:
+      extension: Tiện ích
+      category: Danh mục
+      installed: Đã cài
+      latest: Mới nhất
+      status: Trạng thái
+    status:
+      up-to-date: Đã cập nhật
+      update-available: Có bản cập nhật
+      core: Dịch vụ lõi
+    empty:
+      title: Chưa cài đặt tiện ích nào
+      body: Tiện ích bổ sung các tính năng viễn thông, định tuyến, kho bãi và khách hàng cho bảng điều khiển này. Hãy cài đặt từ mục Khám phá; mỗi lần cài sẽ dựng lại bảng điều khiển và mất khoảng hai phút.
+      filtered: Không có tiện ích đã cài nào khớp với tìm kiếm này
+      explore: Khám phá tiện ích
+      purchased: Xem tiện ích đã mua
+  purchased:
+    title: Tiện ích đã mua
+    ready: "{count, plural, other {# sẵn sàng cài đặt}}"
+    error: Không thể tải danh sách tiện ích đã mua.
+    activations: "{used} / {max} phiên bản"
+    receipt: Biên lai Stripe
+    columns:
+      extension: Tiện ích
+      price: Giá
+      activations: Lượt kích hoạt
+      install-status: Trạng thái cài đặt
+      receipt: Biên lai
+    status:
+      installed: "Đã cài v{version}"
+    empty:
+      title: Chưa mua tiện ích nào
+      body: "Các tiện ích trả phí bạn mua cho {company} sẽ hiển thị ở đây cùng biên lai và trạng thái cài đặt. Tiện ích miễn phí sẽ vào thẳng mục Đã cài đặt."
+      browse: Duyệt tiện ích trả phí
+  admin:
+    config:
+      service:
+        title: Dịch vụ kho
+        url: URL dịch vụ
+        url-help: Địa chỉ gốc của dịch vụ kho Fleetbase. Khám phá, cài đặt, cập nhật và mua đều đi qua dịch vụ này.
+      registration:
+        title: Đăng ký phiên bản
+        help: Phiên bản được đăng ký bằng mã dùng một lần (hiệu lực 15 phút) do chủ sở hữu hoặc quản trị viên tổ chức của bạn trên kho cung cấp.
+        registered: Đã đăng ký
+        instance: Phiên bản
+        organization: Tổ chức
+        token: Token phiên bản
+        registered-at: Ngày đăng ký
+        register: Đăng ký phiên bản này
+        url-first: Hãy nhập URL dịch vụ trước.
+      result:
+        connected: Đã kết nối với kho
+        failed: Không thể kết nối với kho
+        host: Máy chủ
+        status: Trạng thái HTTP
+        latency: Độ trễ
+        extensions: Tiện ích đã phát hành
+        token-accepted: "Được chấp nhận ({name}, {organization})"
+        token-rejected: Bị từ chối
+        ok-toast: "Đã kết nối với {host} trong {ms} ms."
+      test: Kiểm tra kết nối
+      save: Lưu thay đổi
+      saved: Đã lưu cấu hình kho.
+      this-instance: phiên bản này
+      registered-toast: "Đã đăng ký với {host} dưới tên {name}."
+      unregistered-toast: Phiên bản này không còn đăng ký với dịch vụ kho.
+      unregister:
+        title: Hủy đăng ký phiên bản này?
+        body: Phiên bản này sẽ quên token kho và không thể cài đặt, cập nhật hoặc mua tiện ích nữa. Các tiện ích đã cài vẫn hoạt động. Để thu hồi chính token đó, hãy xóa phiên bản khỏi tổ chức của bạn trên kho.
+        accept: Hủy đăng ký

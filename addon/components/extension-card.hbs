@@ -30,9 +30,12 @@
         {{#if this.badges.length}}
             <div class="extension-card-badges" data-test-extension-card-badges>
                 {{#each this.badges as |badge|}}
-                    <Badge @status={{badge.status}} @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}} data-test-extension-card-badge>{{badge.text}}</Badge>
+                    <Badge @status={{badge.status}} @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}} @helpText={{badge.help}} data-test-extension-card-badge>{{badge.text}}</Badge>
                 {{/each}}
             </div>
+        {{/if}}
+        {{#if this.unavailableReason}}
+            <p class="extension-card-reason" data-test-extension-card-reason>{{this.unavailableReason}}</p>
         {{/if}}
         {{yield to="footer"}}
         <div class="extension-card-actions">

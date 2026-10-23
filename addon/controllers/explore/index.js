@@ -101,7 +101,12 @@ export default class ExploreIndexController extends Controller {
     }
 
     get hostingOptions() {
-        return [{ value: 'both', label: this.intl.t('registry-bridge.explore.hosting.both') }];
+        return ['self_hosted', 'cloud', 'both'].map((value) => ({ value, label: this.intl.t(`registry-bridge.explore.hosting.${value}`) }));
+    }
+
+    /** Explore lists everything; without a registration nothing can be installed, so say so once above the list. */
+    get needsRegistration() {
+        return this.registryContext.loaded && !this.registryContext.registered;
     }
 
     get categoryOptions() {
@@ -116,9 +121,7 @@ export default class ExploreIndexController extends Controller {
             columns.push({ label: t('category'), filterable: true, filterParam: 'category', filterComponent: 'filter/select', filterOptions: this.categoryOptions });
         }
         columns.push({ label: t('pricing'), filterable: true, filterParam: 'pricing', filterComponent: 'filter/select', filterOptions: this.pricingOptions });
-        if (this.registryContext.usesService) {
-            columns.push({ label: t('hosting'), filterable: true, filterParam: 'hosting', filterComponent: 'filter/select', filterOptions: this.hostingOptions });
-        }
+        columns.push({ label: t('hosting'), filterable: true, filterParam: 'hosting', filterComponent: 'filter/select', filterOptions: this.hostingOptions });
         columns.push({ label: t('hide-installed'), filterable: true, filterParam: 'hide_installed', filterComponent: 'filter/checkbox' });
 
         return columns;

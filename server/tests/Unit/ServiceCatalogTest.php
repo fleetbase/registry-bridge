@@ -42,12 +42,11 @@ test('a listing maps into the RegistryExtension resource shape', function () {
         ->and($mapped['category_name'])->toBe('Telematics')
         ->and($mapped['category_uuid'])->toBe('cat_3a9uznxr8s')
         ->and($mapped['current_bundle_version'])->toBe('1.0.0')
-        ->and($mapped['current_bundle_id'])->toBe('rel_gjrc6mixp0')
+        ->and($mapped['meta']['latest_release']['id'])->toBe('rel_gjrc6mixp0')
         ->and($mapped['payment_required'])->toBeTrue()
         ->and($mapped['price'])->toBe(4900)
         ->and($mapped['currency'])->toBe('USD')
         ->and($mapped['languages'])->toBe(['en'])
-        ->and($mapped['self_managed'])->toBeFalse()
         ->and($mapped['source'])->toBe('registry-service')
         ->and($mapped['meta']['package_names'])->toBe(['npm' => '@registry-demo/pro-engine', 'composer' => 'registry-demo/pro-api'])
         ->and($mapped['meta']['registry_host'])->toBe(RegistryServiceFake::SERVICE_URL)
@@ -60,7 +59,7 @@ test('every recorded listing maps with the keys the console reads', function () 
         'website_url', 'repo_url', 'support_url', 'privacy_policy_url', 'tos_url', 'copyright', 'payment_required', 'price', 'sale_price',
         'on_sale', 'currency', 'category', 'category_name', 'publisher_name', 'current_bundle_version', 'screenshots', 'is_installed',
         'is_purchased', 'is_author', 'is_installable', 'installed_version', 'latest_version', 'update_available', 'source', 'meta',
-        'self_managed', 'core_extension', 'installs_count', 'updated_at',
+        'core_extension', 'installs_count', 'updated_at',
     ];
 
     foreach (RegistryServiceFake::body('catalog-extensions')['data'] as $listing) {

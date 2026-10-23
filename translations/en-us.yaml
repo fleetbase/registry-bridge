@@ -3,12 +3,7 @@ registry-bridge:
   common:
     install: Install
     uninstall: Uninstall
-    approve: Approve
-    reject: Reject
-    details: Details
-    publish: Publish
     about: About
-    about-extension: About {extensionName}
     retry: Retry
     close: Close
     cancel: Cancel
@@ -40,130 +35,6 @@ registry-bridge:
       cache-clear: Clearing caches…
       record: Finishing up…
       rollback: Rolling back changes…
-  component:
-    extension-details-modal:
-      extension: Extension
-      author: Author
-      description: Description
-      overview: Overview
-      details: Details
-      version: Version
-      updated: Updated
-      website: Website
-      self-managed: Self Managed
-      self-managed-help-text: A self-managed extension is designed for users who host Fleetbase on their own servers, outside of the cloud/SaaS environment. These extensions require manual installation and configuration. If you are using Fleetbase as a self-hosted instance, you can use these extensions to add additional features. However, they are not available for cloud/SaaS users.
-      self-hosted-install: Self Hosted Install
-      self-hosted-install-help-text: View self-hosted install instructions.
-    extension-pending-publish-viewer:
-      content-panel-title: Extensions Pending Publish
-      focused-extension-title: >
-        {extensionName} Details
-      download-bundle: Download Bundle
-      view-details: View Details
-      publish: Publish
-      no-extensions-awaiting-publish: No extensions awaiting publish
-    extension-reviewer-control:
-      content-panel-title: Extensions Awaiting Review
-      focused-extension-title: >
-        {extensionName} Details
-      approve-confirm-title: Are you sure you want to approve this extension?
-      approve-confirm-body: This extension should be thoroughly tested in both a development and test environment and tested for compliance as well as security issues. Once approved the extension will need to be manually published to the registry.
-      decline-confirm-title: Are you sure you want to reject this extension?
-      decline-confirm-body: This extension will be rejected, but the author will be given a chance to make corrections and re-submit for review.
-      download-bundle: Download Bundle
-      view-details: View Details
-      approve: Approve
-      reject: Reject
-      no-extensions-awaiting-review: No extensions awaiting review
-  developers:
-    payments:
-      manage-account: Manage Payout Account
-      no-account-warning: You must complete the Stripe onboarding process before accessing account settings.
-      settings:
-        title: Manage Payout Account
-        description: Manage your Stripe account details, including your business information and bank accounts for receiving payouts.
-        loading: Loading account management...
-    extensions:
-      extensions: Extensions
-      create-new-extension: Create new Extension
-      new-extension: New Extension
-      extension: Extension
-      submission: Submission
-      details: Details
-      bundles: Bundles
-      monetize: Monetize
-      extension-form:
-        package-name: Package Name
-        package-json-name: package.json name
-        composer-json-name: composer.json name
-        submission-success-message: Extension submitted and is awaiting review.
-        extension-category: Category
-        extension-category-help-text: Select the category in which users will be able to find your extension.
-        extension-select-category: Select Category
-        extension-name: Extension Name
-        extension-icon: Extension Icon
-        upload-extension-icon: Upload Icon
-        extension-description: Description
-        extension-tags: Tags
-        extension-add-tags: Add keywords and tags
-        extension-promotional-text: Promotional Text
-        details-content-block: Extension Details
-        extension-listing-details: Listing Details
-        extension-subtitle: Subtitle
-        extension-website-url: Website URL
-        extension-repo-url: Repository URL
-        extension-support-url: Support URL
-        extension-privacy-policy-url: Privacy Policy URL
-        extension-tos-url: Terms of Service URL
-        extension-primary-language: Primary Language
-        extension-version: Version
-        extension-copyright: Copyright
-        extension-copyright-help-text: Enter the copyright notice for your extension. This typically includes the year and the name of the copyright owner or company.
-        extension-payment-required: Payment Required
-        extension-payment-required-help-text: Determines if payment or subscription is required for users to install this extension.
-        extension-price: Price
-        extension-price-help-text: Specify the regular price of the extension. This is the standard cost for users to purchase or access the extension.
-        extension-sale-price: Sale Price
-        extension-sale-price-help-text: If the extension is currently offered at a discounted rate, enter the sale price here. This should be less than the regular price.
-        extension-subscription-required: Subscription Required
-        extension-subscription-required-help-text: Determines if user must have a subscription to install and use this extension.
-        extension-subscription-billing-period: Subscription Billing Period
-        extension-subscription-billing-period-placeholder: Select Billing Period
-        extension-subscription-billing-period-help-text: Specify the billing period for the subscription. Examples include monthly, quarterly, annually, or other custom intervals.
-        extension-subscription-amount: Subscription Amount
-        extension-subscription-amount-help-text: Enter the standard amount to be charged for the subscription. This should reflect the regular price before any discounts or tiered pricing adjustments.
-        extension-subscription-model: Subscription Model
-        extension-subscription-model-help-text: Determines the type of subscription pricing model to follow. Options include flate rate, tiered, and usage based subscription.
-        extension-subscription-tiers: Subscription Tiers
-        extension-subscription-tiers-help-text: Define the different pricing tiers for the subscription, if applicable. Include details like the tier levels, pricing for each tier, and any specific features or limitations of each tier.
-        extension-name-help-text: Enter the official name of the extension. This will be displayed as the primary identifier for users.
-        extension-icon-help-text: Upload an icon representing the extension. This icon will be used in listings and search results.
-        extension-description-help-text: Provide a detailed description of what the extension does and its key features. This information helps users understand the extension's functionality.
-        extension-tags-help-text: Add relevant keywords and tags that describe the extension, helping users find it through search.
-        extension-promotional-text-help-text: Write promotional text to highlight the extension's unique selling points. This text will be used in marketing or featured sections.
-        extension-subtitle-help-text: Provide a brief subtitle that offers additional context or information about the extension.
-        extension-website-url-help-text: Enter the URL to the extension's official website or product page for more information.
-        extension-repo-url-help-text: Provide the URL to the extension's code repository (e.g., GitHub, GitLab), if applicable.
-        extension-support-url-help-text: Specify the URL where users can obtain support, ask questions, or report issues with the extension.
-        extension-privacy-policy-url-help-text: Link to the privacy policy document that details how user data is handled and protected.
-        extension-tos-url-help-text: Link to the Terms of Service document that users must agree to before using the extension.
-        extension-primary-language-help-text: Specify the primary language the extension is developed or available in.
-        extension-version-help-text: Indicate the current version of the extension. This is important for tracking updates and compatibility.
-        extension-payment-details: Payment Details
-        extension-screenshots: Screenshots
-        upload-screenshots: Upload Screenshots
-        submit-for-review: Submit for Review
-        extension-bundle: Extension Bundle
-        extension-upload-bundle: Upload Extension Bundle
-        details: Details
-        bundle-id: Bundle ID
-        bundle-id-help-text: The identifier of the currently published bundle.
-        extension-id: Extension ID
-        extension-id-help-text: The unique identifier for this extension.
-        bundles: Bundles
-        upload-new-bundle: Upload new Bundle
-        self-managed: Self Managed
-        self-managed-help-text: Enable this option if your module is intended for self-hosted instances only. By selecting this, the module will not be available for installation on the cloud/SaaS version of Fleetbase and must be manually installed by the user on their own server.
   sidebar:
     installed: Installed
     purchased: Purchased
@@ -194,6 +65,8 @@ registry-bridge:
       free: Free
       paid: Paid
     hosting:
+      self_hosted: Self-hosted
+      cloud: Fleetbase Cloud
       both: Cloud and self-hosted
     layout:
       label: Layout
@@ -218,6 +91,10 @@ registry-bridge:
     error:
       title: The registry did not respond
       body: "{host} could not be reached or refused the request. Try again in a moment; if it keeps failing, an admin can check Admin → Registry config."
+    registration:
+      body: This instance is not registered with the registry service yet, so extensions can be browsed but not installed or bought.
+      action: Register this instance
+      ask-admin: Ask an admin to register it in Admin → Registry config.
   card:
     free: Free
     purchased: Purchased
@@ -227,19 +104,13 @@ registry-bridge:
     update: "Update v{version}"
     update-to: "Update to v{version}"
     ready-to-install: Ready to install
-    self-managed: Self-managed
-    self-hosted: Self-hosted instructions
     self-hosted-only: Self-hosted only
     cloud-only: Cloud only
     verified: Verified publisher
-    reviewed: Reviewed
-    in-review: In review
-    rejected: Rejected
     view-details: View details
     install: Install
-    see-feedback: See feedback
-    open-editor: Open in editor
     no-description: No description yet.
+    unavailable: Not available here
   detail:
     tabs:
       overview: Overview
@@ -249,12 +120,12 @@ registry-bridge:
     publisher: Publisher
     category: Category
     updated: "updated {date}"
-    verified-help: The publisher's identity and payout account were verified by Fleetbase.
+    verified-help: "The publisher's identity and payout account were verified by Fleetbase."
     compat: "Compatible with Fleetbase console {console} and core-api {api}"
     installs: Installs
     last-release: Last release
     support: Support
-    pricing-one-time: "{price} one-time · {currency} · includes {percent}% facilitator fee"
+    pricing-one-time: "{price} one-time · {currency}"
     error:
       title: Could not load this extension
     cta:
@@ -264,7 +135,6 @@ registry-bridge:
       purchase-note: One-time payment via Stripe, then install. Facilitator fee included in the price.
       installed: "Installed {version}"
       update-note: "Installed v{installedVersion}. Updating rebuilds the console."
-      self-managed-note: "Self-managed: installed with the Fleetbase CLI on your own server, not from the console."
       unauthorized: Needs permission
       unauthorized-note: "You need “{permission}”. Ask an organisation admin."
       author: You publish this extension. Manage the listing, releases and pricing on the publisher portal.
@@ -312,15 +182,6 @@ registry-bridge:
       error: Could not load the release history.
       unsupported: Release history is available for extensions from the Registry Service. This listing only reports its current version.
       empty: No published releases yet
-  self-managed:
-    title: What self-managed means.
-    what: This extension is installed with the Fleetbase CLI from the base directory of your own Fleetbase instance, not from this console. It is not available on Fleetbase Cloud.
-    step:
-      token: Create a registry token
-      token-help: "Tokens are created by an organisation admin on the publisher portal and shown once. Scope: install."
-      cli: Install the Fleetbase CLI
-      auth: Authenticate the CLI with your token
-      install: Install from your instance root
   install:
     confirm:
       title: "Install {name} {version}?"
@@ -346,7 +207,6 @@ registry-bridge:
     failed:
       badge: Failed
       title: "{name} could not be installed"
-      rolled-back: Nothing was changed in the console build. The server package was rolled back.
       retry: Retry install
       cli: "Or install it from the server with the CLI:"
   update:
@@ -376,11 +236,6 @@ registry-bridge:
       retry: Retry uninstall
   purchase:
     title: "Purchase {name}"
-    summary: Order summary
-    tax: Tax
-    tax-by-stripe: Calculated by Stripe
-    cancel: Cancel and go back
-    secured: Secured by Stripe · You will not be charged until you confirm inside the payment form.
     finalizing:
       title: Finalizing purchase…
       body: "Confirming payment with Stripe and recording the licence for {company}. Do not close this tab."
@@ -391,6 +246,7 @@ registry-bridge:
       receipt: Stripe receipt
       install-now: Install now
       later: Later
+      paid: "Paid {amount}, tax included."
     failed:
       badge: Not completed
       title: Payment did not go through
@@ -400,6 +256,10 @@ registry-bridge:
     processing:
       title: Payment is still being confirmed
       body: Stripe has not confirmed the payment yet. The licence appears under Purchased as soon as it does; you can close this window.
+    cancelled:
+      badge: Cancelled
+      title: Checkout cancelled
+      body: You left the Stripe checkout before paying. Nothing was charged and nothing was licensed.
   installed:
     title: Installed extensions
     actions: Actions
@@ -436,8 +296,43 @@ registry-bridge:
       receipt: Receipt
     status:
       installed: "Installed v{version}"
-      self-hosted: Self-hosted install
     empty:
       title: No purchased extensions
       body: "Paid extensions you buy for {company} appear here with their receipts and install status. Free extensions go straight to Installed."
       browse: Browse paid extensions
+  admin:
+    config:
+      service:
+        title: Registry Service
+        url: Service URL
+        url-help: Base URL of the Fleetbase Registry Service. Explore, installs, updates and purchases all go through it.
+      registration:
+        title: Instance registration
+        help: Instances are registered with a one-time code (valid for 15 minutes) from an owner or admin of your registry organization.
+        registered: Registered
+        instance: Instance
+        organization: Organization
+        token: Instance token
+        registered-at: Registered
+        register: Register this instance
+        url-first: Enter the service URL first.
+      result:
+        connected: Connected to the registry
+        failed: Unable to connect to the registry
+        host: Host
+        status: HTTP status
+        latency: Latency
+        extensions: Published extensions
+        token-accepted: "Accepted ({name}, {organization})"
+        token-rejected: Rejected
+        ok-toast: "Connected to {host} in {ms} ms."
+      test: Test Connection
+      save: Save Changes
+      saved: Registry configuration saved.
+      this-instance: this instance
+      registered-toast: "Registered with {host} as {name}."
+      unregistered-toast: This instance is no longer registered with the registry service.
+      unregister:
+        title: Unregister this instance?
+        body: This instance forgets its registry token and can no longer install, update or buy extensions. Installed extensions keep working. To revoke the token itself, remove the instance from your registry organization.
+        accept: Unregister

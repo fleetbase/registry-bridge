@@ -5,8 +5,7 @@ import { cardModel } from '../../utils/extension-state';
 
 /**
  * The state-driven primary action of an extension card or row: View details,
- * Install, Update to vX, Self-hosted instructions, Open in editor, or a
- * disabled Installed.
+ * Install, Update to vX, or a disabled Installed.
  *
  * @argument {RegistryExtensionModel} resource
  * @argument {Function} [onOpen] replaces opening the detail panel
@@ -15,7 +14,6 @@ import { cardModel } from '../../utils/extension-state';
 export default class ExtensionCardActionComponent extends Component {
     @service extensionPanel;
     @service extensionInstaller;
-    @service registryContext;
     @service abilities;
     @service intl;
 
@@ -49,8 +47,6 @@ export default class ExtensionCardActionComponent extends Component {
                 return this.extensionInstaller.install(this.extension);
             case 'update':
                 return this.extensionInstaller.update(this.extension);
-            case 'portal':
-                return this.registryContext.publisherUrl ? window.open(this.registryContext.publisherUrl, '_blank', 'noopener') : this.openDetails();
             case 'none':
                 return;
             default:

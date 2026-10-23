@@ -27,6 +27,7 @@ export default class ApplicationRoute extends Route {
     setupController() {
         super.setupController(...arguments);
         this.registryContext.load();
+        this.registryContext.loadCounts();
         this.restoreFromUrl();
     }
 

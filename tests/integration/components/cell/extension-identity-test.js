@@ -38,7 +38,10 @@ module('Integration | Component | cell/extension-identity', function (hooks) {
         assert.dom('[data-test-identity-label]').hasText('Flespi Connector');
         assert.dom('[data-badge-key="version"]').hasText('v1.8.0');
         assert.dom('[data-badge-key="update"]').hasText('Update v2.0.0');
-        assert.dom('[data-badge-key="self-managed"]').hasText('Self-managed');
+
+        this.set('row', { id: 'ext_2', name: 'Fleet Insights', meta: { install_blocked_code: 'hosting', install_blocked_reason: 'Cloud only.' } });
+        assert.dom('[data-badge-key="unavailable"]').hasText('Not available here');
+        this.set('row', { ...this.row, id: 'ext_1', name: 'Flespi Connector', installed_version: '1.8.0', latest_version: '2.0.0', update_available: true, meta: {} });
 
         await click('[data-test-identity-button]');
         assert.deepEqual(opened, ['ext_1']);

@@ -2,11 +2,10 @@ import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 
 /**
- * Overview tab: description, promotional text, compatibility, tags and, for
- * self-managed extensions, the CLI install steps (canvas C7).
+ * Overview tab: description, promotional text, compatibility, install count,
+ * last release, support and tags.
  */
 export default class ExtensionPanelOverviewComponent extends Component {
-    @service registryContext;
     @service intl;
 
     get extension() {
@@ -22,14 +21,6 @@ export default class ExtensionPanelOverviewComponent extends Component {
         }
 
         return this.intl.t('registry-bridge.detail.compat', { console: consoleRange ?? '*', api: apiRange ?? '*' });
-    }
-
-    get registryHost() {
-        return this.extension.meta?.registry_host ?? this.registryContext.serviceUrl ?? 'https://registry.fleetbase.io';
-    }
-
-    get installTarget() {
-        return this.extension.slug ?? this.extension.public_id;
     }
 
     get lastRelease() {

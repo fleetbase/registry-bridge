@@ -1,10 +1,11 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import { unavailableReason } from '../../utils/extension-state';
 
 /**
  * An extension in a table cell: icon, name and badges (version, update,
- * self-managed, core) on `Table::Cell::Identity`. Clicking opens the detail
+ * unavailable here, core) on `Table::Cell::Identity`. Clicking opens the detail
  * panel unless the column has its own `onClick`.
  */
 export default class CellExtensionIdentityComponent extends Component {
@@ -46,10 +47,10 @@ export default class CellExtensionIdentityComponent extends Component {
                 class: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             });
         }
-        if (extension.self_managed === true) {
-            badges.push({ key: 'self-managed', label: this.intl.t('registry-bridge.card.self-managed') });
+        if (unavailableReason(extension)) {
+            badges.push({ key: 'unavailable', label: this.intl.t('registry-bridge.card.unavailable'), class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' });
         }
-        if (extension.core_service === true || extension.core_extension === true) {
+        if (extension.core_extension === true) {
             badges.push({ key: 'core', label: this.intl.t('registry-bridge.installed.status.core') });
         }
 

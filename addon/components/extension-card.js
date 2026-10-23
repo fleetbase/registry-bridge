@@ -40,7 +40,7 @@ export default class ExtensionCardComponent extends Component {
     }
 
     get badges() {
-        return this.model.badges.map((badge) => ({ text: this.intl.t(badge.label.key, badge.label.params), status: badge.status }));
+        return this.model.badges.map((badge) => ({ text: this.intl.t(badge.label.key, badge.label.params), status: badge.status, help: badge.help ?? null }));
     }
 
     get subtitle() {
@@ -49,6 +49,11 @@ export default class ExtensionCardComponent extends Component {
 
     get description() {
         return this.extension.description || this.extension.subtitle || null;
+    }
+
+    /** Why this instance cannot install the listing (another hosting, no release), shown on the card. */
+    get unavailableReason() {
+        return this.model.unavailableReason;
     }
 
     get meta() {

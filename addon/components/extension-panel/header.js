@@ -30,7 +30,7 @@ export default class ExtensionPanelHeaderComponent extends Component {
         });
     }
 
-    /** `is.install`, `is.selfManaged`, … for the template's branches. */
+    /** `is.install`, `is.registration`, … for the template's branches. */
     get is() {
         const kind = this.cta.kind;
         return Object.fromEntries(Object.entries(CTA).map(([name, value]) => [name.toLowerCase().replace(/_(\w)/g, (_, c) => c.toUpperCase()), value === kind]));
@@ -65,7 +65,7 @@ export default class ExtensionPanelHeaderComponent extends Component {
     }
 
     get canUninstall() {
-        return this.extension.is_installed === true && this.abilities.can(PERMISSIONS.uninstall) && this.extension.core_service !== true;
+        return this.extension.is_installed === true && this.abilities.can(PERMISSIONS.uninstall) && this.extension.core_extension !== true;
     }
 
     get canRegister() {
@@ -93,6 +93,12 @@ export default class ExtensionPanelHeaderComponent extends Component {
 
     @action purchase() {
         return this.extensionPurchase.purchase(this.extension);
+    }
+
+    /** A refused checkout (already licensed, publisher not set up, …) shown under the call to action. */
+    get purchaseError() {
+        const error = this.extensionPurchase.lastError;
+        return error && error.extension === (this.extension.public_id ?? this.extension.id) ? error.message : null;
     }
 
     @action openPortal() {

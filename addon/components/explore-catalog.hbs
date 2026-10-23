@@ -55,6 +55,18 @@
 </Layout::Section::Header>
 
 <Layout::Section::Body class="overflow-y-scroll h-full">
+    {{#if @catalog.needsRegistration}}
+        <div class="px-4 pt-4" data-test-explore-registration>
+            <InfoBlock @type="warning" @icon="link">
+                <span>{{t "registry-bridge.explore.registration.body"}}</span>
+                {{#if @catalog.canConfigureRegistry}}
+                    <Button @type="link" @size="xs" @text={{t "registry-bridge.explore.registration.action"}} @onClick={{@catalog.openRegistryConfig}} class="ml-1" />
+                {{else}}
+                    <span>{{t "registry-bridge.explore.registration.ask-admin"}}</span>
+                {{/if}}
+            </InfoBlock>
+        </div>
+    {{/if}}
     {{#if @catalog.activeFacets.length}}
         <div class="explore-facets" aria-label={{t "registry-bridge.explore.filters.active"}} data-test-explore-facets>
             {{#each @catalog.activeFacets as |facet|}}

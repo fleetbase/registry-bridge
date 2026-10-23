@@ -4,12 +4,22 @@
         @icon="inbox"
         @permission="registry-bridge list extension-install"
         @visible={{can "registry-bridge see extension-install"}}
+        @rightSideStatus={{if this.installedCount "default"}}
+        @rightSideStatusText={{this.installedCount}}
+        @hideRightSideStatusDot={{true}}
+        @disableRightSideStatusHumanize={{true}}
+        data-test-sidebar-installed
     >{{t "registry-bridge.sidebar.installed"}}</Layout::Sidebar::Item>
     <Layout::Sidebar::Item
         @route="console.extensions.purchased"
         @icon="bag-shopping"
         @permission="registry-bridge list extension-purchase"
         @visible={{can "registry-bridge see extension-purchase"}}
+        @rightSideStatus={{if this.purchasedCount "default"}}
+        @rightSideStatusText={{this.purchasedCount}}
+        @hideRightSideStatusDot={{true}}
+        @disableRightSideStatusHumanize={{true}}
+        data-test-sidebar-purchased
     >{{t "registry-bridge.sidebar.purchased"}}</Layout::Sidebar::Item>
     <Layout::Sidebar::Panel @open={{true}} @title={{t "registry-bridge.sidebar.explore"}} @visible={{can "registry-bridge see extension"}}>
         <Layout::Sidebar::Item @route="console.extensions.explore.index" @icon="shapes" @permission="registry-bridge list extension">{{t "registry-bridge.sidebar.explore-all"}}</Layout::Sidebar::Item>

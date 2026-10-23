@@ -13,6 +13,9 @@
                 <Badge @status="success" @icon="check" @disableHumanize={{true}}>{{t "registry-bridge.purchase.success.badge"}}</Badge>
                 <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.success.title" name=@options.extension.name}}</div>
                 <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.success.body" company=(or @options.companyName (t "registry-bridge.common.this-organization"))}}</p>
+                {{#if @options.amount}}
+                    <p class="text-sm dark:text-gray-200" data-test-purchase-amount>{{t "registry-bridge.purchase.success.paid" amount=(format-currency @options.amount @options.currency)}}</p>
+                {{/if}}
                 {{#if @options.receiptUrl}}
                     <a href={{@options.receiptUrl}} target="_blank" rel="noopener noreferrer" class="text-sm">{{t "registry-bridge.purchase.success.receipt"}}</a>
                 {{/if}}
@@ -23,6 +26,12 @@
                 <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.failed.title"}}</div>
                 <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.failed.body" status=(or @options.serviceStatus (t "registry-bridge.purchase.failed.unknown-status"))}}</p>
                 {{#if @options.message}}<p class="text-xs text-gray-500 dark:text-gray-400">{{@options.message}}</p>{{/if}}
+            </div>
+        {{else if (eq this.phase "cancelled")}}
+            <div class="space-y-2" role="status" data-test-purchase-cancelled>
+                <Badge @status="default" @icon="circle-xmark" @disableHumanize={{true}}>{{t "registry-bridge.purchase.cancelled.badge"}}</Badge>
+                <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.cancelled.title"}}</div>
+                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.cancelled.body"}}</p>
             </div>
         {{else}}
             <div class="space-y-2" role="status" data-test-purchase-processing>

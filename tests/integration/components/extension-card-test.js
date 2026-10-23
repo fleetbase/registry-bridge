@@ -28,9 +28,12 @@ const STATES = {
     installed: { record: { is_installed: true }, price: 'Free', action: 'none', badge: 'Installed' },
     update: { record: { is_installed: true, update_available: true, installed_version: '1.8.0', latest_version: '2.0.0' }, price: 'Free', action: 'update', badge: 'Update v2.0.0' },
     purchased: { record: { payment_required: true, price: 5900, is_purchased: true }, price: 'Purchased', action: 'install', badge: 'Ready to install' },
-    'self-managed': { record: { self_managed: true }, price: 'Free', action: 'self-managed', badge: 'Self-managed' },
-    'in-review': { record: { is_author: true, status: 'awaiting_review' }, price: 'Free', action: 'portal', badge: 'In review' },
-    rejected: { record: { is_author: true, status: 'rejected' }, price: 'Free', action: 'portal', badge: 'Rejected' },
+    unavailable: {
+        record: { is_installable: false, meta: { hosting: 'cloud', install_blocked_code: 'hosting', install_blocked_reason: 'This extension is only available on Fleetbase Cloud.' } },
+        price: 'Free',
+        action: 'details',
+        badge: 'Not available here',
+    },
 };
 
 module('Integration | Component | extension-card', function (hooks) {
@@ -88,6 +91,14 @@ module('Integration | Component | extension-card', function (hooks) {
         await render(hbs`<ExtensionCard @resource={{this.extension}} />`);
 
         assert.dom('[data-test-extension-card-action]').isDisabled();
+    });
+
+    test('an unavailable listing shows why on the card', async function (assert) {
+        this.set('extension', { id: 'ext_1', name: 'Fleet Insights', ...STATES.unavailable.record });
+        await render(hbs`<ExtensionCard @resource={{this.extension}} />`);
+
+        assert.dom('[data-test-extension-card-reason]').hasText('This extension is only available on Fleetbase Cloud.');
+        assert.dom('[data-test-extension-card-badges]').includesText('Cloud only');
     });
 
     test('the description falls back to the subtitle', async function (assert) {

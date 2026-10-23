@@ -3,6 +3,7 @@ import { setupRenderingTest, AbilitiesStub, CurrentUserStub } from 'dummy/tests/
 import { click, render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 import Service from '@ember/service';
+import { tracked } from '@glimmer/tracking';
 
 class InstallerStub extends Service {
     calls = [];
@@ -19,8 +20,11 @@ class InstallerStub extends Service {
 
 class PurchaseStub extends Service {
     calls = [];
+    @tracked lastError = null;
+    isStarting = false;
     purchase(extension) {
         this.calls.push(extension.id);
+        this.lastError = { extension: extension.public_id, message: 'Acme Route Planner cannot be bought right now: its publisher has not finished setting up payouts.' };
     }
 }
 
@@ -69,6 +73,9 @@ module('Integration | Component | extension-panel/header', function (hooks) {
         assert.dom('[data-test-cta-button]').hasText('Purchase for $149.00');
         await click('[data-test-cta-button]');
         assert.deepEqual(this.owner.lookup('service:extension-purchase').calls, ['ext_1']);
+        assert
+            .dom('[data-test-cta-purchase-error]')
+            .hasText('Acme Route Planner cannot be bought right now: its publisher has not finished setting up payouts.', 'a refusal is shown on the panel');
     });
 
     test('paid without checkout is blocked with the service reason', async function (assert) {
@@ -132,10 +139,5 @@ module('Integration | Component | extension-panel/header', function (hooks) {
         await this.renderHeader({ is_installable: false, meta: meta({ install_blocked_code: 'hosting', install_blocked_reason: 'This extension is only available on Fleetbase Cloud.' }) });
         assert.dom('[data-test-cta]').hasAttribute('data-test-cta', 'blocked');
         assert.dom('[data-test-cta-reason]').hasText('This extension is only available on Fleetbase Cloud.');
-    });
-
-    test('self-managed', async function (assert) {
-        await this.renderHeader({ self_managed: true, source: 'registry', meta: {} });
-        assert.dom('[data-test-cta]').hasAttribute('data-test-cta', 'self-managed');
     });
 });

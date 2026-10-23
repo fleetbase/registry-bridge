@@ -11,8 +11,8 @@ use Illuminate\Support\Arr;
 /**
  * Explore, Installed and Purchased data read from the Registry Service (v2).
  *
- * Service listings are mapped into the shape the `RegistryExtension` resource produces so the console renders
- * them with the existing components. Instance state comes from the instance API:
+ * Service listings are mapped into the shape the console's `registry-extension` model reads. Instance state
+ * comes from the instance API:
  *
  * - `is_installed` and `update_available` from `GET /v1/instances/me/updates` (plus local install records),
  * - `is_purchased` from the organization's paid licences in `GET /v1/instances/me`,
@@ -314,7 +314,7 @@ class ServiceCatalog
     }
 
     /**
-     * Map one service listing (summary or full) into the local `RegistryExtension` resource shape.
+     * Map one service listing (summary or full) into the console's `registry-extension` shape.
      *
      * @param array<string, mixed> $listing entry from `GET /v1/catalog/extensions[/{slug}]`
      * @param array<string, mixed> $state   from `buildState()`
@@ -359,13 +359,7 @@ class ServiceCatalog
             'id'                       => $id,
             'uuid'                     => $id,
             'public_id'                => $id,
-            'company_uuid'             => null,
-            'created_by_uuid'          => null,
-            'registry_user_uuid'       => null,
             'category_uuid'            => $category['id'] ?? null,
-            'current_bundle_uuid'      => null,
-            'next_bundle_uuid'         => null,
-            'icon_uuid'                => null,
             'name'                     => Arr::get($listing, 'name'),
             'subtitle'                 => Arr::get($listing, 'subtitle'),
             'description'              => Arr::get($listing, 'description', Arr::get($listing, 'subtitle')),
@@ -389,19 +383,11 @@ class ServiceCatalog
             'sale_price'               => isset($price['sale_amount']) ? static::int($price['sale_amount']) : null,
             'on_sale'                  => (bool) ($price['on_sale'] ?? false),
             'currency'                 => static::str($price['currency'] ?? '') ?: 'USD',
-            'subscription_required'    => false,
             'core_extension'           => false,
-            'self_managed'             => false,
             'installs_count'           => static::int(Arr::get($listing, 'installs_count', 0)),
             'category_name'            => $category['name'] ?? null,
             'publisher_name'           => Arr::get($listing, 'publisher.name'),
             'current_bundle_version'   => $latest ?: null,
-            'current_bundle_id'        => Arr::get($release, 'id'),
-            'current_bundle_public_id' => Arr::get($release, 'id'),
-            'current_bundle_filename'  => null,
-            'next_bundle_id'           => null,
-            'next_bundle_public_id'    => null,
-            'next_bundle_filename'     => null,
             'category'                 => $category,
             'screenshots'              => static::screenshots(Arr::get($listing, 'screenshots', [])),
             'is_installed'             => $isInstalled,
@@ -414,7 +400,6 @@ class ServiceCatalog
             'source'                   => static::SOURCE,
             'meta'                     => [
                 'source'                 => static::SOURCE,
-                'api_version'            => RegistryConfig::V2,
                 'registry_host'          => $serviceUrl,
                 'packages'               => $names,
                 'package_names'          => $packages,

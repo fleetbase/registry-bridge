@@ -1,6 +1,6 @@
 /**
- * What an extension card and the detail panel show for a registry extension:
- * one of the nine card states (canvas C2) and the call to action in the
+ * What an extension card and the detail panel show for a Registry Service
+ * listing: one of the card states (canvas C2) and the call to action in the
  * detail panel (canvas C4). Pure functions over the record's fields so they
  * can be tested without the app.
  *
@@ -8,9 +8,10 @@
  * components translate them.
  */
 
-export const REGISTRY_SERVICE = 'registry-service';
+export const CARD_STATES = ['free', 'paid', 'on-sale', 'installed', 'update', 'purchased', 'unavailable'];
 
-export const CARD_STATES = ['free', 'paid', 'on-sale', 'installed', 'update', 'purchased', 'self-managed', 'in-review', 'rejected'];
+/** Install blocks that mean "not on this instance" rather than "not yet": the card says so. */
+export const UNAVAILABLE_CODES = ['hosting', 'no_release'];
 
 export const CTA = {
     INSTALL: 'install',
@@ -21,7 +22,6 @@ export const CTA = {
     AUTHOR: 'author',
     REGISTRATION: 'registration-required',
     BLOCKED: 'blocked',
-    SELF_MANAGED: 'self-managed',
 };
 
 export const PERMISSIONS = {
@@ -30,16 +30,10 @@ export const PERMISSIONS = {
     purchase: 'registry-bridge purchase extension',
 };
 
-const IN_REVIEW_STATUSES = ['pending', 'in_review', 'in-review', 'awaiting_review', 'awaiting-review'];
-
 const label = (key, params = {}) => ({ key: `registry-bridge.${key}`, params });
 
 function get(record, path) {
     return path.split('.').reduce((value, key) => (value === null || value === undefined ? undefined : value[key]), record);
-}
-
-export function isServiceRecord(extension = {}) {
-    return extension.source === REGISTRY_SERVICE || get(extension, 'meta.source') === REGISTRY_SERVICE;
 }
 
 function toNumber(value) {
@@ -67,22 +61,21 @@ export function priceOf(extension = {}) {
     return { free: false, amount: price, original: null, currency };
 }
 
+/** Why this instance cannot install the listing, when it is about the instance rather than a licence. */
+export function unavailableReason(extension = {}) {
+    const code = get(extension, 'meta.install_blocked_code');
+    return extension.is_installed !== true && UNAVAILABLE_CODES.includes(code) ? get(extension, 'meta.install_blocked_reason') || null : null;
+}
+
 export function cardState(extension = {}) {
-    const status = String(extension.status ?? '').toLowerCase();
-    if (extension.is_author === true && status === 'rejected') {
-        return 'rejected';
-    }
-    if (extension.is_author === true && IN_REVIEW_STATUSES.includes(status)) {
-        return 'in-review';
-    }
     if (extension.is_installed === true && extension.update_available === true) {
         return 'update';
     }
     if (extension.is_installed === true) {
         return 'installed';
     }
-    if (extension.self_managed === true) {
-        return 'self-managed';
+    if (UNAVAILABLE_CODES.includes(get(extension, 'meta.install_blocked_code'))) {
+        return 'unavailable';
     }
 
     const price = priceOf(extension);
@@ -98,16 +91,17 @@ export function cardState(extension = {}) {
 
 /**
  * Everything a card renders besides the record's own text: the state, the
- * price badge, the state badges and the footer action.
+ * price badge, the state badges (an unavailable listing's badge carries the
+ * reason as `help`) and the footer action.
  *
  * `action.kind` is what the card does when the action is pressed:
- * `details` (open the panel), `install`, `update`, `self-managed` (open the
- * panel on the instructions), `portal` (the publisher portal) or `none`.
+ * `details` (open the panel), `install`, `update` or `none`.
  */
 export function cardModel(extension = {}) {
     const state = cardState(extension);
     const price = priceOf(extension);
     const latest = extension.latest_version || extension.current_bundle_version || extension.version;
+    const hosting = get(extension, 'meta.hosting');
     const badges = [];
     let priceBadge = price.free ? { label: label('card.free'), status: 'success' } : { amount: price.amount, original: price.original, currency: price.currency, status: 'info' };
     let action = { kind: 'details', label: label('card.view-details'), type: 'default' };
@@ -135,17 +129,8 @@ export function cardModel(extension = {}) {
                     ? { kind: 'details', label: label('card.view-details'), type: 'default' }
                     : { kind: 'install', label: label('card.install'), type: 'primary', permission: PERMISSIONS.install };
             break;
-        case 'self-managed':
-            badges.push({ label: label('card.self-managed'), status: 'default' });
-            action = { kind: 'self-managed', label: label('card.self-hosted'), type: 'magic' };
-            break;
-        case 'in-review':
-            badges.push({ label: label('card.in-review'), status: 'warning' });
-            action = { kind: 'portal', label: label('card.open-editor'), type: 'default' };
-            break;
-        case 'rejected':
-            badges.push({ label: label('card.rejected'), status: 'error' });
-            action = { kind: 'portal', label: label('card.see-feedback'), type: 'danger' };
+        case 'unavailable':
+            badges.push({ label: label('card.unavailable'), status: 'warning', help: unavailableReason(extension) });
             break;
     }
 
@@ -153,12 +138,11 @@ export function cardModel(extension = {}) {
         badges.push({ label: label('card.verified'), status: 'default' });
     }
 
-    const hosting = get(extension, 'meta.hosting');
-    if (state !== 'self-managed' && (hosting === 'self_hosted' || hosting === 'cloud')) {
+    if (hosting === 'self_hosted' || hosting === 'cloud') {
         badges.push({ label: label(hosting === 'cloud' ? 'card.cloud-only' : 'card.self-hosted-only'), status: 'default' });
     }
 
-    return { state, priceBadge, badges, action, version: latest || null };
+    return { state, priceBadge, badges, action, version: latest || null, unavailableReason: unavailableReason(extension) };
 }
 
 /**
@@ -168,13 +152,12 @@ export function cardModel(extension = {}) {
  * @param {Object} context
  * @param {Boolean} context.canInstall the user may install, update and uninstall
  * @param {Boolean} context.canPurchase the user may purchase
- * @return {{ kind: String, permission?: String, reason?: String, code?: String, version?: String, installedVersion?: String, legacy?: Boolean }}
+ * @return {{ kind: String, permission?: String, reason?: String, code?: String, version?: String, installedVersion?: String }}
  */
 export function detailCta(extension = {}, { canInstall = true, canPurchase = true } = {}) {
     const latest = extension.latest_version || extension.current_bundle_version || extension.version || null;
     const reason = get(extension, 'meta.install_blocked_reason') || null;
     const code = get(extension, 'meta.install_blocked_code') || null;
-    const service = isServiceRecord(extension);
 
     if (extension.is_author === true) {
         return { kind: CTA.AUTHOR };
@@ -190,14 +173,8 @@ export function detailCta(extension = {}, { canInstall = true, canPurchase = tru
         return { kind: CTA.UPDATE, version: latest, installedVersion: extension.installed_version || null };
     }
 
-    if (extension.self_managed === true) {
-        return { kind: CTA.SELF_MANAGED };
-    }
-
-    const needsLicence = priceOf(extension).free === false && extension.is_purchased !== true;
-    if (needsLicence && (!service || get(extension, 'meta.purchase_available') === true)) {
-        // Cloud-catalog (v1) records keep the embedded Stripe checkout until that path is retired
-        return canPurchase ? { kind: CTA.PURCHASE, legacy: !service } : { kind: CTA.UNAUTHORIZED, permission: PERMISSIONS.purchase };
+    if (code === 'licence_required' && get(extension, 'meta.purchase_available') === true) {
+        return canPurchase ? { kind: CTA.PURCHASE } : { kind: CTA.UNAUTHORIZED, permission: PERMISSIONS.purchase };
     }
 
     if (extension.is_installable === false || reason) {

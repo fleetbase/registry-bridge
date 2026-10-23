@@ -35,8 +35,18 @@
             <Button @type="primary" @icon="download" @text={{t "registry-bridge.detail.cta.install"}} @onClick={{this.install}} data-test-cta-button />
             <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.install-note" minutes=2}}</p>
         {{else if this.is.purchase}}
-            <Button @type="success" @icon="credit-card" @text={{this.purchaseText}} @onClick={{this.purchase}} data-test-cta-button />
+            <Button
+                @type="success"
+                @icon="credit-card"
+                @text={{this.purchaseText}}
+                @onClick={{this.purchase}}
+                @isLoading={{this.extensionPurchase.isStarting}}
+                data-test-cta-button
+            />
             <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.purchase-note"}}</p>
+            {{#if this.purchaseError}}
+                <InfoBlock @type="danger" @icon="circle-exclamation" @text={{this.purchaseError}} class="w-full" data-test-cta-purchase-error />
+            {{/if}}
         {{else if this.is.installed}}
             <Badge @status="success" @icon="check" @disableHumanize={{true}} data-test-cta-installed>
                 {{t "registry-bridge.detail.cta.installed" version=(if this.cta.version (concat "v" this.cta.version) "")}}
@@ -50,9 +60,6 @@
             {{#if this.canUninstall}}
                 <Button @type="danger" @size="xs" @outline={{true}} @icon="trash" @text={{t "registry-bridge.common.uninstall"}} @onClick={{this.uninstall}} data-test-cta-uninstall />
             {{/if}}
-        {{else if this.is.selfManaged}}
-            <Button @type="magic" @icon="terminal" @text={{t "registry-bridge.card.self-hosted"}} @onClick={{fn this.extensionPanel.selectTab "overview"}} data-test-cta-button />
-            <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.self-managed-note"}}</p>
         {{else if this.is.unauthorized}}
             <Button @type="default" @icon="lock" @text={{t "registry-bridge.detail.cta.unauthorized"}} @disabled={{true}} data-test-cta-button />
             <p class="extension-panel-cta-note" data-test-cta-permission>{{t "registry-bridge.detail.cta.unauthorized-note" permission=this.cta.permission}}</p>
