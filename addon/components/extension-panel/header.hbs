@@ -33,7 +33,7 @@
     <div class="extension-panel-cta" data-test-cta={{this.cta.kind}}>
         {{#if this.is.install}}
             <Button @type="primary" @icon="download" @text={{t "registry-bridge.detail.cta.install"}} @onClick={{this.install}} data-test-cta-button />
-            <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.install-note" minutes=2}}</p>
+            <p class="extension-panel-cta-note" data-test-cta-note>{{this.installNote}}</p>
         {{else if this.is.purchase}}
             <Button
                 @type="success"

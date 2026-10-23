@@ -55,6 +55,17 @@ export default class ModalsExtensionInstallerComponent extends Component {
         return null;
     }
 
+    /**
+     * The confirm step's time estimate: about two minutes (one to uninstall) when no console rebuild is
+     * needed, a rebuild's much longer range when it is (`meta.install_mode` / `meta.uninstall_mode`).
+     */
+    get timeNote() {
+        const mode = get(this.options, `extension.meta.${this.isUninstall ? 'uninstall_mode' : 'install_mode'}`);
+        const key = mode === 'build' ? 'time-rebuild' : 'time';
+
+        return this.intl.t(`registry-bridge.${this.stepsKey}.confirm.${key}`, { minutes: this.isUninstall ? 1 : 2 });
+    }
+
     get cliCommand() {
         const extension = get(this.options, 'extension') ?? {};
         const target = extension.slug ?? extension.public_id;

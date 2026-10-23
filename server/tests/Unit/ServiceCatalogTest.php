@@ -1,5 +1,7 @@
 <?php
 
+use Fleetbase\RegistryBridge\Support\Installer\Files;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\ServiceCatalog;
 use Fleetbase\RegistryBridge\Tests\Support\RegistryServiceFake;
@@ -65,6 +67,55 @@ test('every recorded listing maps with the keys the console reads', function () 
     foreach (RegistryServiceFake::body('catalog-extensions')['data'] as $listing) {
         expect(array_keys(ServiceCatalog::transform($listing)))->toContain(...$keys);
     }
+});
+
+test('install mode: runtime only for a prebuilt dist this console can load, otherwise a rebuild', function () {
+    $dist    = ['sha256' => str_repeat('a', 64), 'built_against' => ['@fleetbase/ember-ui' => '0.4.6', '@fleetbase/ember-core' => '0.3.26']];
+    $console = ['host_versions' => ['@fleetbase/ember-ui' => '0.4.9', '@fleetbase/ember-core' => '0.3.30'], 'built_in' => ['@fleetbase/ember-core']];
+
+    expect(ServiceCatalog::installMode('@acme/a-engine', $dist, $console))->toBe('runtime')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, null))->toBe('runtime')
+        ->and(ServiceCatalog::installMode(null, null, $console))->toBe('server')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', null, $console))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', ['sha256' => ''], $console))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, ['host_versions' => null, 'built_in' => []]))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, [...$console, 'built_in' => ['@acme/a-engine']]))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, [...$console, 'host_versions' => ['@fleetbase/ember-ui' => '0.5.0']]))->toBe('build');
+});
+
+test('the console state comes from its host-modules.json and package.json', function () {
+    $root = sys_get_temp_dir() . '/registry-console-state-' . bin2hex(random_bytes(4));
+    Files::write($root . '/package.json', json_encode(['dependencies' => ['@acme/built-engine' => '1.0.0'], 'devDependencies' => ['ember-source' => '5.4.0']]));
+    $config = InstallerConfig::fromArray(['api_path' => $root . '/api', 'console_path' => $root, 'work_path' => $root . '/work']);
+
+    expect(ServiceCatalog::consoleState($config))->toBe(['host_versions' => null, 'built_in' => ['@acme/built-engine', 'ember-source']]);
+
+    Files::write($root . '/dist/host-modules.json', json_encode(['versions' => ['@fleetbase/ember-ui' => '0.4.6'], 'modules' => []]));
+    expect(ServiceCatalog::consoleState($config)['host_versions'])->toBe(['@fleetbase/ember-ui' => '0.4.6']);
+
+    Files::delete($root);
+});
+
+test('listings carry the install mode of the release an install or update would take', function () {
+    $console = ['host_versions' => ['@fleetbase/ember-ui' => '0.4.6', '@fleetbase/ember-core' => '0.3.26'], 'built_in' => []];
+    $dist    = ['sha256' => str_repeat('b', 64), 'built_against' => ['@fleetbase/ember-ui' => '0.4.6']];
+    $listing = serviceListing('registry-demo-hello');
+
+    expect(ServiceCatalog::transform($listing, ['console' => $console])['meta']['install_mode'])->toBe('build');
+
+    $listing['latest_release']['dist'] = $dist;
+    $mapped                            = ServiceCatalog::transform($listing, ['console' => $console]);
+    expect($mapped['meta']['install_mode'])->toBe('runtime')
+        ->and($mapped['meta']['uninstall_mode'])->toBe('runtime')
+        ->and($mapped['meta']['latest_release']['dist'])->toBe($dist);
+
+    // an installed extension: the update's release decides, and an engine built into the console uninstalls by rebuild
+    $state            = registeredState();
+    $state['console'] = [...$console, 'built_in' => [$listing['packages']['npm']]];
+    $mapped           = ServiceCatalog::transform($listing, $state);
+    expect($mapped['update_available'])->toBeTrue()
+        ->and($mapped['meta']['install_mode'])->toBe('build')
+        ->and($mapped['meta']['uninstall_mode'])->toBe('build');
 });
 
 test('an installed free extension shows its update from the instance API', function () {

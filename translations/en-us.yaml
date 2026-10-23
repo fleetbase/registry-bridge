@@ -131,7 +131,8 @@ registry-bridge:
       title: Could not load this extension
     cta:
       install: Install
-      install-note: "Installs and rebuilds the console (about {minutes} minutes). The console reloads when done."
+      install-note: "Installs without a console rebuild (about {minutes} minutes). The console reloads when done."
+      install-note-rebuild: "Installs and rebuilds the console, which can take 15 to 40 minutes or longer. The console reloads when done."
       purchase: "Purchase for {price}"
       purchase-note: One-time payment via Stripe, then install. Facilitator fee included in the price.
       installed: "Installed {version}"
@@ -186,8 +187,9 @@ registry-bridge:
   install:
     confirm:
       title: "Install {name} {version}?"
-      body: "This installs the server package and the console engine for {company}, then rebuilds and reloads the console. Other people signed in will see the new extension after their next page load."
+      body: "This installs the server package and the console engine for {company}, then reloads the console. Other people signed in will see the new extension after their next page load."
       time: "Usually takes about {minutes} minutes. Unsaved work in other tabs is not affected; this tab will reload."
+      time-rebuild: "This extension needs a console rebuild, which can take 15 to 40 minutes or longer on a small server. Unsaved work in other tabs is not affected; this tab will reload."
       accept: Install now
     steps:
       label: Install steps
@@ -213,7 +215,7 @@ registry-bridge:
   update:
     confirm:
       title: "Update {name} to {version}?"
-      body: "This updates the server package and the console engine for {company} from v{installedVersion}, then rebuilds and reloads the console."
+      body: "This updates the server package and the console engine for {company} from v{installedVersion}, then reloads the console."
       accept: Update now
   uninstall:
     confirm:
@@ -221,7 +223,8 @@ registry-bridge:
       destructive: Destructive.
       body: "This removes the extension and permanently deletes its settings and data for {company}. You can reinstall later, but nothing is recovered."
       type-to-confirm: "Type {name} to confirm"
-      time: "Uninstalling also rebuilds and reloads the console (about {minutes} minute)."
+      time: "Uninstalling reloads the console (about {minutes} minute)."
+      time-rebuild: "Uninstalling also rebuilds the console, which can take 15 to 40 minutes or longer, then reloads it."
       accept: Uninstall
     steps:
       server: Remove server package
@@ -280,7 +283,7 @@ registry-bridge:
       core: Core service
     empty:
       title: Nothing installed yet
-      body: Extensions add telematics, routing, warehouse and customer features to this console. Install one from Explore; installs rebuild the console and take about two minutes.
+      body: Extensions add telematics, routing, warehouse and customer features to this console. Install one from Explore; most installs take about two minutes, and an extension without a prebuilt engine rebuilds the console, which takes much longer.
       filtered: No installed extensions match this search
       explore: Explore extensions
       purchased: See purchased

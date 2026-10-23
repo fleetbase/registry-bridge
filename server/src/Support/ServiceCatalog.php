@@ -3,6 +3,8 @@
 namespace Fleetbase\RegistryBridge\Support;
 
 use Fleetbase\RegistryBridge\Exceptions\RegistryException;
+use Fleetbase\RegistryBridge\Support\Installer\Files;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\Support\Utils;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -254,8 +256,63 @@ class ServiceCatalog
         $state             = static::buildState($me, $updates, $localPackages, $client->hasToken(), $config->instanceKind(), ServiceCheckout::available($config));
         $state['receipts'] = ServiceReceipts::all($config);
         $state['error']    = $error;
+        $state['console']  = app()->bound(InstallerConfig::class) ? static::consoleState(app(InstallerConfig::class)) : null;
 
         return $state;
+    }
+
+    /**
+     * What the console build can take, for `install_mode`: the module versions in its host-modules.json (null
+     * when the build has none, so it cannot load prebuilt engines) and the engines built into it.
+     *
+     * @return array{host_versions: array<string, string>|null, built_in: array<int, string>}
+     */
+    public static function consoleState(InstallerConfig $config): array
+    {
+        $hostModules = Files::readJson($config->hostModulesFile());
+        $package     = Files::readJson(rtrim($config->consolePath, '/') . '/package.json') ?? [];
+
+        return [
+            'host_versions' => is_array($hostModules) ? array_filter((array) ($hostModules['versions'] ?? []), 'is_string') : null,
+            'built_in'      => array_keys(array_merge((array) ($package['dependencies'] ?? []), (array) ($package['devDependencies'] ?? []))),
+        ];
+    }
+
+    /**
+     * How the installer will most likely install a release, for the console's time estimate: `runtime` when it
+     * has a prebuilt dist this console can load (a host-modules.json, the same ember-ui and ember-core minor, the
+     * engine not already built in), `build` when it needs a console rebuild, `server` without an engine. The
+     * installer decides for real (ExtensionInstaller); this mirrors its checks without the dist in hand.
+     *
+     * @param array{host_versions: array<string, string>|null, built_in: array<int, string>}|null $console null when unknown
+     */
+    public static function installMode(?string $engine, mixed $dist, ?array $console): string
+    {
+        if ($engine === null) {
+            return 'server';
+        }
+        if (!is_array($dist) || static::str($dist['sha256'] ?? null) === '') {
+            return 'build';
+        }
+        if ($console === null) {
+            return 'runtime';
+        }
+        if ($console['host_versions'] === null || in_array($engine, $console['built_in'], true)) {
+            return 'build';
+        }
+        foreach ((array) ($dist['built_against'] ?? []) as $package => $built) {
+            $host = $console['host_versions'][$package] ?? null;
+            if (is_string($host) && is_string($built) && static::minor($host) !== static::minor($built)) {
+                return 'build';
+            }
+        }
+
+        return 'runtime';
+    }
+
+    protected static function minor(string $version): string
+    {
+        return preg_match('/^\D*(\d+)\.(\d+)/', $version, $match) ? $match[1] . '.' . $match[2] : $version;
     }
 
     /**
@@ -352,6 +409,8 @@ class ServiceCatalog
 
         $installedVersion = $update ? static::str(Arr::get($update, 'installed.version')) : '';
         $updateVersion    = $update ? static::str(Arr::get($update, 'latest.version')) : '';
+        $console          = is_array($state['console'] ?? null) ? $state['console'] : null;
+        $nextDist         = $updateVersion !== '' ? Arr::get($update, 'latest.dist') : Arr::get($release, 'dist');
 
         $checkout      = (bool) ($state['checkout'] ?? false);
         $blocked       = static::installBlock($registered, $hosting, $kind, $isPaid, $isPurchased, $names, $latest, $checkout);
@@ -415,6 +474,9 @@ class ServiceCatalog
                 'install_blocked_code'   => $blocked['code'] ?? null,
                 'purchase_available'     => ($blocked['code'] ?? null) === 'licence_required' && $checkout,
                 'versions'               => array_values((array) Arr::get($listing, 'versions', [])),
+                // the time estimate in the install and uninstall dialogs: `runtime` (minutes), `build` (a rebuild)
+                'install_mode'           => static::installMode($packages['npm'], $nextDist, $console),
+                'uninstall_mode'         => $packages['npm'] !== null && $console !== null && in_array($packages['npm'], $console['built_in'], true) ? 'build' : 'runtime',
             ],
             'published_at'             => Arr::get($listing, 'published_at'),
             'created_at'               => Arr::get($listing, 'created_at'),

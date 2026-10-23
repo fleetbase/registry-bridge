@@ -56,6 +56,13 @@ export default class ExtensionPanelHeaderComponent extends Component {
         return { text: formatCurrency(price.amount, price.currency), status: 'info', original: price.original ? formatCurrency(price.original, price.currency) : null };
     }
 
+    /** Minutes without a console rebuild, a rebuild's much longer range with one (`meta.install_mode`). */
+    get installNote() {
+        const key = this.extension.meta?.install_mode === 'build' ? 'install-note-rebuild' : 'install-note';
+
+        return this.intl.t(`registry-bridge.detail.cta.${key}`, { minutes: 2 });
+    }
+
     get purchaseText() {
         return this.intl.t('registry-bridge.detail.cta.purchase', { price: formatCurrency(priceOf(this.extension).amount, this.extension.currency) });
     }

@@ -61,10 +61,17 @@ module('Integration | Component | extension-panel/header', function (hooks) {
     });
 
     test('install', async function (assert) {
-        await this.renderHeader({ meta: meta() });
+        await this.renderHeader({ meta: meta({ install_mode: 'runtime' }) });
         assert.dom('[data-test-cta]').hasAttribute('data-test-cta', 'install');
+        assert.dom('[data-test-cta-note]').includesText('without a console rebuild (about 2 minutes)');
         await click('[data-test-cta-button]');
         assert.deepEqual(this.owner.lookup('service:extension-installer').calls, [['install', 'ext_1']]);
+    });
+
+    test('an install that rebuilds the console says it takes much longer', async function (assert) {
+        await this.renderHeader({ meta: meta({ install_mode: 'build' }) });
+        assert.dom('[data-test-cta-note]').includesText('rebuilds the console, which can take 15 to 40 minutes');
+        assert.dom('[data-test-cta-note]').doesNotIncludeText('about 2 minutes');
     });
 
     test('purchase when the service offers checkout', async function (assert) {

@@ -131,7 +131,8 @@ registry-bridge:
       title: Không thể tải tiện ích này
     cta:
       install: Cài đặt
-      install-note: "Cài đặt và dựng lại bảng điều khiển (khoảng {minutes} phút). Bảng điều khiển sẽ tải lại khi xong."
+      install-note: "Cài đặt mà không cần dựng lại bảng điều khiển (khoảng {minutes} phút). Bảng điều khiển sẽ tải lại khi xong."
+      install-note-rebuild: "Cài đặt và dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút hoặc lâu hơn. Bảng điều khiển sẽ tải lại khi xong."
       purchase: "Mua với giá {price}"
       purchase-note: Thanh toán một lần qua Stripe, sau đó cài đặt. Phí trung gian đã bao gồm trong giá.
       installed: "Đã cài đặt {version}"
@@ -186,8 +187,9 @@ registry-bridge:
   install:
     confirm:
       title: "Cài đặt {name} {version}?"
-      body: "Thao tác này sẽ cài gói máy chủ và engine bảng điều khiển cho {company}, sau đó dựng lại và tải lại bảng điều khiển. Người dùng khác sẽ thấy tiện ích mới sau lần tải trang tiếp theo."
+      body: "Thao tác này sẽ cài gói máy chủ và engine bảng điều khiển cho {company}, sau đó tải lại bảng điều khiển. Người dùng khác sẽ thấy tiện ích mới sau lần tải trang tiếp theo."
       time: "Thường mất khoảng {minutes} phút. Công việc chưa lưu ở các tab khác không bị ảnh hưởng; tab này sẽ tải lại."
+      time-rebuild: "Tiện ích này cần dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút hoặc lâu hơn trên máy chủ nhỏ. Công việc chưa lưu ở các tab khác không bị ảnh hưởng; tab này sẽ tải lại."
       accept: Cài đặt ngay
     steps:
       label: Các bước cài đặt
@@ -213,7 +215,7 @@ registry-bridge:
   update:
     confirm:
       title: "Cập nhật {name} lên {version}?"
-      body: "Thao tác này sẽ cập nhật gói máy chủ và engine bảng điều khiển cho {company} từ v{installedVersion}, sau đó dựng lại và tải lại bảng điều khiển."
+      body: "Thao tác này sẽ cập nhật gói máy chủ và engine bảng điều khiển cho {company} từ v{installedVersion}, sau đó tải lại bảng điều khiển."
       accept: Cập nhật ngay
   uninstall:
     confirm:
@@ -221,7 +223,8 @@ registry-bridge:
       destructive: Không thể hoàn tác.
       body: "Thao tác này sẽ gỡ tiện ích và xóa vĩnh viễn cài đặt cùng dữ liệu của nó cho {company}. Bạn có thể cài lại sau, nhưng sẽ không khôi phục được gì."
       type-to-confirm: "Nhập {name} để xác nhận"
-      time: "Gỡ cài đặt cũng sẽ dựng lại và tải lại bảng điều khiển (khoảng {minutes} phút)."
+      time: "Gỡ cài đặt sẽ tải lại bảng điều khiển (khoảng {minutes} phút)."
+      time-rebuild: "Gỡ cài đặt cũng sẽ dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút hoặc lâu hơn, rồi tải lại."
       accept: Gỡ cài đặt
     steps:
       server: Gỡ gói máy chủ
@@ -280,7 +283,7 @@ registry-bridge:
       core: Dịch vụ lõi
     empty:
       title: Chưa cài đặt tiện ích nào
-      body: Tiện ích bổ sung các tính năng viễn thông, định tuyến, kho bãi và khách hàng cho bảng điều khiển này. Hãy cài đặt từ mục Khám phá; mỗi lần cài sẽ dựng lại bảng điều khiển và mất khoảng hai phút.
+      body: Tiện ích bổ sung các tính năng viễn thông, định tuyến, kho bãi và khách hàng cho bảng điều khiển này. Hãy cài đặt từ mục Khám phá; hầu hết lượt cài mất khoảng hai phút, còn tiện ích không có engine dựng sẵn sẽ dựng lại bảng điều khiển và mất lâu hơn nhiều.
       filtered: Không có tiện ích đã cài nào khớp với tìm kiếm này
       explore: Khám phá tiện ích
       purchased: Xem tiện ích đã mua
