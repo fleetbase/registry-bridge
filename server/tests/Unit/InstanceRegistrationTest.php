@@ -1,6 +1,7 @@
 <?php
 
 use Fleetbase\RegistryBridge\Support\InstanceRegistration;
+use Fleetbase\RegistryBridge\Support\RegistryConfig;
 use Fleetbase\RegistryBridge\Tests\Support\RegistryServiceFake;
 use Illuminate\Contracts\Encryption\StringEncrypter;
 
@@ -32,6 +33,24 @@ test('the register payload carries name, host, kind and versions', function () {
         'console_version' => '0.7.69',
         'api_version'     => '1.6.30',
     ]);
+});
+
+test('a registered instance sends its current token so the service rotates it', function () {
+    expect(InstanceRegistration::payload('CODE', 'Acme', null, 'self_hosted', null, null, ' flbi_previous '))->toBe([
+        'code'           => 'CODE',
+        'name'           => 'Acme',
+        'kind'           => 'self_hosted',
+        'previous_token' => 'flbi_previous',
+    ]);
+});
+
+test('the previous token only goes back to the service that issued it', function () {
+    $config = new RegistryConfig(['service_url' => 'https://registry.example.test/', 'instance_token' => 'flbi_previous']);
+
+    expect(InstanceRegistration::previousToken($config, 'registry.example.test'))->toBe('flbi_previous')
+        ->and(InstanceRegistration::previousToken($config, 'https://other-registry.example.test'))->toBeNull()
+        ->and(InstanceRegistration::previousToken(new RegistryConfig(['instance_token' => 'flbi_previous']), 'https://registry.example.test'))->toBeNull()
+        ->and(InstanceRegistration::previousToken(new RegistryConfig(['service_url' => 'https://registry.example.test']), 'https://registry.example.test'))->toBeNull();
 });
 
 test('unknown versions and hosts are left out of the payload', function () {

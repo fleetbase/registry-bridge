@@ -530,7 +530,8 @@ class RegistryExtensionController extends RegistryBridgeController
             $request->input('host') ?: config('app.url'),
             $config->instanceKind(),
             $request->input('console_version') ?: InstanceRegistration::detectConsoleVersion(config('fleetbase.console.path')),
-            InstanceRegistration::detectApiVersion()
+            InstanceRegistration::detectApiVersion(),
+            InstanceRegistration::previousToken($config, $serviceUrl)
         );
 
         try {
