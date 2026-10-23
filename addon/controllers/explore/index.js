@@ -73,7 +73,8 @@ export default class ExploreIndexController extends Controller {
     }
 
     get registryHost() {
-        return this.registryContext.serviceUrl ?? 'registry.fleetbase.io';
+        // Until the context arrives (or when it failed) the URL is unknown: never name a default host.
+        return this.registryContext.serviceUrl ?? this.intl.t('registry-bridge.explore.this-registry');
     }
 
     get requestParams() {

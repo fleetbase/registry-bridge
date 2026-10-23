@@ -48,6 +48,7 @@ registry-bridge:
     search-placeholder: ابحث في الإضافات والوسوم والناشرين
     category-title: "{categoryName}"
     loading: جارٍ تحميل الإضافات
+    this-registry: سجل الإضافات
     filters:
       category: الفئة
       pricing: التسعير

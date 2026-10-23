@@ -48,6 +48,7 @@ registry-bridge:
     search-placeholder: Search extensions, tags, publishers
     category-title: "{categoryName}"
     loading: Loading extensions
+    this-registry: The extensions registry
     filters:
       category: Category
       pricing: Pricing

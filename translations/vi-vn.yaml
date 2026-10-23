@@ -48,6 +48,7 @@ registry-bridge:
     search-placeholder: Tìm tiện ích, thẻ, nhà phát hành
     category-title: "{categoryName}"
     loading: Đang tải tiện ích
+    this-registry: Kho tiện ích
     filters:
       category: Danh mục
       pricing: Giá

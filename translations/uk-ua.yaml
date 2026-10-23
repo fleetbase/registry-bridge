@@ -48,6 +48,7 @@ registry-bridge:
     search-placeholder: Пошук розширень, тегів, видавців
     category-title: "{categoryName}"
     loading: Завантаження розширень
+    this-registry: Реєстр розширень
     filters:
       category: Категорія
       pricing: Ціна
