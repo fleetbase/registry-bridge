@@ -39,7 +39,10 @@ test('a release with a prebuilt dist installs as a runtime engine without a cons
     expect($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'caches', 'record']);
     expect($sandbox->runner->commands())->toBe([
         'composer require acme/widgets-api:1.0.0 --no-interaction',
-        'php artisan optimize:clear',
+        'php artisan config:clear',
+        'php artisan route:clear',
+        'php artisan view:clear',
+        'php artisan event:clear',
         'php artisan queue:restart',
     ]);
     expect($sandbox->runner->calls[0]['cwd'])->toBe($sandbox->api);
@@ -102,7 +105,10 @@ test('without a prebuilt dist the engine is installed with pnpm add and pnpm bui
         'composer require acme/widgets-api:2.1.0 --no-interaction',
         'pnpm add @acme/widgets-engine@2.1.0',
         'pnpm build --environment production',
-        'php artisan optimize:clear',
+        'php artisan config:clear',
+        'php artisan route:clear',
+        'php artisan view:clear',
+        'php artisan event:clear',
         'php artisan queue:restart',
     ]);
     expect($sandbox->runner->calls[1]['cwd'])->toBe($sandbox->console);
@@ -181,7 +187,10 @@ test('an incompatible prebuilt engine is refused, composer is rolled back and no
     expect($sandbox->runner->commands())->toBe([
         'composer require acme/widgets-api:1.0.0 --no-interaction',
         'composer install --no-interaction',
-        'php artisan optimize:clear',
+        'php artisan config:clear',
+        'php artisan route:clear',
+        'php artisan view:clear',
+        'php artisan event:clear',
         'php artisan queue:restart',
     ]);
 });
@@ -227,7 +236,7 @@ test('a failure after the engine is unpacked removes the dist and restores the r
     $sandbox = $this->sandbox;
     $sandbox->release('1.0.0');
     $before = sandboxState($sandbox);
-    $sandbox->runner->on(['php', 'artisan', 'optimize:clear'], fn () => new ProcessResult(1, 'cache store unreachable'));
+    $sandbox->runner->on(['php', 'artisan', 'config:clear'], fn () => new ProcessResult(1, 'cache store unreachable'));
 
     $result = $sandbox->installer()->run($sandbox->job());
 
@@ -306,7 +315,7 @@ test('uninstall removes a runtime engine without a build and publishes on uninst
 
     expect($result['status'])->toBe('completed');
     expect($result['stages'])->toBe(['resolve', 'snapshot', 'composer', 'engine', 'caches', 'record']);
-    expect($sandbox->runner->commands())->toBe(['composer remove acme/widgets-api --no-interaction', 'php artisan optimize:clear', 'php artisan queue:restart']);
+    expect($sandbox->runner->commands())->toBe(['composer remove acme/widgets-api --no-interaction', 'php artisan config:clear', 'php artisan route:clear', 'php artisan view:clear', 'php artisan event:clear', 'php artisan queue:restart']);
     expect(is_dir($this->engineDir))->toBeFalse();
     expect($sandbox->manifest()->all())->toBe([]);
     expect($sandbox->recorder->installs['company-1'])->toBe([]);
@@ -327,7 +336,10 @@ test('uninstall of a built engine runs pnpm remove and a console build', functio
         'composer remove acme/widgets-api --no-interaction',
         'pnpm remove @acme/widgets-engine',
         'pnpm build --environment production',
-        'php artisan optimize:clear',
+        'php artisan config:clear',
+        'php artisan route:clear',
+        'php artisan view:clear',
+        'php artisan event:clear',
         'php artisan queue:restart',
     ]);
 });
@@ -390,4 +402,14 @@ test('a socket outage does not fail the install', function () {
     $sandbox->release('1.0.0');
 
     expect($sandbox->installer()->run($sandbox->job())['status'])->toBe('completed');
+});
+
+test('the default cache commands never flush the cache store', function () {
+    $commands = array_merge(...\Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS);
+
+    // cache:clear (also run by optimize:clear) is FLUSHDB on Redis: job records, queues and sessions go with it.
+    expect($commands)->not->toContain('cache:clear')
+        ->and($commands)->not->toContain('optimize:clear')
+        ->and($commands)->toContain('config:clear')
+        ->and($commands)->toContain('queue:restart');
 });
