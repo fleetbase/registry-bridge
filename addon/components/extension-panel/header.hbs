@@ -1,6 +1,6 @@
 <div class="extension-panel-header {{@headerClass}}" data-test-extension-panel-header ...attributes>
     <div class="flex flex-row items-start gap-3">
-        <Image src={{this.extension.icon_url}} alt="" @fallbackSrc={{config "defaultValues.extensionIcon"}} class="extension-panel-icon" />
+        <Image src={{this.iconUrl}} alt="" @fallbackSrc={{this.defaultIcon}} class="extension-panel-icon" />
         <div class="flex-1 min-w-0">
             <div class="flex flex-row flex-wrap items-center gap-2">
                 <h2 class="extension-panel-title" data-test-extension-panel-title>{{this.extension.name}}</h2>

@@ -6,6 +6,9 @@ import { format as formatDate, formatDistanceToNow, isValid as isValidDate } fro
  * A Registry Service listing as the bridge maps it (`ServiceCatalog::transform`), decorated with this
  * instance's install and licence state.
  */
+/** Shown for a listing without an icon image. */
+export const DEFAULT_EXTENSION_ICON = 'https://flb-assets.s3.ap-southeast-1.amazonaws.com/static/default-extension-icon.svg';
+
 export default class RegistryExtensionModel extends Model {
     /** @ids */
     @attr('string') uuid;
@@ -17,7 +20,7 @@ export default class RegistryExtensionModel extends Model {
     @hasMany('file') screenshots;
 
     /** @attributes */
-    @attr('string', { defaultValue: 'https://flb-assets.s3.ap-southeast-1.amazonaws.com/static/default-extension-icon.svg' }) icon_url;
+    @attr('string', { defaultValue: DEFAULT_EXTENSION_ICON }) icon_url;
     @attr('string') name;
     @attr('string') subtitle;
     @attr('string') description;

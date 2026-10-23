@@ -3,6 +3,7 @@ import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 import formatCurrency from '@fleetbase/ember-ui/utils/format-currency';
 import { CTA, PERMISSIONS, detailCta, priceOf } from '../../utils/extension-state';
+import { DEFAULT_EXTENSION_ICON } from '../../models/registry-extension';
 
 /**
  * Header of the extension detail panel: identity, publisher and category
@@ -18,6 +19,13 @@ export default class ExtensionPanelHeaderComponent extends Component {
     @service currentUser;
     @service hostRouter;
     @service intl;
+
+    /** The listing's icon, or the default one: a listing without an icon image has `icon_url: null`. */
+    defaultIcon = DEFAULT_EXTENSION_ICON;
+
+    get iconUrl() {
+        return this.extension?.icon_url || DEFAULT_EXTENSION_ICON;
+    }
 
     get extension() {
         return this.args.resource ?? this.extensionPanel.extension ?? {};

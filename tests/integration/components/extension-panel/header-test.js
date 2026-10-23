@@ -4,6 +4,7 @@ import { click, render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 import Service from '@ember/service';
 import { tracked } from '@glimmer/tracking';
+import { DEFAULT_EXTENSION_ICON } from '@fleetbase/registry-bridge-engine/models/registry-extension';
 
 class InstallerStub extends Service {
     calls = [];
@@ -52,6 +53,11 @@ module('Integration | Component | extension-panel/header', function (hooks) {
             this.set('extension', { ...base, ...extension });
             await render(hbs`<ExtensionPanel::Header @resource={{this.extension}} />`);
         };
+    });
+
+    test('a listing without an icon image shows the default icon', async function (assert) {
+        await this.renderHeader({ icon_url: null, meta: meta() });
+        assert.dom('img.extension-panel-icon').hasAttribute('src', DEFAULT_EXTENSION_ICON);
     });
 
     test('install', async function (assert) {
