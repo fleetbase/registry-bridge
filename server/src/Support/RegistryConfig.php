@@ -14,6 +14,8 @@ namespace Fleetbase\RegistryBridge\Support;
  *   fallback when no service URL is configured.
  *
  * Built from the merged `registry-bridge.registry` config (settings override env), or from a plain array in tests.
+ * The stored settings are read again once per Octane request or queued job (`RegistrySettings`), so a registration
+ * made in another process or worker applies without restarting workers.
  *
  * @phpstan-consistent-constructor
  */
@@ -37,10 +39,12 @@ class RegistryConfig
     }
 
     /**
-     * Settings for the running application.
+     * Settings for the running application, with the stored settings applied for this request or job.
      */
     public static function current(): static
     {
+        RegistrySettings::instance()->ensureApplied();
+
         $registry = config('registry-bridge.registry', []);
 
         return new static(is_array($registry) ? $registry : []);
