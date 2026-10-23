@@ -77,7 +77,7 @@ test('registry:install --json prints the job record with its queue position', fu
     $job = json_decode($output, true);
     expect($code)->toBe(0);
     expect($job)->toMatchArray(['action' => 'install', 'status' => 'queued', 'version' => '1.2.0', 'position' => 1]);
-    expect($job['extension'])->toBe(['uuid' => 'ext-uuid-1', 'id' => 'extension_widgets', 'name' => 'Widgets', 'source' => 'local']);
+    expect($job['extension'])->toBe(['uuid' => 'ext-uuid-1', 'id' => 'extension_widgets', 'name' => 'Widgets', 'source' => 'registry-service']);
 });
 
 test('the version can follow the extension after an @', function () {

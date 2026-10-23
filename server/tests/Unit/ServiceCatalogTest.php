@@ -55,7 +55,13 @@ test('a listing maps into the RegistryExtension resource shape', function () {
 });
 
 test('every recorded listing maps with the keys the console reads', function () {
-    $keys = array_keys(Fleetbase\RegistryBridge\Support\CentralCatalog::transform(['id' => 'x', 'name' => 'x']));
+    $keys = [
+        'id', 'public_id', 'name', 'subtitle', 'description', 'promotional_text', 'icon_url', 'slug', 'status', 'tags', 'languages',
+        'website_url', 'repo_url', 'support_url', 'privacy_policy_url', 'tos_url', 'copyright', 'payment_required', 'price', 'sale_price',
+        'on_sale', 'currency', 'category', 'category_name', 'publisher_name', 'current_bundle_version', 'screenshots', 'is_installed',
+        'is_purchased', 'is_author', 'is_installable', 'installed_version', 'latest_version', 'update_available', 'source', 'meta',
+        'self_managed', 'core_extension', 'installs_count', 'updated_at',
+    ];
 
     foreach (RegistryServiceFake::body('catalog-extensions')['data'] as $listing) {
         expect(array_keys(ServiceCatalog::transform($listing)))->toContain(...$keys);
@@ -134,7 +140,7 @@ test('categories map into the Category resource shape', function () {
     ])->and($categories[0]['meta']['extensions_count'])->toBe(2);
 });
 
-test('Explore passes search, category and hosting to the service and decorates the page', function () {
+test('Explore passes search and category to the service, lists every hosting, and decorates the page', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-installed')
@@ -146,7 +152,7 @@ test('Explore passes search, category and hosting to the service and decorates t
     $url = $this->service->requestsTo('GET', 'v1/catalog/extensions')[0]->url();
     expect($url)->toContain('q=demo')
         ->and($url)->toContain('category=cat_3a9uznxr8s')
-        ->and($url)->toContain('hosting=self_hosted')
+        ->and($url)->not->toContain('hosting=')
         ->and($url)->toContain('limit=10')
         ->and($page->total())->toBe(2)
         ->and($page->items()[0]['is_installed'])->toBeTrue()

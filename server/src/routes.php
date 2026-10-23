@@ -4,101 +4,51 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| Registry Bridge routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
+| The console's Extensions module talks to the Registry Service through these routes: the catalog,
+| this instance's installs and licences, the installer and the service checkout. Publishing, review
+| and payouts live on the publisher website.
 |
 */
-// Public endpoints (no authentication required)
-Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/extensions', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController@listPublicExtensions');
-Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/lookup', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@lookupPackage');
-Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/bundle-upload', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController@bundleUpload');
+$prefix = config('registry-bridge.api.routing.prefix', '~registry');
+
 // Runtime engines manifest: read by the console at boot, before sign-in
-Route::get(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/engines/runtime', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RuntimeEngineController@index');
+Route::get($prefix . '/v1/engines/runtime', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RuntimeEngineController@index');
 
-// Developer account registration (public, no auth required)
-Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/register', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@register');
-Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/verify', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@verifyEmail');
-Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/resend-verification', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@resendVerification');
-Route::post(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/developer-account/generate-token', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryDeveloperAccountController@generateToken');
-Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
+Route::prefix($prefix)->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {
-        /*
-         * Internal Routes v1
-         */
-        $router->group(['prefix' => config('registry-bridge.api.routing.internal_prefix', 'v1'), 'namespace' => 'Internal\v1'], function ($router) {
-            $router->group(['prefix' => 'auth'], function ($router) {
-                $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
-                    $router->get('registry-tokens', 'RegistryAuthController@getRegistryTokens');
-                    $router->delete('registry-tokens/{id}', 'RegistryAuthController@deleteRegistryToken');
-                    $router->post('registry-tokens', 'RegistryAuthController@createRegistryUser');
-                });
+        $router->group(['prefix' => config('registry-bridge.api.routing.internal_prefix', 'v1'), 'namespace' => 'Internal\v1', 'middleware' => ['fleetbase.protected']], function ($router) {
+            $router->get('categories', 'RegistryController@categories');
+            $router->get('engines', 'RegistryController@getInstalledEngines');
+            $router->get('engine-install-status', 'RegistryController@getEngineInstallStatus');
 
-                $router->post('composer-auth', 'RegistryAuthController@composerAuthentication');
-                $router->post('authenticate', 'RegistryAuthController@authenticate');
-                $router->post('add-user', 'RegistryAuthController@addUser');
-                $router->post('check-access', 'RegistryAuthController@checkAccess');
-                $router->post('check-publish', 'RegistryAuthController@checkPublishAllowed');
+            $router->group(['prefix' => 'installer'], function ($router) {
+                $router->post('install', 'ExtensionInstallerController@install');
+                $router->post('uninstall', 'ExtensionInstallerController@uninstall');
+                $router->post('update', 'ExtensionInstallerController@update');
+                $router->get('jobs/{id}', 'ExtensionInstallerController@job');
             });
 
-            // Developer account profile routes (require authentication)
-            $router->group(['prefix' => 'developer-account'], function ($router) {
-                $router->get('profile', 'RegistryDeveloperAccountController@profile');
-                $router->post('profile', 'RegistryDeveloperAccountController@updateProfile');
+            $router->group(['prefix' => 'purchases'], function ($router) {
+                $router->post('checkout', 'ServicePurchaseController@checkout');
+                $router->get('{handoff}', 'ServicePurchaseController@handoff');
             });
 
-            $router->group(['middleware' => ['fleetbase.protected']], function ($router) {
-                $router->get('categories', 'RegistryController@categories');
-                $router->get('engines', 'RegistryController@getInstalledEngines');
-                $router->get('engine-install-status', 'RegistryController@getEngineInstallStatus');
-
-                $router->group(['prefix' => 'installer'], function ($router) {
-                    $router->post('install', 'ExtensionInstallerController@install');
-                    $router->post('uninstall', 'ExtensionInstallerController@uninstall');
-                    $router->post('update', 'ExtensionInstallerController@update');
-                    $router->get('jobs/{id}', 'ExtensionInstallerController@job');
-                });
-
-                $router->group(['prefix' => 'payments'], function ($router) {
-                    $router->post('account', 'RegistryPaymentsController@getStripeAccount');
-                    $router->post('account-session', 'RegistryPaymentsController@getStripeAccountSession');
-                    $router->post('account-management-session', 'RegistryPaymentsController@createAccountManagementSession');
-                    $router->get('has-stripe-connect-account', 'RegistryPaymentsController@hasStripeConnectAccount');
-                    $router->post('create-checkout-session', 'RegistryPaymentsController@createStripeCheckoutSession');
-                    $router->post('get-checkout-session', 'RegistryPaymentsController@getStripeCheckoutSessionStatus');
-                    $router->get('author-received', 'RegistryPaymentsController@getAuthorReceivedPayments');
-                });
-
-                // Registry Service checkout (Phase 4)
-                $router->group(['prefix' => 'purchases'], function ($router) {
-                    $router->post('checkout', 'ServicePurchaseController@checkout');
-                    $router->get('{handoff}', 'ServicePurchaseController@handoff');
-                });
-
-                $router->fleetbaseRoutes('registry-extensions', function ($router, $controller) {
-                    $router->get('context', $controller('context'));
-                    $router->get('{id}/releases', $controller('releases'));
-                    $router->post('{id}/submit', $controller('submit'));
-                    $router->post('approve', $controller('approve'));
-                    $router->post('reject', $controller('reject'));
-                    $router->post('publish', $controller('manualPublish'));
-                    $router->get('download-bundle', $controller('downloadBundle'));
-                    $router->get('analytics', $controller('analytics'));
-                    $router->get('installed', $controller('installed'));
-                    $router->get('purchased', $controller('purchased'));
-                    $router->get('config', $controller('getConfig'));
-                    $router->post('config', $controller('saveConfig'));
-                    $router->post('config/test', $controller('testConfig'));
-                    $router->post('instance/register', $controller('registerInstance'));
-                    $router->delete('instance', $controller('unregisterInstance'));
-                });
-
-                $router->fleetbaseRoutes('registry-extension-bundles', function ($router, $controller) {
-                    $router->get('download', $controller('download'));
-                });
+            $router->group(['prefix' => 'registry-extensions'], function ($router) {
+                $router->get('/', 'RegistryExtensionController@query');
+                $router->get('context', 'RegistryExtensionController@context');
+                $router->get('counts', 'RegistryExtensionController@counts');
+                $router->get('installed', 'RegistryExtensionController@installed');
+                $router->get('purchased', 'RegistryExtensionController@purchased');
+                $router->get('config', 'RegistryExtensionController@getConfig');
+                $router->post('config', 'RegistryExtensionController@saveConfig');
+                $router->post('config/test', 'RegistryExtensionController@testConfig');
+                $router->post('instance/register', 'RegistryExtensionController@registerInstance');
+                $router->delete('instance', 'RegistryExtensionController@unregisterInstance');
+                $router->get('{id}/releases', 'RegistryExtensionController@releases');
+                $router->get('{id}', 'RegistryExtensionController@find');
             });
         });
     }

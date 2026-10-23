@@ -3,6 +3,7 @@
 namespace Fleetbase\RegistryBridge\Support;
 
 use Fleetbase\RegistryBridge\Exceptions\RegistryException;
+use Fleetbase\Support\Utils;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -31,7 +32,9 @@ class ServiceCatalog
     /**
      * One page of Explore, mapped, with the Explore request parameters (`query`, `category`, `page`, `limit`).
      *
-     * Listings whose hosting excludes this instance's kind are filtered out by the service.
+     * Every published listing is returned, including those whose hosting excludes this instance's kind: they
+     * carry `install_blocked_code` `hosting` and the reason, so the console can show why they cannot be
+     * installed here.
      *
      * @param array<int, string> $localPackages package names installed on this instance according to local records
      *
@@ -51,7 +54,7 @@ class ServiceCatalog
             'q'        => $search,
             'category' => $category,
             'pricing'  => static::pricingFilter($request->input('pricing')),
-            'hosting'  => static::hostingFilter($request->input('hosting'), $config->instanceKind()),
+            'hosting'  => static::hostingFilter($request->input('hosting')),
             'sort'     => static::sortFilter($request->input('sort')),
         ], fn ($value) => $value !== '');
 
@@ -246,8 +249,9 @@ class ServiceCatalog
             }
         }
 
-        $state          = static::buildState($me, $updates, $localPackages, $client->hasToken(), $config->instanceKind(), $config->checkoutEnabled(static::arr($me['features'] ?? null)));
-        $state['error'] = $error;
+        $state             = static::buildState($me, $updates, $localPackages, $client->hasToken(), $config->instanceKind(), ServiceCheckout::available($config));
+        $state['receipts'] = ServiceReceipts::all($config);
+        $state['error']    = $error;
 
         return $state;
     }
@@ -289,6 +293,7 @@ class ServiceCatalog
             'registered'     => $registered,
             'kind'           => $kind,
             'checkout'       => $checkout,
+            'receipts'       => [],
             'installed'      => $installed,
             'licences'       => $licences,
             'local_packages' => array_values(array_filter($localPackages, fn ($name) => is_string($name) && $name !== '')),
@@ -333,6 +338,9 @@ class ServiceCatalog
 
         $update      = static::arr(static::arr($state['installed'] ?? null)[$id] ?? null) ?: null;
         $licence     = static::arr(static::arr($state['licences'] ?? null)[$id] ?? null) ?: null;
+        if ($licence !== null) {
+            $licence = static::withReceipt($licence, static::arr(static::arr($state['receipts'] ?? null)[$id] ?? null));
+        }
         $local       = (array) ($state['local_packages'] ?? []);
         $isLocal     = in_array($id, (array) ($state['local_ids'] ?? []), true)
             || ($id !== '' && in_array($id, $local, true))
@@ -467,6 +475,54 @@ class ServiceCatalog
     }
 
     /**
+     * Sidebar counts from the instance state: installed extensions (service records and local installs),
+     * those with an update, and active paid licences.
+     *
+     * @param array<string, mixed> $state    from `buildState()`
+     * @param array<int, string>   $localIds extension ids installed according to local records
+     *
+     * @return array{installed: int, updates: int, purchased: int}
+     */
+    public static function counts(array $state, array $localIds = []): array
+    {
+        $installed = static::arr($state['installed'] ?? null);
+        $ids       = array_unique(array_merge(array_map('strval', array_keys($installed)), array_values(array_filter($localIds, 'is_string'))));
+        $updates   = array_filter($installed, fn ($entry) => is_array($entry) && ($entry['update_available'] ?? false) === true);
+        $purchased = array_filter(static::arr($state['licences'] ?? null), fn ($licence) => is_array($licence) && static::isPaidLicence($licence));
+
+        return ['installed' => count($ids), 'updates' => count($updates), 'purchased' => count($purchased)];
+    }
+
+    /**
+     * A licence with `receipt_url` (and `purchase`) filled in: from the licence itself when the service sends it
+     * (`receipt_url`, or a `purchase` object with one), else from the receipt this instance kept when its
+     * checkout completed.
+     *
+     * @param array<string, mixed> $licence
+     * @param array<string, mixed> $stored  `ServiceReceipts` record: `receipt_url`, `purchase`, `amount_total`, `currency`, `purchased_at`
+     *
+     * @return array<string, mixed>
+     */
+    public static function withReceipt(array $licence, array $stored = []): array
+    {
+        $purchase = is_array($licence['purchase'] ?? null) ? $licence['purchase'] : [];
+        $receipt  = static::str($licence['receipt_url'] ?? '') ?: (static::str($purchase['receipt_url'] ?? '') ?: (static::str($stored['receipt_url'] ?? '') ?: null));
+
+        $licence['receipt_url'] = $receipt;
+        if ($purchase === [] && $stored !== []) {
+            $licence['purchase'] = array_filter([
+                'id'           => $stored['purchase'] ?? (is_string($licence['purchase'] ?? null) ? $licence['purchase'] : null),
+                'amount_total' => $stored['amount_total'] ?? null,
+                'currency'     => $stored['currency'] ?? null,
+                'receipt_url'  => $receipt,
+                'created_at'   => $stored['purchased_at'] ?? null,
+            ], fn ($value) => $value !== null);
+        }
+
+        return $licence;
+    }
+
+    /**
      * The service `pricing` filter: `free`, `paid`, or empty for both.
      */
     public static function pricingFilter(mixed $pricing): string
@@ -477,12 +533,14 @@ class ServiceCatalog
     }
 
     /**
-     * The service `hosting` filter. Listings that exclude this instance's kind stay hidden, so the only
-     * narrowing an operator can ask for is `both` (listings that run on cloud and self-hosted alike).
+     * The service `hosting` filter: `cloud` or `self_hosted` (listings for that kind, `both` included) or `both`
+     * (listings for either kind); empty for every listing.
      */
-    public static function hostingFilter(mixed $hosting, string $kind): string
+    public static function hostingFilter(mixed $hosting): string
     {
-        return strtolower(trim(static::str($hosting))) === 'both' ? 'both' : $kind;
+        $hosting = strtolower(trim(static::str($hosting)));
+
+        return in_array($hosting, [RegistryConfig::KIND_CLOUD, RegistryConfig::KIND_SELF_HOSTED, 'both'], true) ? $hosting : '';
     }
 
     /**

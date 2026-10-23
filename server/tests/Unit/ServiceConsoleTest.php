@@ -1,10 +1,8 @@
 <?php
 
-use Fleetbase\RegistryBridge\Exceptions\RegistryServiceException;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
 use Fleetbase\RegistryBridge\Support\ServiceCatalog;
-use Fleetbase\RegistryBridge\Support\ServiceCheckout;
 use Fleetbase\RegistryBridge\Tests\Support\RegistryServiceFake;
 use Illuminate\Http\Request;
 
@@ -43,7 +41,7 @@ beforeEach(function () {
     $this->service = new RegistryServiceFake();
 });
 
-test('Explore passes pricing, sort and the both-hosting facet to the service and ignores unknown values', function () {
+test('Explore passes pricing, sort and the hosting facet to the service and ignores unknown values', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-installed')
@@ -52,14 +50,16 @@ test('Explore passes pricing, sort and the both-hosting facet to the service and
 
     ServiceCatalog::query(Request::create('/registry-extensions', 'GET', ['explore' => 1, 'pricing' => 'paid', 'hosting' => 'both', 'sort' => 'newest']), $client, RegistryServiceFake::config());
     ServiceCatalog::query(Request::create('/registry-extensions', 'GET', ['explore' => 1, 'pricing' => 'gratis', 'hosting' => 'cloud', 'sort' => 'random']), $client, RegistryServiceFake::config());
+    ServiceCatalog::query(Request::create('/registry-extensions', 'GET', ['explore' => 1, 'hosting' => 'moon']), $client, RegistryServiceFake::config());
 
-    [$first, $second] = $this->service->requestsTo('GET', 'v1/catalog/extensions');
+    [$first, $second, $third] = $this->service->requestsTo('GET', 'v1/catalog/extensions');
     expect($first->url())->toContain('pricing=paid')
         ->and($first->url())->toContain('hosting=both')
         ->and($first->url())->toContain('sort=newest')
         ->and($second->url())->not->toContain('pricing=')
-        ->and($second->url())->toContain('hosting=self_hosted')
-        ->and($second->url())->not->toContain('sort=');
+        ->and($second->url())->toContain('hosting=cloud')
+        ->and($second->url())->not->toContain('sort=')
+        ->and($third->url())->not->toContain('hosting=');
 });
 
 test('hiding installed extensions filters the whole catalog and pages the rest', function () {
@@ -101,21 +101,21 @@ test('a paid listing offers purchase only when the service checkout is available
         ->and($available['is_installable'])->toBeFalse();
 });
 
-test('checkout follows the service feature flag in auto mode and can be forced', function () {
+test('checkout is on for a registered instance unless the service has none, and can be forced', function () {
     $auto = RegistryServiceFake::config();
 
-    expect($auto->checkoutEnabled([]))->toBeFalse()
-        ->and($auto->checkoutEnabled(['checkout' => true]))->toBeTrue()
-        ->and(RegistryServiceFake::config(['checkout' => 'false'])->checkoutEnabled(['checkout' => true]))->toBeFalse()
-        ->and(RegistryServiceFake::config(['checkout' => true])->checkoutEnabled([]))->toBeTrue()
-        ->and(RegistryServiceFake::config(['instance_token' => null, 'checkout' => true])->checkoutEnabled(['checkout' => true]))->toBeFalse()
-        ->and((new RegistryConfig(['checkout' => true]))->checkoutEnabled(['checkout' => true]))->toBeFalse();
+    expect($auto->checkoutEnabled())->toBeTrue()
+        ->and($auto->checkoutEnabled(false))->toBeFalse()
+        ->and(RegistryServiceFake::config(['checkout' => 'false'])->checkoutEnabled())->toBeFalse()
+        ->and(RegistryServiceFake::config(['checkout' => true])->checkoutEnabled(false))->toBeTrue()
+        ->and(RegistryServiceFake::config(['instance_token' => null, 'checkout' => true])->checkoutEnabled())->toBeFalse()
+        ->and((new RegistryConfig(['service_url' => '', 'checkout' => true]))->checkoutEnabled())->toBeFalse();
 });
 
 test('the publisher portal defaults to the service URL', function () {
     expect(RegistryServiceFake::config()->publisherUrl())->toBe(RegistryServiceFake::SERVICE_URL)
         ->and(RegistryServiceFake::config(['publisher_url' => 'publish.example.test/'])->publisherUrl())->toBe('https://publish.example.test')
-        ->and((new RegistryConfig([]))->publisherUrl())->toBeNull();
+        ->and((new RegistryConfig(['service_url' => '']))->publisherUrl())->toBeNull();
 });
 
 test('releases map with latest, installed and yanked flags', function () {
@@ -139,62 +139,34 @@ test('releases are read from the catalog releases endpoint and a missing listing
         ->and(ServiceCatalog::releases('nope', $client))->toBeNull();
 });
 
-test('starting a checkout is refused while the service does not offer it', function () {
-    $this->service->on('GET', 'v1/instances/me', 'instances-me');
-    $config = RegistryServiceFake::config();
+test('a hosting mismatch is listed with its reason instead of being hidden', function () {
+    $listing            = consoleListing('registry-demo-hello');
+    $listing['hosting'] = 'cloud';
+    $mapped             = ServiceCatalog::transform($listing, ServiceCatalog::buildState([], [], [], true));
 
-    expect(fn () => ServiceCheckout::start(RegistryClient::fromConfig($config), $config, 'ext_gzh4wgc9nr', 'https://fleet.example.test/extensions'))
-        ->toThrow(RegistryServiceException::class, 'not available yet');
-    expect($this->service->requestsTo('POST', 'v1/instances/me/purchases/checkout'))->toBeEmpty();
+    expect($mapped['is_installable'])->toBeFalse()
+        ->and($mapped['meta']['hosting'])->toBe('cloud')
+        ->and($mapped['meta']['install_blocked_code'])->toBe('hosting')
+        ->and($mapped['meta']['install_blocked_reason'])->toBe('This extension is only available on Fleetbase Cloud.');
 });
 
-test('a checkout posts the extension and return URL and returns the hosted URL and hand-off', function () {
-    $me             = RegistryServiceFake::body('instances-me');
-    $me['features'] = ['checkout' => true];
-    $this->service
-        ->respondWith('GET', 'v1/instances/me', 200, $me)
-        ->respondWith('POST', 'v1/instances/me/purchases/checkout', 201, ['url' => 'https://checkout.stripe.test/c/cs_1', 'handoff' => 'hof_1']);
-    $config = RegistryServiceFake::config();
+test('sidebar counts come from the instance state and local installs', function () {
+    $state = ServiceCatalog::buildState(RegistryServiceFake::body('instances-me-installed'), RegistryServiceFake::body('instances-me-updates'), [], true);
 
-    $checkout = ServiceCheckout::start(RegistryClient::fromConfig($config), $config, 'ext_gzh4wgc9nr', 'https://fleet.example.test/extensions?extension_id=ext_gzh4wgc9nr', 'buyer@example.test');
+    $counts = ServiceCatalog::counts($state, ['ext_local_only']);
 
-    $body = $this->service->requestsTo('POST', 'v1/instances/me/purchases/checkout')[0]->data();
-    expect($checkout)->toBe(['url' => 'https://checkout.stripe.test/c/cs_1', 'handoff' => 'hof_1'])
-        ->and($body['extension'])->toBe('ext_gzh4wgc9nr')
-        ->and($body['return_url'])->toBe('https://fleet.example.test/extensions?extension_id=ext_gzh4wgc9nr')
-        ->and($body['buyer_email'])->toBe('buyer@example.test');
+    expect($counts['installed'])->toBe(count($state['installed']) + 1)
+        ->and($counts['updates'])->toBe(count(array_filter($state['installed'], fn ($entry) => $entry['update_available'] ?? false)))
+        ->and($counts['purchased'])->toBe(1);
 });
 
-test('a forced checkout against a service without the endpoint reports it as not available', function () {
-    $this->service
-        ->on('GET', 'v1/instances/me', 'instances-me')
-        ->respondWith('POST', 'v1/instances/me/purchases/checkout', 404, ['errors' => ['Not found.']]);
-    $config = RegistryServiceFake::config(['checkout' => true]);
+test('a receipt on the licence wins over the one kept from the checkout', function () {
+    $licence = ['id' => 'lic_1', 'kind' => 'paid', 'status' => 'active'];
+    $stored  = ['receipt_url' => 'https://pay.stripe.test/r/kept', 'purchase' => 'pur_1', 'amount_total' => 4900, 'currency' => 'USD'];
 
-    try {
-        ServiceCheckout::start(RegistryClient::fromConfig($config), $config, 'ext_gzh4wgc9nr', 'https://fleet.example.test/extensions');
-        $this->fail('expected a RegistryServiceException');
-    } catch (RegistryServiceException $e) {
-        expect($e->status())->toBe(501)
-            ->and($e->getMessage())->toBe(ServiceCheckout::unavailableReason());
-    }
-});
-
-test('hand-off statuses map onto pending, completed and failed', function () {
-    expect(ServiceCheckout::describe(['status' => 'open'])['status'])->toBe('pending')
-        ->and(ServiceCheckout::describe([])['status'])->toBe('pending')
-        ->and(ServiceCheckout::describe(['status' => 'PAID', 'receipt_url' => 'https://pay.stripe.test/r/1'])['receipt_url'])->toBe('https://pay.stripe.test/r/1')
-        ->and(ServiceCheckout::describe(['purchase' => ['status' => 'completed', 'extension' => ['id' => 'ext_1']]]))->toMatchArray(['status' => 'completed', 'extension' => ['id' => 'ext_1']])
-        ->and(ServiceCheckout::describe(['status' => 'expired', 'message' => 'Session expired'])['status'])->toBe('failed');
-});
-
-test('a hand-off is polled uncached and forgets the cached instance state', function () {
-    $this->service
-        ->respondWith('GET', 'v1/instances/me/purchases/hof_1', 200, ['status' => 'pending'])
-        ->thenRespondWith('GET', 'v1/instances/me/purchases/hof_1', 200, ['status' => 'completed']);
-    $client = RegistryClient::fromConfig(RegistryServiceFake::config());
-
-    expect($client->purchase('hof_1')['status'])->toBe('pending')
-        ->and($client->purchase('hof_1')['status'])->toBe('completed')
-        ->and($this->service->requestsTo('GET', 'v1/instances/me/purchases/hof_1'))->toHaveCount(2);
+    expect(ServiceCatalog::withReceipt($licence, $stored)['receipt_url'])->toBe('https://pay.stripe.test/r/kept')
+        ->and(ServiceCatalog::withReceipt($licence, $stored)['purchase'])->toMatchArray(['id' => 'pur_1', 'amount_total' => 4900])
+        ->and(ServiceCatalog::withReceipt([...$licence, 'receipt_url' => 'https://pay.stripe.test/r/service'], $stored)['receipt_url'])->toBe('https://pay.stripe.test/r/service')
+        ->and(ServiceCatalog::withReceipt([...$licence, 'purchase' => ['receipt_url' => 'https://pay.stripe.test/r/nested']], $stored)['receipt_url'])->toBe('https://pay.stripe.test/r/nested')
+        ->and(ServiceCatalog::withReceipt($licence)['receipt_url'])->toBeNull();
 });

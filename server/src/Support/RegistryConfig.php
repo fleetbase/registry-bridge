@@ -2,28 +2,22 @@
 
 namespace Fleetbase\RegistryBridge\Support;
 
+use Fleetbase\Support\Utils as SupportUtils;
+
 /**
- * Resolved registry settings for this instance.
+ * Resolved Registry Service settings for this instance.
  *
- * Two registries can back the module:
- *
- * - `v2`: the Registry Service (`registry.service_url`), which serves the catalog, the npm and Composer
- *   package endpoints and the instance API. Used whenever a service URL is configured, unless
- *   `registry.api_version` is pinned to `v1`.
- * - `v1`: the cloud registry-bridge endpoints (`registry.host` + `~registry/v1/extensions`), kept as the
- *   fallback when no service URL is configured.
- *
- * Built from the merged `registry-bridge.registry` config (settings override env), or from a plain array in tests.
+ * The Registry Service (`registry.service_url`) serves the catalog, the npm and Composer package endpoints
+ * and the instance API. Built from the merged `registry-bridge.registry` config (settings override env), or
+ * from a plain array in tests.
  *
  * @phpstan-consistent-constructor
  */
 class RegistryConfig
 {
-    public const V1 = 'v1';
-
     public const V2 = 'v2';
 
-    public const DEFAULT_HOST = 'https://registry.fleetbase.io';
+    public const DEFAULT_SERVICE_URL = 'https://registry.fleetbase.io';
 
     public const KIND_SELF_HOSTED = 'self_hosted';
 
@@ -47,24 +41,6 @@ class RegistryConfig
     }
 
     /**
-     * Legacy (v1) registry host.
-     */
-    public function host(): string
-    {
-        $host = $this->string('host');
-
-        return $host !== '' ? $host : static::DEFAULT_HOST;
-    }
-
-    /**
-     * Legacy (v1) bearer token.
-     */
-    public function token(): ?string
-    {
-        return $this->string('token') ?: null;
-    }
-
-    /**
      * Registry Service base URL without a trailing slash, or null when none is configured.
      */
     public function serviceUrl(): ?string
@@ -75,24 +51,11 @@ class RegistryConfig
     }
 
     /**
-     * The API version in use: the configured one when valid, else `v2` with a service URL and `v1` without.
-     */
-    public function apiVersion(): string
-    {
-        if (strtolower($this->string('api_version')) === static::V1) {
-            return static::V1;
-        }
-
-        // v2 needs a service to talk to; without one the cloud endpoints stay the fallback
-        return $this->serviceUrl() ? static::V2 : static::V1;
-    }
-
-    /**
      * Whether the catalog, installs and updates go through the Registry Service.
      */
     public function usesService(): bool
     {
-        return $this->apiVersion() === static::V2;
+        return $this->serviceUrl() !== null;
     }
 
     /**
@@ -129,28 +92,8 @@ class RegistryConfig
     public function instanceKind(): string
     {
         $kind = $this->string('instance_kind');
-        if (in_array($kind, [static::KIND_SELF_HOSTED, static::KIND_CLOUD], true)) {
-            return $kind;
-        }
 
-        // An instance that runs its own registry tables is Fleetbase Cloud
-        return Utils::castBoolean($this->registry['self_hosted'] ?? false) === true ? static::KIND_CLOUD : static::KIND_SELF_HOSTED;
-    }
-
-    /**
-     * Whether this instance runs its own registry tables (the cloud).
-     */
-    public function isSelfHostedRegistry(): bool
-    {
-        return Utils::castBoolean($this->registry['self_hosted'] ?? false) === true;
-    }
-
-    /**
-     * Base URL for client requests in the active mode.
-     */
-    public function baseUrl(): string
-    {
-        return $this->usesService() ? (string) $this->serviceUrl() : static::normalizeUrl($this->host());
+        return in_array($kind, [static::KIND_SELF_HOSTED, static::KIND_CLOUD], true) ? $kind : static::KIND_SELF_HOSTED;
     }
 
     /**
@@ -187,24 +130,25 @@ class RegistryConfig
     }
 
     /**
-     * Whether purchases go through the service checkout, given what the service advertises.
+     * Whether purchases go through the service checkout (`POST /v1/instances/me/purchases/checkout`).
      *
-     * `checkout` is `auto` (follow the service's `features.checkout`), or a boolean to force it.
+     * `checkout` is `auto` (on for a registered instance unless the service answered that it has no
+     * checkout), or a boolean to force it.
      *
-     * @param array<string, mixed> $features `features` from `GET /v1/instances/me`
+     * @param bool $serviceSupportsCheckout false once the service answered 404 or 405 to a checkout
      */
-    public function checkoutEnabled(array $features = []): bool
+    public function checkoutEnabled(bool $serviceSupportsCheckout = true): bool
     {
         if (!$this->usesService() || !$this->isRegistered()) {
             return false;
         }
 
         $mode = $this->registry['checkout'] ?? 'auto';
-        if (is_string($mode) && strtolower(trim($mode)) === 'auto') {
-            return Utils::castBoolean($features['checkout'] ?? false) === true;
+        if (is_string($mode) && in_array(strtolower(trim($mode)), ['', 'auto'], true)) {
+            return $serviceSupportsCheckout;
         }
 
-        return Utils::castBoolean($mode) === true;
+        return SupportUtils::castBoolean($mode) === true;
     }
 
     /**

@@ -52,8 +52,8 @@ test('engines are added by tarball URL so their scope is not remapped', function
         ->and(PackageAuth::composerInstallSpec('registry-demo/hello-api', '1.1.0'))->toBe('registry-demo/hello-api:1.1.0');
 });
 
-test('the v1 fallback config produces no service credentials', function () {
-    $auth = new PackageAuth(new RegistryConfig(['host' => 'https://registry.fleetbase.io', 'token' => 'legacy']));
+test('no credentials are produced without a service URL', function () {
+    $auth = new PackageAuth(new RegistryConfig(['service_url' => '']));
 
     expect($auth->composerEnv())->toBe([])
         ->and($auth->npmEnv())->toBe([])

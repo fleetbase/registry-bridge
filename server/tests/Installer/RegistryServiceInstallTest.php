@@ -21,11 +21,9 @@ use Fleetbase\RegistryBridge\Support\Installer\Release;
 use Fleetbase\RegistryBridge\Support\Installer\ServiceInstallReporter;
 use Fleetbase\RegistryBridge\Support\Installer\ServicePackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\ServiceReleaseSource;
-use Fleetbase\RegistryBridge\Support\Installer\SourceRoutingReleaseSource;
 use Fleetbase\RegistryBridge\Support\PackageAuth;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
-use Fleetbase\RegistryBridge\Tests\Installer\Fakes\FakeReleaseSource;
 use Fleetbase\RegistryBridge\Tests\Installer\Fakes\InstallerSandbox;
 use Fleetbase\RegistryBridge\Tests\Installer\Fakes\RecordingDispatcher;
 use Fleetbase\RegistryBridge\Tests\Support\RegistryServiceFake;
@@ -305,22 +303,16 @@ test('an extension the service no longer lists resolves from its local install r
         ->and($release->composerRequirement())->toBe(HELLO_API . ':1.0.0');
 });
 
-test('local extensions still install while the service is unreachable', function () {
+test('an unreachable service fails the lookup with a clear message', function () {
     $this->service->respondWith('GET', 'v1/catalog/extensions', 503, ['errors' => ['Service Unavailable']]);
-    $local = new FakeReleaseSource();
-    $local->add(new Release(new ExtensionRef('ext-uuid-1', 'extension_widgets', 'Widgets'), '1.0.0', 'acme/widgets-api', '1.0.0'));
-    $routing = new SourceRoutingReleaseSource([
-        ExtensionRef::REGISTRY_SERVICE => new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config()),
-        ExtensionRef::LOCAL            => $local,
-    ]);
+    $source = new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config());
 
-    expect($routing->find('extension_widgets')->source)->toBe('local');
-    expect(fn () => $routing->find(HELLO_NPM))->toThrow(InstallerException::class, 'The registry service could not be reached');
+    expect(fn () => $source->find(HELLO_NPM))->toThrow(InstallerException::class, 'The registry service could not be reached');
 });
 
 test('job records keep the extension source across the queue', function () {
     $ref = ExtensionRef::fromArray(helloRef()->toArray());
 
     expect($ref->isFromRegistryService())->toBeTrue()
-        ->and(ExtensionRef::fromArray(['uuid' => 'u', 'id' => 'extension_x', 'name' => 'X'])->source)->toBe('local');
+        ->and(ExtensionRef::fromArray(['uuid' => 'u', 'id' => 'ext_x', 'name' => 'X'])->source)->toBe('registry-service');
 });

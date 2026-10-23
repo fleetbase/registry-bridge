@@ -12,15 +12,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * HTTP client for the Fleetbase extensions registry.
+ * HTTP client for the Registry Service: the public catalog (`/v1/catalog/*`) and the instance API
+ * (`/v1/instances/*`), authenticated with the instance token issued at registration.
  *
  * @phpstan-consistent-constructor
- *
- * Talks to one of two registries (see `RegistryConfig`):
- *
- * - `v2`, the Registry Service: public catalog (`/v1/catalog/*`) and the instance API (`/v1/instances/*`),
- *   authenticated with the instance token issued at registration.
- * - `v1`, the cloud registry-bridge endpoint `~registry/v1/extensions`, the fallback when no service URL is set.
  *
  * Successful catalog responses are cached (15 minutes; instance state for one minute) and the last good
  * payload is kept indefinitely, so an outage degrades to stale data instead of an empty Explore page. After a
@@ -50,10 +45,7 @@ class RegistryClient
     /** Upper bound on catalog pages walked, so a misbehaving service cannot loop forever. */
     public const CATALOG_MAX_PAGES = 50;
 
-    /** v1: public catalog endpoint, relative to the registry host. */
-    public const EXTENSIONS_PATH = '~registry/v1/extensions';
-
-    /** v2: Registry Service endpoints, relative to the service URL. */
+    /** Registry Service endpoints, relative to the service URL. */
     public const CATALOG_EXTENSIONS_PATH = 'v1/catalog/extensions';
 
     public const CATALOG_CATEGORIES_PATH = 'v1/catalog/categories';
@@ -77,25 +69,16 @@ class RegistryClient
 
     protected ?string $token;
 
-    protected string $apiVersion;
-
     /**
-     * @param string|null         $host       base URL; defaults to the service URL (v2) or the registry host (v1)
-     * @param string|null         $token      bearer token; defaults to the instance token (v2) or the registry token (v1)
-     * @param string|null         $apiVersion `v1` or `v2`; defaults to the configured version
-     * @param RegistryConfig|null $config     settings to resolve defaults from; defaults to the running config
+     * @param string|null         $host   service URL; defaults to the configured one
+     * @param string|null         $token  instance token; defaults to the configured one
+     * @param RegistryConfig|null $config settings to resolve defaults from; defaults to the running config
      */
-    public function __construct(?string $host = null, ?string $token = null, ?string $apiVersion = null, ?RegistryConfig $config = null)
+    public function __construct(?string $host = null, ?string $token = null, ?RegistryConfig $config = null)
     {
-        $config           = $config ?? RegistryConfig::current();
-        $this->apiVersion = in_array($apiVersion, [RegistryConfig::V1, RegistryConfig::V2], true) ? $apiVersion : $config->apiVersion();
-
-        $usesService = $this->apiVersion === RegistryConfig::V2;
-        $defaultHost = $usesService ? ($config->serviceUrl() ?? $config->host()) : $config->host();
-        $this->host  = static::normalizeHost($host ?: $defaultHost);
-
-        $defaultToken = $usesService ? $config->instanceToken() : $config->token();
-        $this->token  = $token !== null && $token !== '' ? $token : $defaultToken;
+        $config      = $config ?? RegistryConfig::current();
+        $this->host  = static::normalizeHost($host ?: ($config->serviceUrl() ?? RegistryConfig::DEFAULT_SERVICE_URL));
+        $this->token = $token !== null && $token !== '' ? $token : $config->instanceToken();
     }
 
     /**
@@ -103,31 +86,15 @@ class RegistryClient
      */
     public static function fromConfig(RegistryConfig $config): static
     {
-        return new static(null, null, null, $config);
+        return new static(null, null, $config);
     }
 
     /**
-     * The registry host this client talks to.
+     * The service URL this client talks to.
      */
     public function host(): string
     {
         return $this->host;
-    }
-
-    /**
-     * `v1` (cloud registry-bridge) or `v2` (Registry Service).
-     */
-    public function apiVersion(): string
-    {
-        return $this->apiVersion;
-    }
-
-    /**
-     * Whether this client talks to the Registry Service.
-     */
-    public function usesService(): bool
-    {
-        return $this->apiVersion === RegistryConfig::V2;
     }
 
     /**
@@ -139,61 +106,7 @@ class RegistryClient
     }
 
     /**
-     * Registry host from config (settings override env).
-     */
-    public static function configuredHost(): string
-    {
-        return RegistryConfig::current()->host();
-    }
-
-    /**
-     * Registry bearer token from config (settings override env).
-     */
-    public static function configuredToken(): ?string
-    {
-        return RegistryConfig::current()->token();
-    }
-
-    /**
-     * Whether this instance runs its own registry and serves Explore from its local tables.
-     */
-    public static function isSelfHosted(): bool
-    {
-        return RegistryConfig::current()->isSelfHostedRegistry();
-    }
-
-    /**
-     * Whether Explore and categories should be read from a central registry: always with a Registry Service,
-     * otherwise unless this instance is itself the (v1) registry.
-     */
-    public static function usesCentralCatalog(): bool
-    {
-        $config = RegistryConfig::current();
-
-        return $config->usesService() || !$config->isSelfHostedRegistry();
-    }
-
-    /**
-     * v1: list the published extensions on the cloud registry (`GET /~registry/v1/extensions`).
-     *
-     * Cached for 15 minutes per query. On failure the last good payload is returned; when there is
-     * none a `RegistryUnavailableException` is thrown.
-     *
-     * @param array<string, mixed> $query
-     *
-     * @return array<int, array<string, mixed>>
-     *
-     * @throws RegistryUnavailableException
-     */
-    public function listPublicExtensions(array $query = []): array
-    {
-        $payload = $this->cachedGet(static::EXTENSIONS_PATH, $query);
-
-        return static::extractList($payload);
-    }
-
-    /**
-     * v2: one page of the service catalog (`GET /v1/catalog/extensions`).
+     * one page of the service catalog (`GET /v1/catalog/extensions`).
      *
      * Accepts the service filters (`q`, `category`, `pricing`, `hosting`, `publisher`, `tag`, `sort`, `page`, `limit`).
      *
@@ -214,7 +127,7 @@ class RegistryClient
     }
 
     /**
-     * v2: every published listing, walking the catalog pages.
+     * every published listing, walking the catalog pages.
      *
      * @param array<string, mixed> $query
      *
@@ -238,7 +151,7 @@ class RegistryClient
     }
 
     /**
-     * v2: one full listing by slug or `ext_` id (`GET /v1/catalog/extensions/{slug}`), or null when it does not exist.
+     * one full listing by slug or `ext_` id (`GET /v1/catalog/extensions/{slug}`), or null when it does not exist.
      *
      * @return array<string, mixed>|null
      *
@@ -260,7 +173,7 @@ class RegistryClient
     }
 
     /**
-     * v2: published and yanked releases of a listing (`GET /v1/catalog/extensions/{slug}/releases`), newest
+     * published and yanked releases of a listing (`GET /v1/catalog/extensions/{slug}/releases`), newest
      * first, or null when the listing does not exist.
      *
      * @return array{extension: string|null, latest: string|null, channels: array<string, string>, releases: array<int, array<string, mixed>>}|null
@@ -291,7 +204,7 @@ class RegistryClient
     }
 
     /**
-     * v2: categories with published extension counts (`GET /v1/catalog/categories`).
+     * categories with published extension counts (`GET /v1/catalog/categories`).
      *
      * @return array<int, array<string, mixed>>
      *
@@ -303,12 +216,9 @@ class RegistryClient
     }
 
     /**
-     * v2: this instance, its organization and the organization's licences (`GET /v1/instances/me`).
+     * this instance, its organization and the organization's licences (`GET /v1/instances/me`).
      *
-     * `features` lists what the service supports for instances (`checkout` once Phase 4 ships); empty when the
-     * service does not say.
-     *
-     * @return array{instance: array<string, mixed>, licences: array<int, array<string, mixed>>, features: array<string, mixed>}
+     * @return array{instance: array<string, mixed>, licences: array<int, array<string, mixed>>}
      *
      * @throws RegistryUnavailableException|RegistryServiceException
      */
@@ -321,18 +231,17 @@ class RegistryClient
         return [
             'instance' => is_array($payload['instance'] ?? null) ? $payload['instance'] : [],
             'licences' => is_array($payload['licences'] ?? null) ? array_values(array_filter($payload['licences'], 'is_array')) : [],
-            'features' => is_array($payload['features'] ?? null) ? $payload['features'] : [],
         ];
     }
 
     /**
-     * v2 (Phase 4): start a hosted Stripe Checkout for the organization (`POST /v1/instances/me/purchases/checkout`).
+     * Phase 4: start a hosted Stripe Checkout for the organization (`POST /v1/instances/me/purchases/checkout`).
      *
      * A service without the endpoint answers 404 or 405, which surfaces as a `RegistryServiceException`.
      *
-     * @param array<string, mixed> $payload `extension` (id or slug), `return_url`, optional `cancel_url`, `buyer_email`
+     * @param array<string, mixed> $payload `extension` (slug, `ext_` id or package name), `return_url`, optional `cancel_url`, `email`
      *
-     * @return array{url: string, handoff: string}
+     * @return array{url: string, handoff: string, status: string, amount: int|null, currency: string|null}
      *
      * @throws RegistryUnavailableException|RegistryServiceException
      */
@@ -341,17 +250,23 @@ class RegistryClient
         $this->requireToken();
         $body = static::unwrap($this->send('post', static::INSTANCE_CHECKOUT_PATH, array_filter($payload, fn ($value) => $value !== null && $value !== '')));
 
-        $url     = $body['url'] ?? $body['checkout_url'] ?? null;
-        $handoff = $body['handoff'] ?? $body['handoff_id'] ?? null;
+        $url     = $body['url'] ?? null;
+        $handoff = $body['handoff'] ?? null;
         if (!is_string($url) || $url === '' || !is_string($handoff) || $handoff === '') {
             throw new RegistryServiceException('The registry service did not return a checkout URL and hand-off id.', 502);
         }
 
-        return ['url' => $url, 'handoff' => $handoff];
+        return [
+            'url'      => $url,
+            'handoff'  => $handoff,
+            'status'   => is_string($body['status'] ?? null) ? $body['status'] : 'open',
+            'amount'   => is_numeric($body['amount'] ?? null) ? (int) $body['amount'] : null,
+            'currency' => is_string($body['currency'] ?? null) ? $body['currency'] : null,
+        ];
     }
 
     /**
-     * v2 (Phase 4): the status of a checkout hand-off (`GET /v1/instances/me/purchases/{handoff}`), never cached.
+     * Phase 4: the status of a checkout hand-off (`GET /v1/instances/me/purchases/{handoff}`), never cached.
      *
      * @return array<string, mixed> at least `status`
      *
@@ -361,7 +276,8 @@ class RegistryClient
     {
         $this->requireToken();
         $body = static::unwrap($this->send('get', static::INSTANCE_PURCHASES_PATH . '/' . static::encodePathSegment($handoff)));
-        if (($body['status'] ?? null) !== null) {
+        // A completed hand-off means a new licence in `me`
+        if (($body['status'] ?? null) === 'complete') {
             $this->forgetInstanceState();
         }
 
@@ -369,7 +285,7 @@ class RegistryClient
     }
 
     /**
-     * v2: installed releases against the newest compatible release (`GET /v1/instances/me/updates`).
+     * installed releases against the newest compatible release (`GET /v1/instances/me/updates`).
      *
      * @return array{data: array<int, array<string, mixed>>, meta: array<string, mixed>}
      *
@@ -387,7 +303,7 @@ class RegistryClient
     }
 
     /**
-     * v2: exchange a one-time registration code for an instance token (`POST /v1/instances/register`).
+     * exchange a one-time registration code for an instance token (`POST /v1/instances/register`).
      *
      * @param array<string, mixed> $payload `code`, `name`, `kind`, and optional `host`, `console_version`, `api_version`
      *
@@ -411,7 +327,7 @@ class RegistryClient
     }
 
     /**
-     * v2: report an install attempt (`POST /v1/instances/me/installs`).
+     * report an install attempt (`POST /v1/instances/me/installs`).
      *
      * @param array<string, mixed> $payload `extension`, `version` or `release`, `status` (installing, installed, failed), optional `error`, `installed_by`
      *
@@ -432,7 +348,7 @@ class RegistryClient
     }
 
     /**
-     * v2: report an uninstall (`DELETE /v1/instances/me/installs/{extension}`). Scoped npm names work in the path.
+     * report an uninstall (`DELETE /v1/instances/me/installs/{extension}`). Scoped npm names work in the path.
      *
      * @return array{install: array<string, mixed>|null, deactivated: int}
      *
@@ -453,7 +369,7 @@ class RegistryClient
     /**
      * Call the registry once, uncached, and report whether it answered.
      *
-     * In v2 also checks the instance token against `/v1/instances/me` when one is set.
+     * Also checks the instance token against `/v1/instances/me` when one is set.
      *
      * @return array{ok: bool, latency_ms: int, status: int|null, extension_count: int|null, host: string, error: string|null, api_version: string, instance: array<string, mixed>|null}
      */
@@ -467,16 +383,14 @@ class RegistryClient
         $instance = null;
 
         try {
-            $response = $this->usesService()
-                ? $this->request()->get(static::CATALOG_EXTENSIONS_PATH, ['limit' => 1])
-                : $this->request()->get(static::EXTENSIONS_PATH);
+            $response = $this->request()->get(static::CATALOG_EXTENSIONS_PATH, ['limit' => 1]);
             $status   = $response->status();
             $ok       = $response->successful();
 
             if ($ok) {
                 $payload = $response->json();
                 $total   = is_array($payload) ? Arr::get($payload, 'meta.total') : null;
-                $count   = $this->usesService() && is_numeric($total) ? (int) $total : count(static::extractList($payload));
+                $count   = is_numeric($total) ? (int) $total : count(static::extractList($payload));
             } else {
                 $error = 'Registry responded with HTTP ' . $status . '.';
             }
@@ -484,7 +398,7 @@ class RegistryClient
             $error = $e->getMessage();
         }
 
-        if ($ok && $this->usesService() && $this->hasToken()) {
+        if ($ok && $this->hasToken()) {
             $instance = $this->testInstanceToken();
         }
 
@@ -495,7 +409,7 @@ class RegistryClient
             'extension_count' => $count,
             'host'            => $this->host,
             'error'           => $error,
-            'api_version'     => $this->apiVersion,
+            'api_version'     => RegistryConfig::V2,
             'instance'        => $instance,
         ];
     }
@@ -730,7 +644,7 @@ class RegistryClient
     {
         ksort($query);
 
-        return static::CACHE_PREFIX . ':' . md5($this->apiVersion . '|' . $this->host . '|' . ($this->token ?? '') . '|' . $path . '|' . json_encode($query));
+        return static::CACHE_PREFIX . ':' . md5($this->host . '|' . ($this->token ?? '') . '|' . $path . '|' . json_encode($query));
     }
 
     /**

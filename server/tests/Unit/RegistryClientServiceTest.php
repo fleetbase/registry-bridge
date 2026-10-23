@@ -10,25 +10,23 @@ beforeEach(function () {
     $this->service = new RegistryServiceFake();
 });
 
-test('api version defaults to v2 with a service URL and falls back to v1 without one', function () {
-    expect((new RegistryConfig(['service_url' => 'registry.example.test']))->apiVersion())->toBe('v2')
-        ->and((new RegistryConfig(['service_url' => 'registry.example.test']))->serviceUrl())->toBe('https://registry.example.test')
-        ->and((new RegistryConfig([]))->apiVersion())->toBe('v1')
-        ->and((new RegistryConfig(['service_url' => 'https://registry.example.test', 'api_version' => 'v1']))->apiVersion())->toBe('v1')
-        ->and((new RegistryConfig(['api_version' => 'v2']))->apiVersion())->toBe('v1')
-        ->and((new RegistryConfig(['self_hosted' => true]))->instanceKind())->toBe('cloud')
+test('the service URL is normalised and decides whether the service is used', function () {
+    expect((new RegistryConfig(['service_url' => 'registry.example.test/']))->serviceUrl())->toBe('https://registry.example.test')
+        ->and((new RegistryConfig(['service_url' => 'registry.example.test']))->usesService())->toBeTrue()
+        ->and((new RegistryConfig([]))->usesService())->toBeFalse()
+        ->and((new RegistryConfig(['instance_kind' => 'cloud']))->instanceKind())->toBe('cloud')
+        ->and((new RegistryConfig(['instance_kind' => 'other']))->instanceKind())->toBe('self_hosted')
         ->and((new RegistryConfig([]))->instanceKind())->toBe('self_hosted');
 });
 
-test('a v2 client targets the service URL with the instance token, a v1 client the registry host', function () {
-    $v2 = RegistryClient::fromConfig(RegistryServiceFake::config());
-    $v1 = RegistryClient::fromConfig(new RegistryConfig(['host' => 'registry.fleetbase.io', 'token' => 'legacy']));
+test('a client targets the service URL with the instance token, or the default service', function () {
+    $client  = RegistryClient::fromConfig(RegistryServiceFake::config());
+    $default = RegistryClient::fromConfig(new RegistryConfig([]));
 
-    expect($v2->usesService())->toBeTrue()
-        ->and($v2->host())->toBe(RegistryServiceFake::SERVICE_URL)
-        ->and($v2->hasToken())->toBeTrue()
-        ->and($v1->usesService())->toBeFalse()
-        ->and($v1->host())->toBe('https://registry.fleetbase.io');
+    expect($client->host())->toBe(RegistryServiceFake::SERVICE_URL)
+        ->and($client->hasToken())->toBeTrue()
+        ->and($default->host())->toBe(RegistryConfig::DEFAULT_SERVICE_URL)
+        ->and($default->hasToken())->toBeFalse();
 });
 
 test('catalog pages come from /v1/catalog/extensions and are cached', function () {
@@ -192,7 +190,7 @@ test('uninstall reports keep the slash of scoped package names', function () {
 
 test('an outage serves the last good catalog', function () {
     $this->service->on('GET', 'v1/catalog/categories', 'catalog-categories');
-    $client = new class(null, null, null, RegistryServiceFake::config()) extends RegistryClient {
+    $client = new class(null, null, RegistryServiceFake::config()) extends RegistryClient {
         public function freshKey(string $path): string
         {
             return $this->cacheKey($path, []);
@@ -222,15 +220,7 @@ test('repeated outages open the circuit and fail fast without a cached catalog',
         ->and(count($this->service->requests))->toBe($before);
 });
 
-test('the v1 fallback still reads the cloud catalog endpoint', function () {
-    $this->service->respondWith('GET', '~registry/v1/extensions', 200, [['id' => 'extension_abc', 'name' => 'Fleet-Ops']]);
-    $client = RegistryClient::fromConfig(new RegistryConfig(['host' => 'https://registry.fleetbase.io']));
-
-    expect($client->listPublicExtensions())->toBe([['id' => 'extension_abc', 'name' => 'Fleet-Ops']])
-        ->and($this->service->requests[0]->url())->toBe('https://registry.fleetbase.io/~registry/v1/extensions');
-});
-
-test('testing a v2 connection counts the catalog and checks the instance token', function () {
+test('testing the connection counts the catalog and checks the instance token', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions-search')
         ->on('GET', 'v1/instances/me', 'instances-me');
@@ -245,7 +235,7 @@ test('testing a v2 connection counts the catalog and checks the instance token',
         ->and($result['instance']['organization'])->toBe('Registry Demo Buyer');
 });
 
-test('testing a v2 connection reports a rejected instance token', function () {
+test('testing the connection reports a rejected instance token', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-unauthenticated');

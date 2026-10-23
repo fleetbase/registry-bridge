@@ -1,0 +1,53 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/purchases/chk_3tampcinhk"
+    },
+    "status": 200,
+    "body": {
+        "handoff": "chk_3tampcinhk",
+        "status": "complete",
+        "source": "instance",
+        "extension": {
+            "id": "ext_qo76q0el02",
+            "slug": "acme-route-planner",
+            "name": "Acme Route Planner"
+        },
+        "organization": {
+            "id": "org_9sz9sh8ivz",
+            "slug": "registry-demo-buyer",
+            "name": "Registry Demo Buyer"
+        },
+        "amount": 2900,
+        "currency": "USD",
+        "url": null,
+        "expires_at": "2026-10-23T09:23:33.000000Z",
+        "completed_at": "2026-10-23T08:23:33.000000Z",
+        "purchase": {
+            "id": "pur_rqcusnwvoh",
+            "extension": {
+                "id": "ext_qo76q0el02",
+                "slug": "acme-route-planner",
+                "name": "Acme Route Planner"
+            },
+            "source": "instance",
+            "amount_total": 3190,
+            "amount_subtotal": 2900,
+            "amount_tax": 290,
+            "amount_refunded": 0,
+            "currency": "USD",
+            "status": "paid",
+            "receipt_url": "https://pay.stripe.com/receipts/payment/bridge_test",
+            "licence": {
+                "id": "lic_akhx6yariq",
+                "kind": "paid",
+                "status": "active",
+                "max_activations": 5,
+                "expires_at": null,
+                "created_at": "2026-10-23T08:23:33.000000Z"
+            },
+            "created_at": "2026-10-23T08:23:32.000000Z"
+        },
+        "created_at": "2026-10-23T08:23:33.000000Z"
+    }
+}

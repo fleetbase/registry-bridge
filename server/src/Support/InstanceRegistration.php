@@ -21,8 +21,6 @@ class InstanceRegistration
 {
     public const SETTING_SERVICE_URL = 'registry-bridge.registry.service_url';
 
-    public const SETTING_API_VERSION = 'registry-bridge.registry.api_version';
-
     public const SETTING_INSTANCE_TOKEN = 'registry-bridge.registry.instance_token';
 
     public const SETTING_INSTANCE = 'registry-bridge.registry.instance';
@@ -60,7 +58,7 @@ class InstanceRegistration
             static::detectApiVersion()
         );
 
-        $registration = (new RegistryClient($serviceUrl, null, RegistryConfig::V2, $config))->registerInstance($payload);
+        $registration = (new RegistryClient($serviceUrl, null, $config))->registerInstance($payload);
 
         return static::store($registration, $serviceUrl);
     }

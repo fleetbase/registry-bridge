@@ -128,4 +128,26 @@ class RegistryServiceInstall extends Model
             'release_id'       => $this->release_id,
         ];
     }
+
+    /**
+     * Package names and extension ids installed for a company, matched against listings to mark them
+     * installed when the service has not heard about an install.
+     *
+     * @return array<int, string>
+     */
+    public static function packageNames(?string $companyUuid): array
+    {
+        if (!$companyUuid) {
+            return [];
+        }
+
+        $names = [];
+        foreach (static::where('company_uuid', $companyUuid)->get() as $install) {
+            $names[] = $install->npm_package;
+            $names[] = $install->composer_package;
+            $names[] = $install->extension_id;
+        }
+
+        return array_values(array_unique(array_filter($names, fn ($name) => is_string($name) && $name !== '')));
+    }
 }
