@@ -37,16 +37,21 @@
             >{{category.name}}</Layout::Sidebar::Item>
         {{/each}}
     </Layout::Sidebar::Panel>
-    {{#if this.registryContext.publisherUrl}}
-        <Layout::Sidebar::Panel @open={{true}} @title={{t "registry-bridge.sidebar.developers"}}>
-            <Layout::Sidebar::Item
-                @url={{this.registryContext.publisherUrl}}
-                @target="_blank"
-                @icon="arrow-up-right-from-square"
-                data-test-sidebar-publisher-portal
-            >{{t "registry-bridge.sidebar.publisher-portal"}}</Layout::Sidebar::Item>
-        </Layout::Sidebar::Panel>
-    {{/if}}
+    {{!-- The registry context arrives after the first render. EmberWormhole moves its top-level nodes out of
+        place, so a block that appears later must sit inside an element of its own: a top-level {{#if}} here
+        crashes the render ("removeChild ... not a child of this node") when it flips. --}}
+    <div data-test-sidebar-developers>
+        {{#if this.registryContext.publisherUrl}}
+            <Layout::Sidebar::Panel @open={{true}} @title={{t "registry-bridge.sidebar.developers"}}>
+                <Layout::Sidebar::Item
+                    @url={{this.registryContext.publisherUrl}}
+                    @target="_blank"
+                    @icon="arrow-up-right-from-square"
+                    data-test-sidebar-publisher-portal
+                >{{t "registry-bridge.sidebar.publisher-portal"}}</Layout::Sidebar::Item>
+            </Layout::Sidebar::Panel>
+        {{/if}}
+    </div>
     <Spacer @height="200px" />
 </EmberWormhole>
 
