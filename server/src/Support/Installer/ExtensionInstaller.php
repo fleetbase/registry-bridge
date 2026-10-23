@@ -25,7 +25,8 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  *   engine    engine.install    prebuilt: compat check against host-modules.json, unpack,
  *                               add to the runtime manifest; otherwise pnpm add
  *   build     console.build     pnpm build (only without a prebuilt dist)
- *   caches    cache.clear       php artisan optimize:clear, queue:restart (configurable)
+ *   caches    cache.clear       php artisan config/route/view/event:clear, queue:restart (configurable;
+ *                               never cache:clear, which flushes a shared Redis database)
  *   record    install.record    the company's install record
  *
  * Uninstall runs resolve, snapshot, composer remove (server.uninstall), the

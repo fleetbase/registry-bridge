@@ -68,8 +68,9 @@ return [
         ],
         // pnpm build --environment; default app.env.
         'build_environment' => env('REGISTRY_INSTALLER_BUILD_ENV'),
-        // Artisan commands run after an install or uninstall, without `php artisan`.
-        'cache_commands' => [['optimize:clear'], ['queue:restart']],
+        // Artisan commands run after an install, uninstall or rollback, without `php artisan`. Not optimize:clear
+        // or cache:clear: on Redis they flush the whole database (job records, queues, sessions).
+        'cache_commands' => Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS,
         'require_checksums' => Utils::castBoolean(env('REGISTRY_INSTALLER_REQUIRE_CHECKSUMS', false)),
         'timeout' => (int) env('REGISTRY_INSTALLER_TIMEOUT', 7200),
         'lock_seconds' => (int) env('REGISTRY_INSTALLER_LOCK_SECONDS', 10800),

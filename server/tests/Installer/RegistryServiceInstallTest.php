@@ -125,7 +125,10 @@ test('a service release installs from the service package endpoints with credent
             'composer require ' . HELLO_API . ':1.0.0 --no-interaction',
             'pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL,
             'pnpm build --environment production',
-            'php artisan optimize:clear',
+            'php artisan config:clear',
+            'php artisan route:clear',
+            'php artisan view:clear',
+            'php artisan event:clear',
             'php artisan queue:restart',
         ]);
 

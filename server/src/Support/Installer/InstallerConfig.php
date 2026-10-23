@@ -10,6 +10,14 @@ namespace Fleetbase\RegistryBridge\Support\Installer;
 class InstallerConfig
 {
     /**
+     * Run after an install, uninstall or rollback. Never `optimize:clear` or `cache:clear`: on a Redis
+     * cache store they FLUSHDB, which also deletes the installer's own job records (the console then
+     * reports the job as not found), queued jobs and sessions that share the database, and anything
+     * else on that Redis database whatever its key prefix.
+     */
+    public const DEFAULT_CACHE_COMMANDS = [['config:clear'], ['route:clear'], ['view:clear'], ['event:clear'], ['queue:restart']];
+
+    /**
      * @param array<int, array<int, string>> $cacheCommands artisan commands run after an install, without `php artisan`
      */
     public function __construct(
@@ -25,7 +33,7 @@ class InstallerConfig
         public readonly string $pnpmBinary = 'pnpm',
         public readonly string $phpBinary = 'php',
         public readonly string $buildEnvironment = 'production',
-        public readonly array $cacheCommands = [['optimize:clear'], ['queue:restart']],
+        public readonly array $cacheCommands = self::DEFAULT_CACHE_COMMANDS,
         public readonly bool $requireChecksums = false,
         public readonly int $processTimeout = 7200,
         public readonly int $logLines = 50,
@@ -79,7 +87,7 @@ class InstallerConfig
             pnpmBinary: (string) ($config['binaries']['pnpm'] ?? 'pnpm'),
             phpBinary: (string) ($config['binaries']['php'] ?? 'php'),
             buildEnvironment: (string) ($config['build_environment'] ?? 'production'),
-            cacheCommands: array_values(array_map(fn ($command) => array_values((array) $command), $config['cache_commands'] ?? [['optimize:clear'], ['queue:restart']])),
+            cacheCommands: array_values(array_map(fn ($command) => array_values((array) $command), $config['cache_commands'] ?? self::DEFAULT_CACHE_COMMANDS)),
             requireChecksums: (bool) ($config['require_checksums'] ?? false),
             processTimeout: (int) ($config['timeout'] ?? 7200),
             logLines: (int) ($config['log_lines'] ?? 50),
