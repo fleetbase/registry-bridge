@@ -26,7 +26,8 @@ class ServiceInstallRecorder implements InstallRecorder
             return Company::where('uuid', $company)->orWhere('public_id', $company)->value('uuid');
         }
 
-        return Company::count() === 1 ? Company::value('uuid') : null;
+        // Through query(): Fleetbase's Company model has an instance count(), so Company::count() is a fatal error.
+        return Company::query()->count() === 1 ? Company::query()->value('uuid') : null;
     }
 
     public function isInstalled(string $company, ExtensionRef $extension): bool
