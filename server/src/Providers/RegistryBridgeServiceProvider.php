@@ -26,14 +26,15 @@ use Fleetbase\RegistryBridge\Support\Installer\ServicePackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\ServiceReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\SocketClusterPublisher;
 use Fleetbase\RegistryBridge\Support\Installer\SymfonyProcessRunner;
-use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 use Fleetbase\RegistryBridge\Support\PackageAuth;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
+use Fleetbase\RegistryBridge\Support\RegistrySettings;
 use Illuminate\Cache\NullStore;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\ExecutableFinder;
@@ -234,44 +235,49 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
         $this->mergeConfigFrom(__DIR__ . '/../../config/registry-bridge.php', 'registry-bridge');
         $this->mergeConfigFromSettings();
+        $this->refreshSettingsPerOperation();
     }
 
     /**
      * Merge configuration settings from the database into the application configuration.
      *
-     * This function checks if there is a database connection available. If a connection exists,
-     * it retrieves the registry settings (legacy host and token, Registry Service URL, API version,
-     * the encrypted instance token and the registered instance) from the settings table and merges
-     * them into the application's configuration. The instance token is decrypted with the app key;
-     * a token that cannot be decrypted is ignored. If the settings are not available or the database
-     * connection does not exist, the function will return without making any changes.
+     * The registry settings (Registry Service URL, the encrypted instance token and the registered instance)
+     * override the config file and environment; see `RegistrySettings`.
+     * Without a database connection (installs, migrations) the config is left as it is.
+     *
+     * Long-lived workers read the settings again for each Octane request and each queued job, on first use
+     * through `RegistryConfig::current()`, so a registration made by `registry:register` or by another worker
+     * takes effect without `octane:reload`.
      *
      * @return void
      */
     public function mergeConfigFromSettings()
     {
+        $settings = RegistrySettings::instance();
         if (Setting::doesntHaveConnection()) {
+            $settings->markApplied();
+
             return;
         }
 
-        $serviceUrl = Setting::getByKey(InstanceRegistration::SETTING_SERVICE_URL);
-        if ($serviceUrl && is_string($serviceUrl->value) && $serviceUrl->value !== '') {
-            config(['registry-bridge.registry.service_url' => $serviceUrl->value]);
-        }
+        $settings->apply();
+    }
 
-        $instanceToken = Setting::getByKey(InstanceRegistration::SETTING_INSTANCE_TOKEN);
-        if ($instanceToken) {
-            /** @var \Illuminate\Contracts\Encryption\StringEncrypter $encrypter */
-            $encrypter = $this->app->make('encrypter');
-            $token     = InstanceRegistration::decryptToken($instanceToken->value, $encrypter);
-            if ($token) {
-                config(['registry-bridge.registry.instance_token' => $token]);
-            }
-        }
+    /**
+     * Read the registry settings again at the start of every Octane request and queued job.
+     *
+     * @return void
+     */
+    public function refreshSettingsPerOperation()
+    {
+        $events = $this->app['events'];
 
-        $instance = Setting::getByKey(InstanceRegistration::SETTING_INSTANCE);
-        if ($instance && is_array($instance->value)) {
-            config(['registry-bridge.registry.instance' => $instance->value]);
-        }
+        $events->listen('Laravel\Octane\Events\RequestReceived', function ($event) {
+            RegistrySettings::instance()->reset($event->sandbox ?? null);
+        });
+
+        $events->listen(JobProcessing::class, function () {
+            RegistrySettings::instance()->reset();
+        });
     }
 }

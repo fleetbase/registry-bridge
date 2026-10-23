@@ -14,8 +14,8 @@ use Illuminate\Support\Arr;
  *
  * The instance token is stored in the core-api `settings` table under `registry-bridge.registry.instance_token`,
  * encrypted with the application key; the service URL and what the service returned about the instance are
- * stored beside it (`registry-bridge.registry.service_url`, `registry-bridge.registry.instance`). The service
- * provider decrypts the token into `config('registry-bridge.registry.instance_token')` at boot.
+ * stored beside it (`registry-bridge.registry.service_url`, `registry-bridge.registry.instance`). `RegistrySettings`
+ * decrypts the token into `config('registry-bridge.registry.instance_token')` once per request or queued job.
  */
 class InstanceRegistration
 {
@@ -29,7 +29,8 @@ class InstanceRegistration
      * Exchange a registration code for an instance token and store it (the admin endpoint and `registry:register`).
      *
      * The service URL defaults to the configured one; name, host and console version default to the app name,
-     * the app URL and the console's package.json.
+     * the app URL and the console's package.json. An instance already registered with that service sends its
+     * current token, so the service rotates it instead of creating a second instance.
      *
      * @return array<string, mixed> the stored instance summary (never the token)
      *
@@ -55,7 +56,8 @@ class InstanceRegistration
             $host ?: static::configString('app.url'),
             $config->instanceKind(),
             $consoleVersion ?: static::detectConsoleVersion(static::configString('fleetbase.console.path')),
-            static::detectApiVersion()
+            static::detectApiVersion(),
+            static::previousToken($config, $serviceUrl)
         );
 
         $registration = (new RegistryClient($serviceUrl, null, $config))->registerInstance($payload);
@@ -66,9 +68,12 @@ class InstanceRegistration
     /**
      * Body for `POST /v1/instances/register`.
      *
+     * An instance that is already registered sends its current token as `previous_token`, so the service rotates
+     * that instance (same id, installs and licence seats) instead of creating a second one.
+     *
      * @return array<string, string>
      */
-    public static function payload(string $code, string $name, ?string $host, string $kind, ?string $consoleVersion, ?string $apiVersion): array
+    public static function payload(string $code, string $name, ?string $host, string $kind, ?string $consoleVersion, ?string $apiVersion, ?string $previousToken = null): array
     {
         return array_filter([
             'code'            => strtoupper(trim($code)),
@@ -77,7 +82,18 @@ class InstanceRegistration
             'host'            => $host ? trim($host) : null,
             'console_version' => static::cleanVersion($consoleVersion),
             'api_version'     => static::cleanVersion($apiVersion),
+            'previous_token'  => $previousToken ? trim($previousToken) : null,
         ], fn ($value) => $value !== null && $value !== '');
+    }
+
+    /**
+     * The token to send as `previous_token`: the current instance token, only to the service that issued it.
+     */
+    public static function previousToken(RegistryConfig $config, string $serviceUrl): ?string
+    {
+        $issuer = $config->serviceUrl();
+
+        return $issuer !== null && $issuer === RegistryConfig::normalizeUrl($serviceUrl) ? $config->instanceToken() : null;
     }
 
     /**
