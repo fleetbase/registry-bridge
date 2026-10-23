@@ -1,5 +1,23 @@
 <Modal::Default @modalIsOpened={{@modalIsOpened}} @options={{@options}} @confirm={{@onConfirm}} @decline={{@onDecline}}>
-    <div class="p-1">
-        <div id="checkout" {{did-insert @options.checkoutElementInserted}}></div>
+    <div class="modal-body-container grid grid-cols-1 gap-4 md:grid-cols-5" data-test-purchase-form>
+        <section class="space-y-3 md:col-span-2" aria-labelledby="purchase-summary-title">
+            <h3 id="purchase-summary-title" class="font-semibold dark:text-white">{{t "registry-bridge.purchase.summary"}}</h3>
+            <dl class="extension-panel-definitions">
+                <div class="extension-panel-definition">
+                    <dt>{{@options.extension.name}}</dt>
+                    <dd>{{@options.price}}</dd>
+                </div>
+                <div class="extension-panel-definition">
+                    <dt>{{t "registry-bridge.purchase.tax"}}</dt>
+                    <dd>{{t "registry-bridge.purchase.tax-by-stripe"}}</dd>
+                </div>
+            </dl>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{t "registry-bridge.detail.cta.purchase-note"}}</p>
+            <Button @type="link" @size="xs" @icon="arrow-left" @text={{t "registry-bridge.purchase.cancel"}} @onClick={{@onDecline}} />
+        </section>
+        <section class="md:col-span-3">
+            <div id="checkout" class="rounded-md bg-white p-1" {{did-insert @options.checkoutElementInserted}}></div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{t "registry-bridge.purchase.secured"}}</p>
+        </section>
     </div>
 </Modal::Default>

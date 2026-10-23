@@ -3,8 +3,6 @@ import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 import { task } from 'ember-concurrency';
-import { later } from '@ember/runloop';
-import formatCurrency from '@fleetbase/ember-ui/utils/format-currency';
 
 export default class ExtensionFormComponent extends Component {
     @service store;
@@ -12,6 +10,7 @@ export default class ExtensionFormComponent extends Component {
     @service notifications;
     @service intl;
     @service modalsManager;
+    @service extensionPanel;
     @tracked subscriptionModelOptions = ['flat_rate', 'tiered', 'usage'];
     @tracked billingPeriodOptions = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'];
     @tracked uploadQueue = [];
@@ -131,50 +130,10 @@ export default class ExtensionFormComponent extends Component {
         return file.destroyRecord();
     }
 
-    @action previewListing(options = {}) {
-        const extension = this.args.extension;
-        const isAlreadyPurchased = extension.is_purchased === true;
-        const isAlreadyInstalled = extension.is_installed === true;
-        const isPaymentRequired = extension.payment_required === true && isAlreadyPurchased === false;
-        const goBack = async (modal) => {
-            await modal.done();
-            later(
-                this,
-                () => {
-                    this.previewListing();
-                },
-                100
-            );
-        };
-
-        this.modalsManager.show('modals/extension-details', {
-            titleComponent: 'extension-modal-title',
-            modalClass: 'flb--extension-modal modal-lg',
-            modalHeaderClass: 'flb--extension-modal-header',
-            acceptButtonText: isPaymentRequired ? `Purchase for ${formatCurrency(extension.price, extension.currency)}` : isAlreadyInstalled ? 'Installed' : 'Install',
-            acceptButtonIcon: isPaymentRequired ? 'credit-card' : isAlreadyInstalled ? 'check' : 'download',
-            acceptButtonDisabled: true,
-            acceptButtonScheme: isPaymentRequired ? 'success' : 'primary',
-            declineButtonText: 'Done',
-            viewSelfManagesInstallInstructions: () => {
-                this.selfManagedInstallInstructions({
-                    extension,
-                    confirm: goBack,
-                    decline: goBack,
-                });
-            },
-            extension,
-            ...options,
-        });
-    }
-
-    async selfManagedInstallInstructions(options = {}) {
-        await this.modalsManager.done();
-        this.modalsManager.show('modals/self-managed-install-instructions', {
-            title: 'Install Extension to Self-Hosted Instance',
-            hideDeclineButton: true,
-            acceptButtonText: 'Done',
-            ...options,
-        });
+    /**
+     * Preview the listing as operators see it: the extension detail panel.
+     */
+    @action previewListing() {
+        return this.extensionPanel.open(this.args.extension);
     }
 }

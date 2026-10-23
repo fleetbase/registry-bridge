@@ -141,25 +141,25 @@ body[data-theme='dark'] .extension-card-container > .extension-card-body-contain
     margin-bottom: 2rem;
 }
 
-.self-managed-install-instructions {
+.extension-panel-steps {
     list-style: decimal;
     color: #000;
-    padding-left: 30px;
-    font-size: 0.85rem;
-    line-height: 1rem;
+    padding-left: 1.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
 }
 
-.self-managed-install-instructions > li {
-    padding-bottom: 1.5rem;
+.extension-panel-steps > li {
+    padding-bottom: 1rem;
 }
 
-body[data-theme='dark'] .self-managed-install-instructions {
+body[data-theme='dark'] .extension-panel-steps {
     list-style: decimal;
     color: #fff;
     padding-left: 30px;
 }
 
-.self-managed-install-instructions code {
+.extension-panel-steps code {
     display: flex;
     font-family: monospace;
     padding: 0.25rem 0.75rem;
@@ -276,4 +276,339 @@ body[data-theme='dark'] .extension-details-promo-content table th {
 .extension-details-promo-content .tableWrapper {
     margin: 1.5rem 0;
     overflow-x: auto;
+}
+
+/* Extension card (canvas C2) */
+.extension-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.extension-card .extension-card-header,
+.extension-card .extension-card-body,
+.extension-card .extension-card-footer {
+    padding: 0.75rem 1rem;
+}
+
+.extension-card .extension-card-body {
+    flex: 1 1 auto;
+    padding-top: 0;
+}
+
+.extension-card-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.extension-card-name {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.extension-card-name:hover,
+.extension-card-name:focus-visible {
+    color: #3485e2;
+    text-decoration: underline;
+}
+
+.extension-card-name:focus-visible {
+    outline: 2px solid #3485e2;
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+}
+
+body[data-theme='dark'] .extension-card-name {
+    color: #f3f4f6;
+}
+
+body[data-theme='dark'] .extension-card-name:hover,
+body[data-theme='dark'] .extension-card-name:focus-visible {
+    color: #7dd3fc;
+}
+
+.extension-card-subtitle,
+.extension-card-meta {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+body[data-theme='dark'] .extension-card-subtitle,
+body[data-theme='dark'] .extension-card-meta {
+    color: #9ca3af;
+}
+
+.extension-card-description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    color: #374151;
+}
+
+body[data-theme='dark'] .extension-card-description {
+    color: #d1d5db;
+}
+
+.extension-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.extension-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Explore facets (canvas C1) */
+.explore-facets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 0;
+}
+
+.explore-facet {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.25rem 0.125rem 0.625rem;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    color: #374151;
+    background-color: #fff;
+}
+
+body[data-theme='dark'] .explore-facet {
+    border-color: #374151;
+    color: #e5e7eb;
+    background-color: #111827;
+}
+
+.explore-facet-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+}
+
+.explore-facet-clear:hover,
+.explore-facet-clear:focus-visible {
+    background-color: rgb(107 114 128 / 15%);
+}
+
+/* Extension detail panel (canvas C4) */
+.extension-panel-header {
+    padding: 1rem 1rem 0.75rem;
+}
+
+.extension-panel-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.625rem;
+    flex-shrink: 0;
+}
+
+.extension-panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+body[data-theme='dark'] .extension-panel-title {
+    color: #f9fafb;
+}
+
+.extension-panel-subtitle {
+    margin-top: 0.125rem;
+    font-size: 0.8125rem;
+    color: #4b5563;
+}
+
+body[data-theme='dark'] .extension-panel-subtitle {
+    color: #d1d5db;
+}
+
+.extension-panel-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-top: 0.875rem;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+}
+
+body[data-theme='dark'] .extension-panel-cta {
+    border-color: #374151;
+    background-color: #111827;
+}
+
+.extension-panel-cta-note {
+    flex: 1 1 14rem;
+    font-size: 0.75rem;
+    color: #4b5563;
+}
+
+body[data-theme='dark'] .extension-panel-cta-note {
+    color: #9ca3af;
+}
+
+.extension-panel-section {
+    padding: 1rem;
+}
+
+.extension-panel-facts,
+.extension-panel-definitions {
+    display: grid;
+    gap: 0.5rem 1rem;
+    font-size: 0.8125rem;
+}
+
+.extension-panel-facts {
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+
+.extension-panel-definition {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.375rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+body[data-theme='dark'] .extension-panel-definition {
+    border-color: #1f2937;
+}
+
+.extension-panel-facts dt,
+.extension-panel-definition dt {
+    color: #6b7280;
+}
+
+.extension-panel-facts dd,
+.extension-panel-definition dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: #111827;
+}
+
+body[data-theme='dark'] .extension-panel-facts dd,
+body[data-theme='dark'] .extension-panel-definition dd {
+    color: #e5e7eb;
+}
+
+.extension-panel-viewer {
+    margin: 0;
+    border-radius: 0.5rem;
+}
+
+.extension-panel-viewer:focus-visible,
+.extension-panel-thumb:focus-visible {
+    outline: 2px solid #3485e2;
+    outline-offset: 2px;
+}
+
+.extension-panel-viewer-image {
+    width: 100%;
+    max-height: 22rem;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    background-color: #f3f4f6;
+}
+
+body[data-theme='dark'] .extension-panel-viewer-image {
+    background-color: #111827;
+}
+
+.extension-panel-thumb {
+    border-radius: 0.5rem;
+    opacity: 0.7;
+}
+
+.extension-panel-thumb.is-active,
+.extension-panel-thumb:hover {
+    opacity: 1;
+}
+
+.extension-panel-thumb .flb--extension-screenshot {
+    width: 100%;
+    height: 4rem;
+    margin-right: 0;
+    object-fit: cover;
+}
+
+/* Install, update and uninstall modal (canvas C5) */
+.extension-installer-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.extension-installer-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+}
+
+.extension-installer-step-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.extension-installer-step.is-done .extension-installer-step-marker {
+    border-color: #16a34a;
+    color: #fff;
+    background-color: #16a34a;
+}
+
+.extension-installer-step.is-active .extension-installer-step-marker {
+    border-color: #3485e2;
+    color: #3485e2;
+}
+
+.extension-installer-step.is-failed .extension-installer-step-marker {
+    border-color: #dc2626;
+    color: #fff;
+    background-color: #dc2626;
+}
+
+.extension-installer-step.is-pending {
+    opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .extension-installer-step .fa-spin {
+        animation: none;
+    }
 }

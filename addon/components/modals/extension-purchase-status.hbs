@@ -1,0 +1,34 @@
+<Modal::Default @modalIsOpened={{@modalIsOpened}} @options={{@options}} @confirm={{@onConfirm}} @decline={{@onDecline}}>
+    <div class="modal-body-container" data-test-purchase-status data-phase={{this.phase}}>
+        {{#if (eq this.phase "finalizing")}}
+            <div class="flex flex-row items-start gap-3" role="status" aria-live="polite">
+                <Spinner />
+                <div>
+                    <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.finalizing.title"}}</div>
+                    <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.finalizing.body" company=(or @options.companyName (t "registry-bridge.common.this-organization"))}}</p>
+                </div>
+            </div>
+        {{else if (eq this.phase "success")}}
+            <div class="space-y-2" role="status" aria-live="polite" data-test-purchase-success>
+                <Badge @status="success" @icon="check" @disableHumanize={{true}}>{{t "registry-bridge.purchase.success.badge"}}</Badge>
+                <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.success.title" name=@options.extension.name}}</div>
+                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.success.body" company=(or @options.companyName (t "registry-bridge.common.this-organization"))}}</p>
+                {{#if @options.receiptUrl}}
+                    <a href={{@options.receiptUrl}} target="_blank" rel="noopener noreferrer" class="text-sm">{{t "registry-bridge.purchase.success.receipt"}}</a>
+                {{/if}}
+            </div>
+        {{else if (eq this.phase "failed")}}
+            <div class="space-y-2" role="alert" data-test-purchase-failed>
+                <Badge @status="error" @icon="circle-exclamation" @disableHumanize={{true}}>{{t "registry-bridge.purchase.failed.badge"}}</Badge>
+                <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.failed.title"}}</div>
+                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.failed.body" status=(or @options.serviceStatus (t "registry-bridge.purchase.failed.unknown-status"))}}</p>
+                {{#if @options.message}}<p class="text-xs text-gray-500 dark:text-gray-400">{{@options.message}}</p>{{/if}}
+            </div>
+        {{else}}
+            <div class="space-y-2" role="status" data-test-purchase-processing>
+                <div class="font-semibold dark:text-white">{{t "registry-bridge.purchase.processing.title"}}</div>
+                <p class="text-sm dark:text-gray-200">{{t "registry-bridge.purchase.processing.body"}}</p>
+            </div>
+        {{/if}}
+    </div>
+</Modal::Default>

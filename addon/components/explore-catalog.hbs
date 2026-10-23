@@ -1,0 +1,142 @@
+<Layout::Section::Header
+    @title={{@catalog.title}}
+    @subtitle={{unless @catalog.isLoading (t "registry-bridge.explore.count" count=@catalog.total)}}
+    @subtitleClass="ml-2 text-xs text-gray-500 dark:text-gray-400"
+    @searchQuery={{@catalog.query}}
+    @searchPlaceholder={{t "registry-bridge.explore.search-placeholder"}}
+    @onSearch={{perform @catalog.search}}
+    @actionsWrapperClass="space-x-1"
+    data-test-explore-header
+>
+    <FiltersPicker
+        @columns={{@catalog.facetColumns}}
+        @onApply={{@catalog.applyFacets}}
+        @onClear={{@catalog.resetFacets}}
+        @onFilterClear={{@catalog.filters.clear}}
+        @onChange={{@catalog.filters.set}}
+        @gridCols="2"
+        @width="480px"
+        @iconOnly={{true}}
+        data-test-explore-filters
+    />
+    <Select
+        @options={{@catalog.sortOptions}}
+        @optionLabel="label"
+        @optionValue="value"
+        @value={{or @catalog.sort "popular"}}
+        @onSelect={{@catalog.setSort}}
+        aria-label={{t "registry-bridge.explore.filters.sort"}}
+        class="form-select form-select-sm w-40"
+        data-test-explore-sort
+    />
+    <div class="flex flex-row items-center" role="group" aria-label={{t "registry-bridge.explore.layout.label"}}>
+        <Button
+            @icon="table-cells-large"
+            @size="xs"
+            @type={{if @catalog.isTable "default" "primary"}}
+            @helpText={{t "registry-bridge.explore.layout.grid"}}
+            @onClick={{fn @catalog.setLayout "grid"}}
+            aria-label={{t "registry-bridge.explore.layout.grid"}}
+            aria-pressed={{if @catalog.isTable "false" "true"}}
+            data-test-explore-layout="grid"
+        />
+        <Button
+            @icon="table-list"
+            @size="xs"
+            @type={{if @catalog.isTable "primary" "default"}}
+            @helpText={{t "registry-bridge.explore.layout.table"}}
+            @onClick={{fn @catalog.setLayout "table"}}
+            aria-label={{t "registry-bridge.explore.layout.table"}}
+            aria-pressed={{if @catalog.isTable "true" "false"}}
+            class="ml-1"
+            data-test-explore-layout="table"
+        />
+    </div>
+</Layout::Section::Header>
+
+<Layout::Section::Body class="overflow-y-scroll h-full">
+    {{#if @catalog.activeFacets.length}}
+        <div class="explore-facets" aria-label={{t "registry-bridge.explore.filters.active"}} data-test-explore-facets>
+            {{#each @catalog.activeFacets as |facet|}}
+                <span class="explore-facet" data-test-explore-facet={{facet.param}}>
+                    <span>{{facet.label}}{{#if facet.value}}: <strong>{{facet.value}}</strong>{{/if}}</span>
+                    <button type="button" class="explore-facet-clear" aria-label={{t "registry-bridge.explore.filters.remove" filter=facet.label}} {{on "click" (fn @catalog.clearFacet facet.param)}}>
+                        <FaIcon @icon="xmark" @size="xs" />
+                    </button>
+                </span>
+            {{/each}}
+            <Button @type="link" @size="xs" @text={{t "registry-bridge.explore.no-results.clear"}} @onClick={{@catalog.clearAll}} />
+        </div>
+    {{/if}}
+
+    {{#if @catalog.isLoading}}
+        <div class="p-4" aria-busy="true" aria-label={{t "registry-bridge.explore.loading"}} data-test-explore-loading>
+            {{#if @catalog.isTable}}
+                <Skeleton::Table @rows={{8}} @columns={{6}} @checkbox={{false}} />
+            {{else}}
+                <Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />
+            {{/if}}
+        </div>
+    {{else if @catalog.error}}
+        <div class="p-4" data-test-explore-error>
+            <InfoBlock @type="danger" @icon="triangle-exclamation">
+                <div class="font-semibold">{{t "registry-bridge.explore.error.title"}}</div>
+                <div class="mt-1 text-sm">{{t "registry-bridge.explore.error.body" host=@catalog.registryHost}}</div>
+                <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{@catalog.retry}} data-test-explore-retry /></div>
+            </InfoBlock>
+        </div>
+    {{else if @catalog.isNoResults}}
+        <Table::EmptyState
+            @icon="magnifying-glass"
+            @title={{if @catalog.query (t "registry-bridge.explore.no-results.title" query=@catalog.query) (t "registry-bridge.explore.no-results.filtered-title")}}
+            @description={{t "registry-bridge.explore.no-results.body"}}
+            @primaryText={{t "registry-bridge.explore.no-results.clear"}}
+            @primaryIcon="xmark"
+            @primaryAction={{@catalog.clearAll}}
+            data-test-explore-no-results
+        />
+    {{else if @catalog.isEmptyCatalog}}
+        <Table::EmptyState
+            @icon="shapes"
+            @title={{t "registry-bridge.explore.empty.title"}}
+            @description={{t "registry-bridge.explore.empty.body" host=@catalog.registryHost}}
+            @primaryText={{if @catalog.canConfigureRegistry (t "registry-bridge.explore.empty.check-config")}}
+            @primaryIcon="gear"
+            @primaryAction={{if @catalog.canConfigureRegistry @catalog.openRegistryConfig}}
+            @secondaryText={{if @catalog.registryContext.publisherUrl (t "registry-bridge.explore.empty.publish")}}
+            @secondaryIcon="arrow-up-right-from-square"
+            @secondaryAction={{if @catalog.registryContext.publisherUrl @catalog.openPublisherPortal}}
+            data-test-explore-empty
+        />
+    {{else if @catalog.isTable}}
+        <div class="p-4" data-test-explore-table>
+            <Table
+                @rows={{@catalog.extensions}}
+                @columns={{@catalog.tableColumns}}
+                @selectable={{false}}
+                @canSelectAll={{false}}
+                @pagination={{true}}
+                @paginationMeta={{@catalog.extensions.meta}}
+                @page={{@catalog.page}}
+                @onPageChange={{@catalog.setPage}}
+            />
+        </div>
+    {{else}}
+        <Layout::Resource::CardsGrid
+            @resource="registry-extension"
+            @data={{@catalog.extensions}}
+            @gap="sm"
+            @columns="4"
+            @showPagination={{true}}
+            @page={{@catalog.page}}
+            @onPageChange={{@catalog.setPage}}
+            @paginationMeta={{@catalog.extensions.meta}}
+            @containerClass="p-4"
+            class="h-full"
+            data-test-explore-grid
+            as |Item|
+        >
+            <ExtensionCard @resource={{Item.model}} />
+        </Layout::Resource::CardsGrid>
+    {{/if}}
+</Layout::Section::Body>

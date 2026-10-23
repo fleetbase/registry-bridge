@@ -1,41 +1,34 @@
-import Route from '@ember/routing/route';
+import ExploreIndexRoute from './index';
 import { inject as service } from '@ember/service';
 import { isArray } from '@ember/array';
 
-export default class ExploreCategoryRoute extends Route {
+const refresh = { refreshModel: true };
+
+export default class ExploreCategoryRoute extends ExploreIndexRoute {
     @service store;
-    @service notifications;
-    @service hostRouter;
-    @service abilities;
-    @service intl;
 
     queryParams = {
-        query: {
-            refreshModel: false,
-        },
+        query: refresh,
+        pricing: refresh,
+        hosting: refresh,
+        hide_installed: refresh,
+        sort: refresh,
+        page: refresh,
     };
 
-    beforeModel() {
-        if (this.abilities.cannot('registry-bridge list extension')) {
-            this.notifications.warning(this.intl.t('common.unauthorized-access'));
-            return this.hostRouter.transitionTo('console');
-        }
+    /** The sidebar transitions with `{ slug }`, the URL with the slug param; both end up here. */
+    model(params) {
+        return { ...params, slug: params.slug };
     }
 
-    async model({ slug, query }) {
-        const category = await this.findCategory(slug);
-        this.category = category;
-
-        try {
-            return await this.store.query('registry-extension', { explore: 1, category: category ? category.id : slug, query });
-        } catch {
-            return [];
-        }
+    async afterModel(model) {
+        this.categoryRecord = await this.findCategory(model?.slug);
     }
 
-    setupController(controller) {
+    setupController(controller, model) {
+        controller.slug = model?.slug ?? null;
+        controller.categoryRecord = this.categoryRecord;
         super.setupController(...arguments);
-        controller.category = this.category;
     }
 
     /**
@@ -43,6 +36,10 @@ export default class ExploreCategoryRoute extends Route {
      * (which come from the registry in use), falling back to a local lookup.
      */
     async findCategory(slug) {
+        if (!slug) {
+            return null;
+        }
+
         const categories = this.modelFor('application');
         if (isArray(categories)) {
             const category = categories.find((category) => category.slug === slug || category.id === slug);

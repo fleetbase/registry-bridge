@@ -1,0 +1,5 @@
+<div class="flex flex-row flex-wrap items-center gap-1" data-test-extension-status ...attributes>
+    {{#each this.badges as |badge|}}
+        <Badge @status={{badge.status}} @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}}>{{badge.text}}</Badge>
+    {{/each}}
+</div>

@@ -1,16 +1,60 @@
-<Layout::Section::Header @title={{t "registry-bridge.purchased.title"}} />
-
-<Layout::Section::Body class="overflow-y-scroll h-full">
-    <div class="m-auto p-8">
-        <div class="extension-card-grid-container">
-            {{#each @model as |extension|}}
-                <ExtensionCard @resource={{extension}}>
-                    {{#if extension.is_installed}}
-                        <Badge @status="success" @hideStatusDot={{true}} class="mt-1"><FaIcon @icon="check" class="mr-1" /> Installed</Badge>
-                    {{/if}}
-                </ExtensionCard>
-            {{/each}}
-        </div>
-    </div>
-    <Spacer @height="300px" />
-</Layout::Section::Body>
+<Layout::Resource::Tabular
+    @resource="registry-extension"
+    @title={{t "registry-bridge.purchased.title"}}
+    @searchQuery={{this.query}}
+    @onSearch={{perform this.search}}
+    @data={{this.rows}}
+    @columns={{this.columns}}
+    @controller={{this}}
+    @selectable={{false}}
+    @canSelectAll={{false}}
+    @pagination={{false}}
+    @hideColumnsPicker={{not this.isTable}}
+    @onReload={{perform this.load}}
+    data-test-purchased
+>
+    <:header>
+        {{#if this.readyToInstall}}
+            <Badge @status="info" @hideStatusDot={{true}} @disableHumanize={{true}} data-test-purchased-ready>{{t "registry-bridge.purchased.ready" count=this.readyToInstall}}</Badge>
+        {{/if}}
+        <Button @icon={{if this.isTable "table-cells-large" "table-list"}} @size="xs" @helpText={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} @onClick={{fn this.setLayout (if this.isTable "grid" "table")}} aria-label={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} data-test-purchased-layout />
+    </:header>
+    <:default as |rows|>
+        {{#if this.load.isRunning}}
+            <div class="p-4" aria-busy="true" data-test-purchased-loading>
+                {{#if this.isTable}}<Skeleton::Table @rows={{7}} @columns={{6}} @checkbox={{false}} />{{else}}<Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />{{/if}}
+            </div>
+        {{else if this.error}}
+            <div class="p-4" data-test-purchased-error>
+                <InfoBlock @type="danger" @icon="triangle-exclamation">
+                    <div>{{t "registry-bridge.purchased.error"}}</div>
+                    <div class="mt-2"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{perform this.load}} /></div>
+                </InfoBlock>
+            </div>
+        {{else if this.isTable}}
+            <Table
+                @rows={{rows}}
+                @columns={{this.columns}}
+                @selectable={{false}}
+                @canSelectAll={{false}}
+                @pagination={{false}}
+                @searchQuery={{this.query}}
+                @emptyStateComponent={{component
+        "table/empty-state"
+        icon="bag-shopping"
+        title=(t "registry-bridge.purchased.empty.title")
+        description=(t "registry-bridge.purchased.empty.body" company=(t "registry-bridge.common.this-organization"))
+        filteredTitle=(t "registry-bridge.installed.empty.filtered")
+        primaryText=(t "registry-bridge.purchased.empty.browse")
+        primaryIcon="shapes"
+        primaryAction=this.browsePaid
+    }}
+                data-test-purchased-table
+            />
+        {{else}}
+            <Layout::Resource::CardsGrid @resource="registry-extension" @data={{rows}} @gap="sm" @columns="4" @containerClass="p-4" @emptyStateText={{t "registry-bridge.purchased.empty.body" company=(t "registry-bridge.common.this-organization")}} as |Item|>
+                <ExtensionCard @resource={{Item.model}} />
+            </Layout::Resource::CardsGrid>
+        {{/if}}
+    </:default>
+</Layout::Resource::Tabular>
