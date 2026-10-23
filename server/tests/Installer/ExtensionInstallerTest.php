@@ -103,7 +103,7 @@ test('without a prebuilt dist the engine is installed with pnpm add and pnpm bui
     expect($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'build', 'caches', 'record']);
     expect($sandbox->runner->commands())->toBe([
         'composer require acme/widgets-api:2.1.0 --no-interaction',
-        'pnpm add @acme/widgets-engine@2.1.0',
+        'pnpm add @acme/widgets-engine@2.1.0 --config.ignore-workspace-root-check=true',
         'pnpm build --environment production',
         'php artisan config:clear',
         'php artisan route:clear',
