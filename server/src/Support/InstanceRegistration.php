@@ -31,7 +31,8 @@ class InstanceRegistration
      * Exchange a registration code for an instance token and store it (the admin endpoint and `registry:register`).
      *
      * The service URL defaults to the configured one; name, host and console version default to the app name,
-     * the app URL and the console's package.json.
+     * the app URL and the console's package.json. An instance already registered with that service sends its
+     * current token, so the service rotates it instead of creating a second instance.
      *
      * @return array<string, mixed> the stored instance summary (never the token)
      *
@@ -57,7 +58,8 @@ class InstanceRegistration
             $host ?: static::configString('app.url'),
             $config->instanceKind(),
             $consoleVersion ?: static::detectConsoleVersion(static::configString('fleetbase.console.path')),
-            static::detectApiVersion()
+            static::detectApiVersion(),
+            static::previousToken($config, $serviceUrl)
         );
 
         $registration = (new RegistryClient($serviceUrl, null, RegistryConfig::V2, $config))->registerInstance($payload);

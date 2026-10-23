@@ -136,6 +136,22 @@ test('the configured service URL is used when none is passed', function () {
         ->and(RecordingInstanceRegistration::$settings[InstanceRegistration::SETTING_SERVICE_URL])->toBe(RegistryServiceFake::SERVICE_URL);
 });
 
+test('registering again sends the current token to the service that issued it, and to no other', function () {
+    config([
+        'registry-bridge.registry.service_url'    => RegistryServiceFake::SERVICE_URL,
+        'registry-bridge.registry.instance_token' => 'flbi_previous0000000000000000000000000000000',
+    ]);
+    $this->service->on('POST', 'v1/instances/register', 'instances-register', 'instances-register');
+
+    [$same]  = ($this->artisan)(['--code' => 'W9QA-SC8R', '--json' => true]);
+    [$other] = ($this->artisan)(['--code' => 'W9QA-SC8R', '--service-url' => 'https://other-registry.example.test', '--json' => true]);
+
+    $requests = $this->service->requestsTo('POST', 'v1/instances/register');
+    expect([$same, $other])->toBe([0, 0])
+        ->and($requests[0]->data()['previous_token'] ?? null)->toBe('flbi_previous0000000000000000000000000000000')
+        ->and($requests[1]->data())->not->toHaveKey('previous_token');
+});
+
 test('exactly one of --code and --code-stdin is required, and an empty stdin code is refused', function () {
     [$neither, $neitherOutput] = ($this->artisan)(['--service-url' => RegistryServiceFake::SERVICE_URL, '--json' => true]);
     [$both]                    = ($this->artisan)(['--code' => 'A', '--code-stdin' => true, '--service-url' => RegistryServiceFake::SERVICE_URL, '--json' => true], 'B');
