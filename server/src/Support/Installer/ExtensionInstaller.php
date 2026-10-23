@@ -449,10 +449,29 @@ class ExtensionInstaller
 
         if (!$result->successful()) {
             $summary = $command[0] === $this->config->composerBinary ? ' ' . OutputProgress::composerOutputFriendly($result->output) : '';
-            throw new \RuntimeException(sprintf('`%s` exited with code %d.%s', implode(' ', array_slice($command, 0, 3)), $result->exitCode, $summary));
+            throw new \RuntimeException(static::failureMessage($command, $result->exitCode) . $summary);
         }
 
         return $result;
+    }
+
+    /**
+     * "`<full command>` exited with code N." with every argument, so a failure names exactly what ran. Exit 137
+     * is SIGKILL, which during an install is almost always the kernel's out-of-memory killer (a console build
+     * needs several GB).
+     *
+     * @param array<int, string> $command
+     */
+    public static function failureMessage(array $command, int $exitCode): string
+    {
+        $quoted  = implode(' ', array_map(fn ($arg) => preg_match('/^[\w@%+=:,.\/\-^~]+$/', (string) $arg) ? (string) $arg : escapeshellarg((string) $arg), $command));
+        $message = sprintf('`%s` exited with code %d.', $quoted, $exitCode);
+
+        if ($exitCode === 137) {
+            $message .= ' The process was killed, most likely because the machine ran out of memory; give the installer more memory and try again.';
+        }
+
+        return $message;
     }
 
     /**

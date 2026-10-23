@@ -1,5 +1,6 @@
 <?php
 
+use Fleetbase\RegistryBridge\Support\Installer\ExtensionInstaller;
 use Fleetbase\RegistryBridge\Support\Installer\Files;
 use Fleetbase\RegistryBridge\Support\Installer\NodeEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\ProcessResult;
@@ -321,6 +322,25 @@ test('uninstall removes a runtime engine without a build and publishes on uninst
     expect($sandbox->recorder->installs['company-1'])->toBe([]);
     expect(array_unique(array_column($sandbox->publisher->events, 'channel')))->toBe(['uninstall.company-1.ext-uuid-1']);
     expect($sandbox->publisher->steps())->toBe(['release.resolve', 'snapshot.create', 'server.uninstall', 'engine.uninstall', 'cache.clear', 'install.record', 'uninstall.complete']);
+});
+
+test('a failed step quotes the whole command and says out of memory for exit 137', function () {
+    $sandbox = $this->sandbox;
+    $sandbox->release('2.1.0', dist: false);
+    $sandbox->runner->on(['pnpm', 'build'], fn () => new ProcessResult(137, 'Killed'));
+
+    $result = $sandbox->installer()->run($sandbox->job());
+
+    expect($result['status'])->toBe('failed');
+    expect($result['failed_stage'])->toBe('build');
+    expect($result['message'])->toContain('`pnpm build --environment production` exited with code 137.')
+        ->toContain('out of memory');
+});
+
+test('failure messages keep every argument and quote the ones a shell would split', function () {
+    expect(ExtensionInstaller::failureMessage(['pnpm', 'build', '--environment', 'development'], 1))->toBe('`pnpm build --environment development` exited with code 1.')
+        ->and(ExtensionInstaller::failureMessage(['composer', 'require', 'acme/widgets-api:^1.0 || ^2.0', '--no-interaction'], 2))->toBe("`composer require 'acme/widgets-api:^1.0 || ^2.0' --no-interaction` exited with code 2.")
+        ->and(ExtensionInstaller::failureMessage(['pnpm', 'add', '@acme/widgets-engine@1.0.0'], 137))->toStartWith('`pnpm add @acme/widgets-engine@1.0.0` exited with code 137. The process was killed, most likely because the machine ran out of memory');
 });
 
 test('uninstall of a built engine runs pnpm remove and a console build', function () {
