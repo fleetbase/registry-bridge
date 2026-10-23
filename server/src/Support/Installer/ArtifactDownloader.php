@@ -5,17 +5,24 @@ namespace Fleetbase\RegistryBridge\Support\Installer;
 /**
  * Fetches release artifacts into the job's work directory and verifies their
  * checksums.
+ *
+ * HTTP downloads carry the headers `$headers` returns for their URL: the
+ * instance token for the Registry Service's package routes (see
+ * PackageAuth::downloadHeaders). Credentialed requests do not follow
+ * redirects, so the token never reaches another host.
  */
 class ArtifactDownloader
 {
     /**
-     * @param callable(string $disk, string $path): (resource|null)|null $diskReader  opens a stream on a filesystem disk
-     * @param callable(string $url, string $target): void|null           $httpFetcher downloads a URL to a file
+     * @param callable(string $disk, string $path): (resource|null)|null                      $diskReader  opens a stream on a filesystem disk
+     * @param callable(string $url, string $target, array<string, string> $headers): void|null $httpFetcher downloads a URL to a file
+     * @param callable(string $url): array<string, string>|null                               $headers     request headers for a URL
      */
     public function __construct(
         private readonly bool $requireChecksums = false,
         private $diskReader = null,
         private $httpFetcher = null,
+        private $headers = null,
     ) {
     }
 
@@ -59,12 +66,14 @@ class ArtifactDownloader
         }
 
         if (preg_match('#^https?://#i', $uri)) {
+            $headers = $this->headers ? ($this->headers)($uri) : [];
             if ($this->httpFetcher) {
-                ($this->httpFetcher)($uri, $target);
+                ($this->httpFetcher)($uri, $target, $headers);
 
                 return;
             }
-            $stream = @fopen($uri, 'rb', false, stream_context_create(['http' => ['timeout' => 300, 'follow_location' => 1]]));
+            $lines  = array_map(fn ($name, $value) => $name . ': ' . $value, array_keys($headers), $headers);
+            $stream = @fopen($uri, 'rb', false, stream_context_create(['http' => ['timeout' => 300, 'follow_location' => $headers === [] ? 1 : 0, 'header' => $lines]]));
             if (!is_resource($stream)) {
                 throw new \RuntimeException(sprintf('Could not download %s.', $uri));
             }
