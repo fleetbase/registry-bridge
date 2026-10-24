@@ -100,10 +100,11 @@ class InstanceRegistration
      * What is kept about the instance from the register response (never the token).
      *
      * @param array<string, mixed> $instance `instance` from the register response
+     * @param bool                 $rotated  the service rotated an instance it already had instead of creating one
      *
      * @return array<string, mixed>
      */
-    public static function instanceSummary(array $instance, string $serviceUrl, ?string $token, string $registeredAt): array
+    public static function instanceSummary(array $instance, string $serviceUrl, ?string $token, string $registeredAt, bool $rotated = false): array
     {
         return [
             'id'                => Arr::get($instance, 'id'),
@@ -119,6 +120,7 @@ class InstanceRegistration
             'service_url'       => $serviceUrl,
             'token_hint'        => static::maskToken($token),
             'registered_at'     => $registeredAt,
+            'rotated'           => $rotated,
         ];
     }
 
@@ -165,13 +167,13 @@ class InstanceRegistration
     /**
      * Persist a successful registration and apply it to the running config.
      *
-     * @param array{token: string, instance: array<string, mixed>} $registration
+     * @param array{token: string, rotated?: bool, instance: array<string, mixed>} $registration
      *
      * @return array<string, mixed> the stored instance summary
      */
     public static function store(array $registration, string $serviceUrl): array
     {
-        $summary = static::instanceSummary($registration['instance'], $serviceUrl, $registration['token'], date(DATE_ATOM));
+        $summary = static::instanceSummary($registration['instance'], $serviceUrl, $registration['token'], date(DATE_ATOM), ($registration['rotated'] ?? false) === true);
 
         static::configure(static::SETTING_SERVICE_URL, $serviceUrl);
         static::configure(static::SETTING_INSTANCE_TOKEN, static::encryptToken($registration['token'], app('encrypter')));
@@ -183,6 +185,7 @@ class InstanceRegistration
             'registry-bridge.registry.instance'       => $summary,
         ]);
 
+        RegistrySettings::forgetCached();
         RegistryClient::flush();
 
         return $summary;
@@ -216,6 +219,8 @@ class InstanceRegistration
             'registry-bridge.registry.instance'       => [],
         ]);
 
+        // A query-builder delete fires no model events, so the settings cache is forgotten here
+        RegistrySettings::forgetCached();
         RegistryClient::flush();
     }
 

@@ -305,9 +305,10 @@ class RegistryClient
     /**
      * exchange a one-time registration code for an instance token (`POST /v1/instances/register`).
      *
-     * @param array<string, mixed> $payload `code`, `name`, `kind`, and optional `host`, `console_version`, `api_version`
+     * @param array<string, mixed> $payload `code`, `name`, `kind`, and optional `host`, `console_version`, `api_version`, `previous_token`
      *
-     * @return array{token: string, token_type: string, instance: array<string, mixed>}
+     * @return array{token: string, token_type: string, rotated: bool, instance: array<string, mixed>} `rotated` is true
+     *         when the service re-issued the token of an instance it already had (same id, installs and seats)
      *
      * @throws RegistryUnavailableException|RegistryServiceException
      */
@@ -322,6 +323,7 @@ class RegistryClient
         return [
             'token'      => $body['token'],
             'token_type' => is_string($body['token_type'] ?? null) ? $body['token_type'] : 'Bearer',
+            'rotated'    => ($body['rotated'] ?? false) === true,
             'instance'   => is_array($body['instance'] ?? null) ? $body['instance'] : [],
         ];
     }

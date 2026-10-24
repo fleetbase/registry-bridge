@@ -121,9 +121,24 @@ test('registration exchanges the code for an instance token without sending a be
 
     $request = $this->service->requestsTo('POST', 'v1/instances/register')[0];
     expect($registration['token'])->toBe('flbi_buyer00000000000000000000000000000000000')
+        ->and($registration['rotated'])->toBeFalse()
         ->and($registration['instance']['organization']['slug'])->toBe('registry-demo-buyer')
         ->and($request->hasHeader('Authorization'))->toBeFalse()
         ->and($request->data())->toBe(['code' => 'W9QA-SC8R-37JT-9PA8', 'name' => 'Acme Fleet (self-hosted)', 'kind' => 'self_hosted']);
+});
+
+test('registering again sends the previous token and reports the rotated instance', function () {
+    $this->service->on('POST', 'v1/instances/register', 'instances-register-rotated');
+    $client = RegistryClient::fromConfig(RegistryServiceFake::config());
+
+    $registration = $client->registerInstance(['code' => 'W9QA-SC8R-37JT-9PA8', 'name' => 'Acme Fleet (self-hosted)', 'kind' => 'self_hosted', 'previous_token' => RegistryServiceFake::INSTANCE_TOKEN]);
+
+    $request = $this->service->requestsTo('POST', 'v1/instances/register')[0];
+    expect($registration['rotated'])->toBeTrue()
+        ->and($registration['instance']['id'])->toBe('inst_rsmdtgevid')
+        ->and($registration['token'])->not->toBe(RegistryServiceFake::INSTANCE_TOKEN)
+        ->and($request->data()['previous_token'])->toBe(RegistryServiceFake::INSTANCE_TOKEN)
+        ->and($request->hasHeader('Authorization'))->toBeFalse();
 });
 
 test('a refused registration surfaces the service error', function () {

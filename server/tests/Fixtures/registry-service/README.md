@@ -19,4 +19,7 @@ for `buyer@registry-demo.test` and `outsider@registry-demo.test` (for example `A
 SVC_DIR=/path/to/registry python3 -I record.py http://127.0.0.1:8000 <buyer token> <outsider token> .
 ```
 
+`instances-register-rotated.json` is not recorded: it is `instances-register.json` with the 200 and `rotated: true`
+the service returns when an instance registers again (fleetbase/registry `release/v2.0.0` 68331fe), and a new token.
+
 Ids change on every run, so tests that assert on ids need updating with the new values.

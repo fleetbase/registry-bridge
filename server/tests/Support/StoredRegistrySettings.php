@@ -5,7 +5,8 @@ namespace Fleetbase\RegistryBridge\Tests\Support;
 use Fleetbase\RegistryBridge\Support\RegistrySettings;
 
 /**
- * RegistrySettings that reads from an array instead of the settings table and counts the reads.
+ * RegistrySettings that reads from an array instead of the settings table and counts the reads (the cache in front
+ * of the table is the real one).
  */
 class StoredRegistrySettings extends RegistrySettings
 {
@@ -14,7 +15,7 @@ class StoredRegistrySettings extends RegistrySettings
 
     public static int $reads = 0;
 
-    protected function stored(): ?array
+    protected function query(): ?array
     {
         static::$reads++;
 

@@ -215,6 +215,10 @@ class RegistryExtensionController extends Controller
      * Register this instance with the Registry Service: exchanges a one-time registration code (minted by an
      * organization owner or admin on the service) for an instance token, stored encrypted and never returned.
      *
+     * An instance that is already registered sends its current token, and the service matches it by that token or
+     * by its host, so registering again rotates the same instance (same id, installs and licence seats) and
+     * `instance.rotated` is true in the response.
+     *
      * @return \Illuminate\Http\JsonResponse the configuration (see `getConfig()`)
      */
     public function registerInstance(AdminRequest $request)
@@ -287,6 +291,7 @@ class RegistryExtensionController extends Controller
                 'organization'  => $instance['organization'] ?? null,
                 'token_hint'    => $config->isRegistered() ? InstanceRegistration::maskToken($config->instanceToken()) : null,
                 'registered_at' => $instance['registered_at'] ?? null,
+                'rotated'       => ($instance['rotated'] ?? false) === true,
             ],
         ];
     }

@@ -29,6 +29,9 @@ return [
         // Purchases through the service checkout: `auto` (on for a registered instance unless the service
         // has no checkout endpoint), `true` or `false`.
         'checkout' => env('REGISTRY_SERVICE_CHECKOUT', 'auto'),
+        // Seconds the stored registry settings stay in the application cache between requests; writing one of
+        // them forgets the cache at once. 0 reads the settings table on every request.
+        'settings_cache_ttl' => env('REGISTRY_SETTINGS_CACHE_TTL', 30),
     ],
     'extensions' => [
         'preinstalled' => Utils::castBoolean(env('REGISTRY_PREINSTALLED_EXTENSIONS', false)),

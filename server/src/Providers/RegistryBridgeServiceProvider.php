@@ -264,13 +264,19 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
     }
 
     /**
-     * Read the registry settings again at the start of every Octane request and queued job.
+     * Read the registry settings again at the start of every Octane request and queued job, and forget the cached
+     * settings whenever one of them is written or deleted through the `Setting` model.
      *
      * @return void
      */
     public function refreshSettingsPerOperation()
     {
         $events = $this->app['events'];
+
+        if (class_exists(Setting::class)) {
+            Setting::saved(fn ($setting) => RegistrySettings::settingChanged($setting->key ?? null));
+            Setting::deleted(fn ($setting) => RegistrySettings::settingChanged($setting->key ?? null));
+        }
 
         $events->listen('Laravel\Octane\Events\RequestReceived', function ($event) {
             RegistrySettings::instance()->reset($event->sandbox ?? null);
