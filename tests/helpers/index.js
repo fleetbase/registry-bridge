@@ -110,6 +110,150 @@ export function stubStoreQuery(owner, resolver = []) {
 }
 
 /**
+ * Stand-in for the `abilities` service: everything is allowed unless a test
+ * lists what is denied in `denied`.
+ */
+export class AbilitiesStub extends Service {
+    denied = new Set();
+
+    can(permission) {
+        return !this.denied.has(permission);
+    }
+
+    cannot(permission) {
+        return !this.can(permission);
+    }
+}
+
+/**
+ * Stand-in for `notifications`: records every message by type.
+ */
+export class NotificationsStub extends Service {
+    messages = [];
+
+    record(type, message) {
+        this.messages.push({ type, message });
+    }
+
+    info(message) {
+        this.record('info', message);
+    }
+
+    success(message) {
+        this.record('success', message);
+    }
+
+    warning(message) {
+        this.record('warning', message);
+    }
+
+    error(message) {
+        this.record('error', message);
+    }
+
+    serverError(error) {
+        this.record('serverError', error);
+    }
+}
+
+/**
+ * Stand-in for `currentUser`.
+ */
+export class CurrentUserStub extends Service {
+    companyId = 'company_1';
+    isAdmin = false;
+    company = { name: 'Acme Fleet' };
+    user = {};
+    permissions = [];
+}
+
+/**
+ * Stand-in for `socket`: records listeners and lets a test emit events.
+ */
+export class SocketStub extends Service {
+    listeners = {};
+
+    listen(channel, callback) {
+        this.listeners[channel] = callback;
+    }
+
+    emit(channel, event) {
+        this.listeners[channel]?.(event);
+    }
+}
+
+/**
+ * Stand-in for `modalsManager` with one modal at a time: `show` keeps the
+ * component name and options, and the option helpers act on them.
+ */
+export class ModalsManagerStub extends Service {
+    shown = [];
+    current = null;
+    closed = 0;
+
+    show(component, options = {}) {
+        this.current = { component, options: { ...options } };
+        this.shown.push(this.current);
+        return Promise.resolve(this);
+    }
+
+    get modals() {
+        return this.current ? [this.current] : [];
+    }
+
+    getModalZIndex() {
+        return 1060;
+    }
+
+    get options() {
+        return this.current?.options ?? {};
+    }
+
+    getOption(key, defaultValue = null) {
+        return this.options[key] ?? defaultValue;
+    }
+
+    setOption(key, value) {
+        if (this.current) {
+            this.current.options[key] = value;
+        }
+    }
+
+    setOptions(options = {}) {
+        if (this.current) {
+            Object.assign(this.current.options, options);
+        }
+    }
+
+    startLoading() {
+        this.setOption('isLoading', true);
+    }
+
+    stopLoading() {
+        this.setOption('isLoading', false);
+    }
+
+    invoke(fn, ...params) {
+        const callable = this.options[fn];
+        return typeof callable === 'function' ? callable(...params) : null;
+    }
+
+    confirm() {
+        return this.options.confirm?.(this);
+    }
+
+    decline() {
+        return this.options.decline?.(this);
+    }
+
+    done() {
+        this.closed++;
+        this.current = null;
+        return Promise.resolve(true);
+    }
+}
+
+/**
  * Register services the engine expects from the host console unless a test
  * already registered its own stub.
  */

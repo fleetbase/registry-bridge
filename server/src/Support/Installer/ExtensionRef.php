@@ -5,21 +5,18 @@ namespace Fleetbase\RegistryBridge\Support\Installer;
 /**
  * The extension an install job is about, as stored in the job record.
  *
- * `source` says which ReleaseSource found it: `local` for this instance's
- * registry tables, `registry-service` for the Registry Service (where `uuid`
- * and `id` are both the service's `ext_` id).
+ * Extensions come from the Registry Service, so `uuid` and `id` are both the
+ * service's `ext_` id; `source` is kept in job records for compatibility.
  */
 class ExtensionRef
 {
-    public const LOCAL = 'local';
-
     public const REGISTRY_SERVICE = 'registry-service';
 
     public function __construct(
         public readonly string $uuid,
         public readonly string $id,
         public readonly string $name,
-        public readonly string $source = self::LOCAL,
+        public readonly string $source = self::REGISTRY_SERVICE,
     ) {
     }
 
@@ -43,6 +40,6 @@ class ExtensionRef
     {
         $source = (string) ($data['source'] ?? '');
 
-        return new self((string) ($data['uuid'] ?? ''), (string) ($data['id'] ?? ''), (string) ($data['name'] ?? ''), $source !== '' ? $source : self::LOCAL);
+        return new self((string) ($data['uuid'] ?? ''), (string) ($data['id'] ?? ''), (string) ($data['name'] ?? ''), $source !== '' ? $source : self::REGISTRY_SERVICE);
     }
 }

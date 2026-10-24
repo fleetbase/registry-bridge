@@ -1,0 +1,16 @@
+<div class="extension-panel-section" data-test-extension-panel-details>
+    <dl class="extension-panel-definitions">
+        {{#each this.rows as |row|}}
+            <div class="extension-panel-definition" data-test-detail-row>
+                <dt>{{row.label}}</dt>
+                <dd class={{if row.mono "font-mono text-xs"}}>
+                    {{#if row.url}}
+                        <a href={{row.url}} target="_blank" rel="noopener noreferrer">{{row.url}}</a>
+                    {{else}}
+                        {{row.value}}
+                    {{/if}}
+                </dd>
+            </div>
+        {{/each}}
+    </dl>
+</div>

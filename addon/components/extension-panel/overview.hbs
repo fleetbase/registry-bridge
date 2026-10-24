@@ -1,0 +1,31 @@
+<div class="extension-panel-section space-y-4" data-test-extension-panel-overview>
+    {{#if @extension.description}}
+        <p class="text-sm dark:text-gray-200" data-test-extension-panel-description>{{@extension.description}}</p>
+    {{/if}}
+    {{#if @extension.promotional_text}}
+        <div class="extension-details-promo-content dark:text-gray-200 text-sm">{{html-safe @extension.promotional_text}}</div>
+    {{/if}}
+    {{#if this.compat}}
+        <InfoBlock @type="default" @icon="code-compare" @text={{this.compat}} data-test-extension-panel-compat />
+    {{/if}}
+
+    <dl class="extension-panel-facts">
+        {{#if @extension.meta.installs_count}}
+            <div><dt>{{t "registry-bridge.detail.installs"}}</dt><dd>{{@extension.meta.installs_count}}</dd></div>
+        {{/if}}
+        {{#if this.lastRelease}}
+            <div><dt>{{t "registry-bridge.detail.last-release"}}</dt><dd>v{{this.lastRelease.version}}</dd></div>
+        {{/if}}
+        {{#if @extension.support_url}}
+            <div><dt>{{t "registry-bridge.detail.support"}}</dt><dd><a href={{@extension.support_url}} target="_blank" rel="noopener noreferrer">{{@extension.support_url}}</a></dd></div>
+        {{/if}}
+    </dl>
+
+    {{#if @extension.tags.length}}
+        <div class="flex flex-row flex-wrap items-center gap-1" data-test-extension-panel-tags>
+            {{#each @extension.tags as |tag|}}
+                <Badge @status="default" @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}}>{{tag}}</Badge>
+            {{/each}}
+        </div>
+    {{/if}}
+</div>

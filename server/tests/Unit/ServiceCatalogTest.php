@@ -1,5 +1,7 @@
 <?php
 
+use Fleetbase\RegistryBridge\Support\Installer\Files;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\ServiceCatalog;
 use Fleetbase\RegistryBridge\Tests\Support\RegistryServiceFake;
@@ -42,12 +44,11 @@ test('a listing maps into the RegistryExtension resource shape', function () {
         ->and($mapped['category_name'])->toBe('Telematics')
         ->and($mapped['category_uuid'])->toBe('cat_3a9uznxr8s')
         ->and($mapped['current_bundle_version'])->toBe('1.0.0')
-        ->and($mapped['current_bundle_id'])->toBe('rel_gjrc6mixp0')
+        ->and($mapped['meta']['latest_release']['id'])->toBe('rel_gjrc6mixp0')
         ->and($mapped['payment_required'])->toBeTrue()
         ->and($mapped['price'])->toBe(4900)
         ->and($mapped['currency'])->toBe('USD')
         ->and($mapped['languages'])->toBe(['en'])
-        ->and($mapped['self_managed'])->toBeFalse()
         ->and($mapped['source'])->toBe('registry-service')
         ->and($mapped['meta']['package_names'])->toBe(['npm' => '@registry-demo/pro-engine', 'composer' => 'registry-demo/pro-api'])
         ->and($mapped['meta']['registry_host'])->toBe(RegistryServiceFake::SERVICE_URL)
@@ -55,11 +56,66 @@ test('a listing maps into the RegistryExtension resource shape', function () {
 });
 
 test('every recorded listing maps with the keys the console reads', function () {
-    $keys = array_keys(Fleetbase\RegistryBridge\Support\CentralCatalog::transform(['id' => 'x', 'name' => 'x']));
+    $keys = [
+        'id', 'public_id', 'name', 'subtitle', 'description', 'promotional_text', 'icon_url', 'slug', 'status', 'tags', 'languages',
+        'website_url', 'repo_url', 'support_url', 'privacy_policy_url', 'tos_url', 'copyright', 'payment_required', 'price', 'sale_price',
+        'on_sale', 'currency', 'category', 'category_name', 'publisher_name', 'current_bundle_version', 'screenshots', 'is_installed',
+        'is_purchased', 'is_author', 'is_installable', 'installed_version', 'latest_version', 'update_available', 'source', 'meta',
+        'core_extension', 'installs_count', 'updated_at',
+    ];
 
     foreach (RegistryServiceFake::body('catalog-extensions')['data'] as $listing) {
         expect(array_keys(ServiceCatalog::transform($listing)))->toContain(...$keys);
     }
+});
+
+test('install mode: runtime only for a prebuilt dist this console can load, otherwise a rebuild', function () {
+    $dist    = ['sha256' => str_repeat('a', 64), 'built_against' => ['@fleetbase/ember-ui' => '0.4.6', '@fleetbase/ember-core' => '0.3.26']];
+    $console = ['host_versions' => ['@fleetbase/ember-ui' => '0.4.9', '@fleetbase/ember-core' => '0.3.30'], 'built_in' => ['@fleetbase/ember-core']];
+
+    expect(ServiceCatalog::installMode('@acme/a-engine', $dist, $console))->toBe('runtime')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, null))->toBe('runtime')
+        ->and(ServiceCatalog::installMode(null, null, $console))->toBe('server')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', null, $console))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', ['sha256' => ''], $console))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, ['host_versions' => null, 'built_in' => []]))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, [...$console, 'built_in' => ['@acme/a-engine']]))->toBe('build')
+        ->and(ServiceCatalog::installMode('@acme/a-engine', $dist, [...$console, 'host_versions' => ['@fleetbase/ember-ui' => '0.5.0']]))->toBe('build');
+});
+
+test('the console state comes from its host-modules.json and package.json', function () {
+    $root = sys_get_temp_dir() . '/registry-console-state-' . bin2hex(random_bytes(4));
+    Files::write($root . '/package.json', json_encode(['dependencies' => ['@acme/built-engine' => '1.0.0'], 'devDependencies' => ['ember-source' => '5.4.0']]));
+    $config = InstallerConfig::fromArray(['api_path' => $root . '/api', 'console_path' => $root, 'work_path' => $root . '/work']);
+
+    expect(ServiceCatalog::consoleState($config))->toBe(['host_versions' => null, 'built_in' => ['@acme/built-engine', 'ember-source']]);
+
+    Files::write($root . '/dist/host-modules.json', json_encode(['versions' => ['@fleetbase/ember-ui' => '0.4.6'], 'modules' => []]));
+    expect(ServiceCatalog::consoleState($config)['host_versions'])->toBe(['@fleetbase/ember-ui' => '0.4.6']);
+
+    Files::delete($root);
+});
+
+test('listings carry the install mode of the release an install or update would take', function () {
+    $console = ['host_versions' => ['@fleetbase/ember-ui' => '0.4.6', '@fleetbase/ember-core' => '0.3.26'], 'built_in' => []];
+    $dist    = ['sha256' => str_repeat('b', 64), 'built_against' => ['@fleetbase/ember-ui' => '0.4.6']];
+    $listing = serviceListing('registry-demo-hello');
+
+    expect(ServiceCatalog::transform($listing, ['console' => $console])['meta']['install_mode'])->toBe('build');
+
+    $listing['latest_release']['dist'] = $dist;
+    $mapped                            = ServiceCatalog::transform($listing, ['console' => $console]);
+    expect($mapped['meta']['install_mode'])->toBe('runtime')
+        ->and($mapped['meta']['uninstall_mode'])->toBe('runtime')
+        ->and($mapped['meta']['latest_release']['dist'])->toBe($dist);
+
+    // an installed extension: the update's release decides, and an engine built into the console uninstalls by rebuild
+    $state            = registeredState();
+    $state['console'] = [...$console, 'built_in' => [$listing['packages']['npm']]];
+    $mapped           = ServiceCatalog::transform($listing, $state);
+    expect($mapped['update_available'])->toBeTrue()
+        ->and($mapped['meta']['install_mode'])->toBe('build')
+        ->and($mapped['meta']['uninstall_mode'])->toBe('build');
 });
 
 test('an installed free extension shows its update from the instance API', function () {
@@ -134,7 +190,7 @@ test('categories map into the Category resource shape', function () {
     ])->and($categories[0]['meta']['extensions_count'])->toBe(2);
 });
 
-test('Explore passes search, category and hosting to the service and decorates the page', function () {
+test('Explore passes search and category to the service, lists every hosting, and decorates the page', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-installed')
@@ -146,7 +202,7 @@ test('Explore passes search, category and hosting to the service and decorates t
     $url = $this->service->requestsTo('GET', 'v1/catalog/extensions')[0]->url();
     expect($url)->toContain('q=demo')
         ->and($url)->toContain('category=cat_3a9uznxr8s')
-        ->and($url)->toContain('hosting=self_hosted')
+        ->and($url)->not->toContain('hosting=')
         ->and($url)->toContain('limit=10')
         ->and($page->total())->toBe(2)
         ->and($page->items()[0]['is_installed'])->toBeTrue()
@@ -187,7 +243,7 @@ test('Installed joins the instance updates and local records with the catalog', 
         ->and($installed[1]['current_bundle_version'])->toBe('0.1.0');
 });
 
-test('Purchased lists only active paid licences', function () {
+test('Purchased leaves out free licences', function () {
     $this->service
         ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
         ->on('GET', 'v1/instances/me', 'instances-me-installed')
@@ -197,6 +253,63 @@ test('Purchased lists only active paid licences', function () {
 
     expect(array_column($purchased, 'slug'))->toBe(['registry-demo-pro'])
         ->and($purchased[0]['is_purchased'])->toBeTrue();
+});
+
+test('Purchased keeps refunded and revoked paid licences with their state, without entitling installs', function () {
+    $me                                  = RegistryServiceFake::body('instances-me-installed');
+    $me['licences'][1]['status']         = 'revoked';
+    $me['licences'][1]['revoked_reason'] = 'refunded';
+    $me['licences'][]                    = ['id' => 'lic_gone', 'extension' => ['id' => 'ext_delisted', 'slug' => 'delisted-pro', 'name' => 'Delisted Pro'], 'kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'disputed', 'max_activations' => 5, 'seats_used' => 1, 'created_at' => '2026-10-01T00:00:00Z'];
+    $this->service
+        ->on('GET', 'v1/catalog/extensions', 'catalog-extensions')
+        ->respondWith('GET', 'v1/instances/me', 200, $me)
+        ->on('GET', 'v1/instances/me/updates', 'instances-me-updates');
+
+    $purchased = ServiceCatalog::purchased(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config());
+    $bySlug    = array_column($purchased, null, 'slug');
+
+    expect(array_keys($bySlug))->toBe(['registry-demo-pro', 'delisted-pro'])
+        ->and($bySlug['registry-demo-pro']['is_purchased'])->toBeFalse()
+        ->and($bySlug['registry-demo-pro']['is_installable'])->toBeFalse()
+        ->and($bySlug['registry-demo-pro']['meta']['install_blocked_code'])->toBe('licence_required')
+        ->and($bySlug['registry-demo-pro']['meta']['licence_state'])->toBe('refunded')
+        ->and($bySlug['registry-demo-pro']['meta']['licence']['revoked_reason'])->toBe('refunded')
+        ->and($bySlug['delisted-pro']['meta']['licence_state'])->toBe('revoked')
+        ->and($bySlug['delisted-pro']['is_purchased'])->toBeFalse();
+
+    $state = ServiceCatalog::buildState($me, [], [], true);
+    expect(ServiceCatalog::counts($state)['purchased'])->toBe(0);
+});
+
+test('an active paid licence wins over a revoked one for the same extension, in either order', function () {
+    $active  = ['id' => 'lic_new', 'extension' => ['id' => 'ext_1'], 'kind' => 'paid', 'status' => 'active'];
+    $revoked = ['id' => 'lic_old', 'extension' => ['id' => 'ext_1'], 'kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded'];
+    $free    = ['id' => 'lic_free', 'extension' => ['id' => 'ext_1'], 'kind' => 'free', 'status' => 'active'];
+
+    foreach ([[$revoked, $active], [$active, $revoked], [$free, $revoked, $active]] as $licences) {
+        $state = ServiceCatalog::buildState(['licences' => $licences], [], [], true);
+        expect($state['licences']['ext_1']['id'])->toBe('lic_new')
+            ->and(ServiceCatalog::counts($state)['purchased'])->toBe(1);
+    }
+
+    expect(ServiceCatalog::buildState(['licences' => [$free, $revoked]], [], [], true)['licences']['ext_1']['id'])->toBe('lic_old');
+});
+
+test('licence states the console shows', function () {
+    expect(ServiceCatalog::licenceState(null))->toBeNull()
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'active']))->toBe('active')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded']))->toBe('refunded')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'staff']))->toBe('revoked')
+        ->and(ServiceCatalog::licenceState(['kind' => 'paid', 'status' => 'revoked']))->toBe('revoked')
+        ->and(ServiceCatalog::isPaidLicence(['kind' => 'paid', 'status' => 'revoked', 'revoked_reason' => 'refunded']))->toBeFalse();
+});
+
+test('the registry organization comes from the registration, not the console company', function () {
+    $config = RegistryServiceFake::config(['instance' => ['id' => 'inst_1', 'organization' => ['id' => 'org_9sz9sh8ivz', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer']]]);
+
+    expect($config->organization())->toBe(['id' => 'org_9sz9sh8ivz', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer'])
+        ->and(RegistryServiceFake::config()->organization())->toBeNull()
+        ->and(RegistryServiceFake::config(['instance' => ['organization' => ['name' => '']]])->organization())->toBeNull();
 });
 
 test('lookup resolves npm and Composer names, slugs and ids from the catalog', function () {

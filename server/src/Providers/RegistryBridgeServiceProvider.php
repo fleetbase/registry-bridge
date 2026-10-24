@@ -13,13 +13,10 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\PackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProcessRunner;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ProgressPublisher;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
-use Fleetbase\RegistryBridge\Support\Installer\EloquentInstallRecorder;
-use Fleetbase\RegistryBridge\Support\Installer\ExtensionRef;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerJobStore;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerQueue;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerService;
-use Fleetbase\RegistryBridge\Support\Installer\LocalBundleReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\NodeEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\PhpEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\RuntimeEngineManifest;
@@ -28,8 +25,6 @@ use Fleetbase\RegistryBridge\Support\Installer\ServiceInstallReporter;
 use Fleetbase\RegistryBridge\Support\Installer\ServicePackageCredentials;
 use Fleetbase\RegistryBridge\Support\Installer\ServiceReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\SocketClusterPublisher;
-use Fleetbase\RegistryBridge\Support\Installer\SourceRoutingInstallRecorder;
-use Fleetbase\RegistryBridge\Support\Installer\SourceRoutingReleaseSource;
 use Fleetbase\RegistryBridge\Support\Installer\SymfonyProcessRunner;
 use Fleetbase\RegistryBridge\Support\PackageAuth;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
@@ -82,7 +77,6 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
     public $middleware = [
         'fleetbase.registry' => [
             \Illuminate\Session\Middleware\StartSession::class,
-            \Fleetbase\Http\Middleware\AuthenticateOnceWithBasicAuth::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -128,27 +122,19 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->app->bind(ProcessRunner::class, SymfonyProcessRunner::class);
         $this->app->bind(ProgressPublisher::class, SocketClusterPublisher::class);
 
-        // Extensions come from the Registry Service when one is configured, else (and for ids it does not know) from the local registry tables
+        // Extensions come from the Registry Service
         $this->app->bind(ReleaseSource::class, function () {
             $config = RegistryConfig::current();
 
-            return new SourceRoutingReleaseSource([
-                ExtensionRef::REGISTRY_SERVICE => new ServiceReleaseSource(
-                    RegistryClient::fromConfig($config),
-                    $config,
-                    fn (string $extension) => RegistryServiceInstall::where('extension_id', $extension)->first()?->toListing(),
-                ),
-                ExtensionRef::LOCAL => new LocalBundleReleaseSource(),
-            ]);
+            return new ServiceReleaseSource(
+                RegistryClient::fromConfig($config),
+                $config,
+                fn (string $extension) => RegistryServiceInstall::where('extension_id', $extension)->first()?->toListing(),
+            );
         });
-        $this->app->bind(InstallRecorder::class, function () {
-            $local = new EloquentInstallRecorder();
 
-            return new SourceRoutingInstallRecorder([
-                ExtensionRef::LOCAL            => $local,
-                ExtensionRef::REGISTRY_SERVICE => new ServiceInstallRecorder($local, RegistryConfig::current()->serviceUrl()),
-            ]);
-        });
+        $this->app->bind(InstallRecorder::class, fn () => new ServiceInstallRecorder(RegistryConfig::current()->serviceUrl()));
+
         $this->app->bind(InstallReporter::class, function () {
             $config = RegistryConfig::current();
 
@@ -245,7 +231,6 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
     {
         $this->registerCommands();
         $this->registerMiddleware();
-        $this->registerExpansionsFrom(__DIR__ . '/../Expansions');
         $this->loadRoutesFrom(__DIR__ . '/../routes.php');
         $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
         $this->mergeConfigFrom(__DIR__ . '/../../config/registry-bridge.php', 'registry-bridge');
@@ -256,8 +241,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
     /**
      * Merge configuration settings from the database into the application configuration.
      *
-     * The registry settings (legacy host and token, Registry Service URL, API version, the encrypted instance
-     * token and the registered instance) override the config file and environment; see `RegistrySettings`.
+     * The registry settings (Registry Service URL, the encrypted instance token and the registered instance)
+     * override the config file and environment; see `RegistrySettings`.
      * Without a database connection (installs, migrations) the config is left as it is.
      *
      * Long-lived workers read the settings again for each Octane request and each queued job, on first use

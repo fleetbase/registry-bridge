@@ -4,8 +4,7 @@ namespace Fleetbase\RegistryBridge\Support\Installer;
 
 /**
  * Turns Composer and pnpm output lines into progress percentages and friendly
- * messages for the install socket events. Moved here from
- * RegistryExtensionBundle, which still exposes the same static methods.
+ * messages for the install socket events.
  */
 class OutputProgress
 {

@@ -53,7 +53,7 @@ beforeEach(function () {
 
     $this->container = new Container();
     $this->container->instance('config', new Config([
-        'registry-bridge' => ['registry' => ['host' => 'https://registry.fleetbase.io', 'instance_kind' => 'self_hosted', 'instance' => []]],
+        'registry-bridge' => ['registry' => ['instance_kind' => 'self_hosted', 'instance' => []]],
     ]));
     $this->container->instance('encrypter', settingsEncrypter());
     $this->container->instance('events', new Dispatcher($this->container));
@@ -68,10 +68,9 @@ afterEach(function () {
 
 test('stored settings override the config file and missing ones fall back to it', function () {
     $values = RegistrySettings::merge(
-        ['host' => 'https://registry.fleetbase.io', 'service_url' => 'https://env.example.test', 'instance_token' => null],
+        ['service_url' => 'https://env.example.test', 'instance_token' => null],
         [
-            RegistrySettings::SETTING_HOST               => '',
-            InstanceRegistration::SETTING_API_VERSION    => 'v1',
+            InstanceRegistration::SETTING_SERVICE_URL    => '',
             InstanceRegistration::SETTING_INSTANCE_TOKEN => 'not-encrypted',
             InstanceRegistration::SETTING_INSTANCE       => ['id' => 'inst_1'],
         ],
@@ -79,10 +78,7 @@ test('stored settings override the config file and missing ones fall back to it'
     );
 
     expect($values)->toBe([
-        'host'           => 'https://registry.fleetbase.io',
-        'token'          => null,
         'service_url'    => 'https://env.example.test',
-        'api_version'    => 'v1',
         'instance_token' => null,
         'instance'       => ['id' => 'inst_1'],
     ]);
@@ -98,8 +94,7 @@ test('the settings are read once per request and keep the rest of the registry c
         ->and($config->instanceToken())->toBe('flbi_first')
         ->and($config->serviceUrl())->toBe('https://registry.example.test')
         ->and($config->instance()['id'])->toBe('inst_first')
-        ->and($config->instanceKind())->toBe('self_hosted')
-        ->and($config->host())->toBe('https://registry.fleetbase.io');
+        ->and($config->instanceKind())->toBe('self_hosted');
 });
 
 test('an Octane request sees a registration another process stored after the worker booted', function () {
@@ -157,7 +152,7 @@ test('without a readable settings table the config is left as it is', function (
     $config = RegistryConfig::current();
 
     expect($config->isRegistered())->toBeFalse()
-        ->and($config->host())->toBe('https://registry.fleetbase.io')
+        ->and($config->instanceKind())->toBe('self_hosted')
         ->and(StoredRegistrySettings::$reads)->toBe(1);
 });
 
@@ -200,7 +195,7 @@ test('only the registry settings forget the cache', function () {
     RegistrySettings::settingChanged(null);
     expect($cache->get(RegistrySettings::CACHE_KEY))->toBe(['kept' => true]);
 
-    RegistrySettings::settingChanged(RegistrySettings::SETTING_HOST);
+    RegistrySettings::settingChanged(InstanceRegistration::SETTING_SERVICE_URL);
     expect($cache->has(RegistrySettings::CACHE_KEY))->toBeFalse();
 });
 

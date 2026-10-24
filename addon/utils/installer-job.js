@@ -39,6 +39,57 @@ export const INSTALLER_STEPS = {
 };
 
 /**
+ * The three named steps the install modal shows (canvas C5), each covering
+ * the installer steps that belong to it. Uninstalls remove instead of
+ * install; updates install.
+ */
+export const INSTALLER_STEP_GROUPS = {
+    install: [
+        { key: 'server', steps: ['release.resolve', 'release.download', 'snapshot.create', 'server.install'] },
+        { key: 'engine', steps: ['engine.install'] },
+        { key: 'build', steps: ['console.build', 'cache.clear', 'install.record'] },
+    ],
+    uninstall: [
+        { key: 'server', steps: ['snapshot.create', 'server.uninstall'] },
+        { key: 'engine', steps: ['engine.uninstall'] },
+        { key: 'build', steps: ['console.build', 'cache.clear', 'install.record'] },
+    ],
+};
+
+/**
+ * The named steps for a job with their status: `done`, `active`, `pending`
+ * or `failed`.
+ *
+ * @param {String} action install, update or uninstall
+ * @param {Object} job
+ * @return {Array<{ key: String, status: String }>}
+ */
+export function installerStepGroups(action, job = {}) {
+    const groups = INSTALLER_STEP_GROUPS[action === 'uninstall' ? 'uninstall' : 'install'];
+    const status = job?.status;
+    const step = status === 'failed' && (job.step === 'rollback' || !job.step) ? (job.result?.step ?? job.step) : job?.step;
+    const index = groups.findIndex((group) => group.steps.includes(step));
+
+    return groups.map((group, i) => {
+        if (status === 'completed') {
+            return { key: group.key, status: 'done' };
+        }
+        if (status === 'queued' || status === undefined || status === null) {
+            return { key: group.key, status: 'pending' };
+        }
+
+        const current = index === -1 ? 0 : index;
+        if (i < current) {
+            return { key: group.key, status: 'done' };
+        }
+        if (i === current) {
+            return { key: group.key, status: status === 'failed' ? 'failed' : 'active' };
+        }
+        return { key: group.key, status: 'pending' };
+    });
+}
+
+/**
  * The socket channel for a job: uninstalls publish on `uninstall.…`,
  * installs and updates on `install.…`.
  *
@@ -306,11 +357,26 @@ export function countdown(seconds, onTick, onDone, schedule = (fn, ms) => setTim
  * @param {Function} [options.cancel]
  * @return {Promise<Object>}
  */
-export async function runInstallerJob({ modal, intl, fetch, socket, channel, request, reload = () => window.location.reload(), reloadAfter = 3, schedule, cancel, pollInterval }) {
-    modal.startLoading();
-    modal.setOptions({ installerError: null, ...describeInstallerJob(intl, { status: 'running' }) });
+export async function runInstallerJob({
+    modal,
+    intl,
+    fetch,
+    socket,
+    channel,
+    request,
+    action = 'install',
+    reload = () => window.location.reload(),
+    reloadAfter = 3,
+    schedule,
+    cancel,
+    pollInterval,
+}) {
+    const progress = (job) => ({ ...describeInstallerJob(intl, job), steps: installerStepGroups(action, job), phase: 'progress', job });
 
-    const tracker = new InstallerJobTracker({ fetch, socket, channel, schedule, cancel, pollInterval, onUpdate: (job) => modal.setOptions(describeInstallerJob(intl, job)) }).listen();
+    modal.startLoading();
+    modal.setOptions({ installerError: null, ...progress({ status: 'running' }) });
+
+    const tracker = new InstallerJobTracker({ fetch, socket, channel, schedule, cancel, pollInterval, onUpdate: (job) => modal.setOptions(progress(job)) }).listen();
 
     let job;
     try {
@@ -319,7 +385,7 @@ export async function runInstallerJob({ modal, intl, fetch, socket, channel, req
     } catch (error) {
         tracker.stop();
         modal.stopLoading();
-        modal.setOptions({ progress: 0 });
+        modal.setOptions({ progress: 0, phase: 'confirm' });
         throw error;
     }
 
@@ -327,6 +393,8 @@ export async function runInstallerJob({ modal, intl, fetch, socket, channel, req
         modal.stopLoading();
         modal.setOptions({
             progress: 0,
+            phase: 'failure',
+            steps: installerStepGroups(action, job),
             installerError: describeInstallerFailure(intl, job),
             acceptButtonText: intl.t('registry-bridge.installer.retry'),
             acceptButtonIcon: 'rotate-right',
@@ -334,8 +402,22 @@ export async function runInstallerJob({ modal, intl, fetch, socket, channel, req
         return job;
     }
 
-    modal.setOptions(describeInstallerJob(intl, job));
-    countdown(reloadAfter, (seconds) => modal.setOption('stepDescription', intl.t('registry-bridge.installer.reloading', { seconds })), reload, schedule, cancel);
+    modal.setOptions({ ...describeInstallerJob(intl, job), phase: 'success', steps: installerStepGroups(action, job), job, secondsLeft: reloadAfter });
+    const stopCountdown = countdown(
+        reloadAfter,
+        (seconds) => modal.setOptions({ stepDescription: intl.t('registry-bridge.installer.reloading', { seconds }), secondsLeft: seconds }),
+        reload,
+        schedule,
+        cancel
+    );
+    // "Wait, stay here" on the success state
+    modal.setOptions({
+        cancelReload: () => {
+            stopCountdown();
+            modal.stopLoading();
+            modal.setOptions({ secondsLeft: null, reloadCancelled: true });
+        },
+    });
 
     return job;
 }

@@ -4,21 +4,23 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { task } from 'ember-concurrency';
 
+/**
+ * Admin → Extensions Registry → Registry Config: the Registry Service URL, this instance's registration
+ * (masked token) and a connection test.
+ */
 export default class RegistryAdminConfigComponent extends Component {
     @service fetch;
     @service notifications;
     @service modalsManager;
-    @tracked registryHost;
-    @tracked registryToken;
-    @tracked savedToken;
-    @tracked isEditingToken = false;
+    @service intl;
     @tracked testResult;
     @tracked serviceUrl;
     @tracked savedServiceUrl;
-    @tracked apiVersion;
     @tracked instanceKind;
     @tracked instance;
     @tracked registrationCode = '';
+    /** Registering an instance that is already registered: the service rotates its token on the same instance. */
+    @tracked isReregistering = false;
 
     constructor() {
         super(...arguments);
@@ -29,41 +31,26 @@ export default class RegistryAdminConfigComponent extends Component {
         return this.getConfigValues.isRunning || this.saveConfigValues.isRunning || this.testConnection.isRunning || this.registerInstance.isRunning || this.unregisterInstance.isRunning;
     }
 
-    get usesService() {
-        return this.apiVersion === 'v2';
-    }
-
     get isRegistered() {
         return this.instance?.registered === true;
-    }
-
-    /** A service URL typed but not saved yet; registration and the test run against it. */
-    get serviceUrlChanged() {
-        return (this.serviceUrl || '') !== (this.savedServiceUrl || '');
     }
 
     get canRegister() {
         return !this.isBusy && Boolean(this.serviceUrl) && Boolean(this.registrationCode && this.registrationCode.trim());
     }
 
-    @action editToken() {
-        this.savedToken = this.registryToken;
-        this.registryToken = '';
-        this.isEditingToken = true;
+    /** Where this console is served; the service only returns buyers from checkout to this host. */
+    get consoleOrigin() {
+        return window.location.origin;
     }
 
-    @action cancelEditToken() {
-        this.registryToken = this.savedToken;
-        this.isEditingToken = false;
+    t(key, params) {
+        return this.intl.t(`registry-bridge.admin.config.${key}`, params);
     }
 
     applyConfig(config = {}) {
-        this.registryHost = config.host;
-        this.registryToken = config.token;
-        this.savedToken = config.token;
         this.serviceUrl = config.service_url;
         this.savedServiceUrl = config.service_url;
-        this.apiVersion = config.api_version;
         this.instanceKind = config.instance_kind;
         this.instance = config.instance ?? { registered: false };
     }
@@ -79,15 +66,10 @@ export default class RegistryAdminConfigComponent extends Component {
 
     @task *saveConfigValues() {
         try {
-            const config = yield this.fetch.post(
-                'registry-extensions/config',
-                { host: this.registryHost, token: this.registryToken, service_url: this.serviceUrl ?? '' },
-                { namespace: '~registry/v1' }
-            );
+            const config = yield this.fetch.post('registry-extensions/config', { service_url: this.serviceUrl ?? '' }, { namespace: '~registry/v1' });
             this.applyConfig(config);
-            this.isEditingToken = false;
             this.testResult = null;
-            this.notifications.success('Registry configuration saved.');
+            this.notifications.success(this.t('saved'));
         } catch (error) {
             this.notifications.serverError(error);
         }
@@ -96,16 +78,14 @@ export default class RegistryAdminConfigComponent extends Component {
     @task *testConnection() {
         this.testResult = null;
 
-        const payload = this.serviceUrl ? { service_url: this.serviceUrl } : { host: this.registryHost, token: this.registryToken };
-
         try {
-            const result = yield this.fetch.post('registry-extensions/config/test', payload, { namespace: '~registry/v1' });
+            const result = yield this.fetch.post('registry-extensions/config/test', this.serviceUrl ? { service_url: this.serviceUrl } : {}, { namespace: '~registry/v1' });
             this.testResult = result;
 
             if (result && result.ok) {
-                this.notifications.success(`Connected to ${result.host} in ${result.latency_ms}ms.`);
+                this.notifications.success(this.t('result.ok-toast', { host: result.host, ms: result.latency_ms }));
             } else {
-                this.notifications.warning((result && result.error) || 'Unable to connect to the registry.');
+                this.notifications.warning((result && result.error) || this.t('result.failed'));
             }
         } catch (error) {
             this.notifications.serverError(error);
@@ -116,23 +96,39 @@ export default class RegistryAdminConfigComponent extends Component {
         try {
             const config = yield this.fetch.post(
                 'registry-extensions/instance/register',
-                { code: this.registrationCode.trim(), service_url: this.serviceUrl },
+                { code: this.registrationCode.trim(), service_url: this.serviceUrl, host: this.consoleOrigin },
                 { namespace: '~registry/v1' }
             );
             this.applyConfig(config);
             this.registrationCode = '';
+            this.isReregistering = false;
             this.testResult = null;
-            this.notifications.success(`Registered with ${config.service_url} as ${config.instance?.name ?? 'this instance'}.`);
+            const name = config.instance?.name ?? this.t('this-instance');
+            if (config.instance?.rotated) {
+                this.notifications.success(this.t('reregistered-toast', { host: config.service_url, name, id: config.instance?.id ?? '' }));
+            } else {
+                this.notifications.success(this.t('registered-toast', { host: config.service_url, name }));
+            }
         } catch (error) {
             this.notifications.serverError(error);
         }
     }
 
+    @action startReregister() {
+        this.registrationCode = '';
+        this.isReregistering = true;
+    }
+
+    @action cancelReregister() {
+        this.registrationCode = '';
+        this.isReregistering = false;
+    }
+
     @action confirmUnregister() {
         this.modalsManager.confirm({
-            title: 'Unregister this instance?',
-            body: 'This instance forgets its registry token and can no longer install or update extensions from the registry service. Installed extensions keep working. To revoke the token itself, remove the instance from your registry organization.',
-            acceptButtonText: 'Unregister',
+            title: this.t('unregister.title'),
+            body: this.t('unregister.body'),
+            acceptButtonText: this.t('unregister.accept'),
             acceptButtonScheme: 'danger',
             confirm: async (modal) => {
                 modal.startLoading();
@@ -147,7 +143,7 @@ export default class RegistryAdminConfigComponent extends Component {
             const config = yield this.fetch.delete('registry-extensions/instance', {}, { namespace: '~registry/v1' });
             this.applyConfig(config);
             this.testResult = null;
-            this.notifications.info('This instance is no longer registered with the registry service.');
+            this.notifications.info(this.t('unregistered-toast'));
         } catch (error) {
             this.notifications.serverError(error);
         }

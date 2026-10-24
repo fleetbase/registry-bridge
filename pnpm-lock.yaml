@@ -29,9 +29,6 @@ importers:
       '@fortawesome/free-solid-svg-icons':
         specifier: 6.4.0
         version: 6.4.0
-      '@stripe/connect-js':
-        specifier: ^3.3.10
-        version: 3.3.12
       ember-auto-import:
         specifier: ^2.7.4
         version: 2.7.4(webpack@5.94.0)
@@ -44,12 +41,6 @@ importers:
       ember-intl:
         specifier: 6.3.2
         version: 6.3.2(@babel/core@7.25.2)(webpack@5.94.0)
-      ember-radio-button:
-        specifier: ^3.0.0-beta.1
-        version: 3.0.0-beta.1
-      ember-tag-input:
-        specifier: ^3.1.0
-        version: 3.1.0
       ember-wormhole:
         specifier: ^0.6.0
         version: 0.6.0
@@ -2181,9 +2172,6 @@ packages:
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
-
-  '@stripe/connect-js@3.3.12':
-    resolution: {integrity: sha512-hXbgvGq9Lb6BYgsb8lcbjL76Yqsxr0yAj6T9ZFTfUK0O4otI5GSEWum9do9rf/E5OfYy6fR1FG/77Jve2w1o6Q==}
 
   '@sveltejs/acorn-typescript@1.0.13':
     resolution: {integrity: sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ==}
@@ -4740,10 +4728,6 @@ packages:
       '@ember/test-helpers': '>=3.0.3'
       ember-source: '>=4.0.0'
       qunit: ^2.13.0
-
-  ember-radio-button@3.0.0-beta.1:
-    resolution: {integrity: sha512-KcSCXQHNosYRFB2t5GDpXQaHzu3A/UwoKgxVQ2XwV9n4xico7HqWReyt7s3OAMxRYmfZTxeQw7F5THawNd3SYA==}
-    engines: {node: 12.* || 14.* || >= 16}
 
   ember-ref-bucket@4.1.0:
     resolution: {integrity: sha512-oEUU2mDtuYuMM039U9YEqrrOCVHH6rQfvbFOmh3WxOVEgubmLVyKEpGgU4P/6j0B/JxTqqTwM3ULTQyDto8dKg==}
@@ -12797,8 +12781,6 @@ snapshots:
 
   '@socket.io/component-emitter@3.1.2': {}
 
-  '@stripe/connect-js@3.3.12': {}
-
   '@sveltejs/acorn-typescript@1.0.13(acorn@8.19.0)':
     dependencies:
       acorn: 8.19.0
@@ -16773,18 +16755,6 @@ snapshots:
     transitivePeerDependencies:
       - '@glint/template'
       - supports-color
-
-  ember-radio-button@3.0.0-beta.1:
-    dependencies:
-      ember-cli-babel: 7.26.11
-      ember-cli-htmlbars: 5.7.2
-      webpack: 5.94.0
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - supports-color
-      - uglify-js
-      - webpack-cli
 
   ember-ref-bucket@4.1.0(@babel/core@7.28.5):
     dependencies:

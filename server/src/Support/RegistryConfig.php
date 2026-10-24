@@ -2,30 +2,23 @@
 
 namespace Fleetbase\RegistryBridge\Support;
 
+use Fleetbase\Support\Utils as SupportUtils;
+
 /**
- * Resolved registry settings for this instance.
+ * Resolved Registry Service settings for this instance.
  *
- * Two registries can back the module:
- *
- * - `v2`: the Registry Service (`registry.service_url`), which serves the catalog, the npm and Composer
- *   package endpoints and the instance API. Used whenever a service URL is configured, unless
- *   `registry.api_version` is pinned to `v1`.
- * - `v1`: the cloud registry-bridge endpoints (`registry.host` + `~registry/v1/extensions`), kept as the
- *   fallback when no service URL is configured.
- *
- * Built from the merged `registry-bridge.registry` config (settings override env), or from a plain array in tests.
- * The stored settings are read again once per Octane request or queued job (`RegistrySettings`), so a registration
- * made in another process or worker applies without restarting workers.
+ * The Registry Service (`registry.service_url`) serves the catalog, the npm and Composer package endpoints
+ * and the instance API. Built from the merged `registry-bridge.registry` config (settings override env), or
+ * from a plain array in tests. The stored settings are read again once per Octane request or queued job
+ * (`RegistrySettings`), so a registration made in another process or worker applies without restarting workers.
  *
  * @phpstan-consistent-constructor
  */
 class RegistryConfig
 {
-    public const V1 = 'v1';
-
     public const V2 = 'v2';
 
-    public const DEFAULT_HOST = 'https://registry.fleetbase.io';
+    public const DEFAULT_SERVICE_URL = 'https://registry.fleetbase.io';
 
     public const KIND_SELF_HOSTED = 'self_hosted';
 
@@ -51,24 +44,6 @@ class RegistryConfig
     }
 
     /**
-     * Legacy (v1) registry host.
-     */
-    public function host(): string
-    {
-        $host = $this->string('host');
-
-        return $host !== '' ? $host : static::DEFAULT_HOST;
-    }
-
-    /**
-     * Legacy (v1) bearer token.
-     */
-    public function token(): ?string
-    {
-        return $this->string('token') ?: null;
-    }
-
-    /**
      * Registry Service base URL without a trailing slash, or null when none is configured.
      */
     public function serviceUrl(): ?string
@@ -79,24 +54,11 @@ class RegistryConfig
     }
 
     /**
-     * The API version in use: the configured one when valid, else `v2` with a service URL and `v1` without.
-     */
-    public function apiVersion(): string
-    {
-        if (strtolower($this->string('api_version')) === static::V1) {
-            return static::V1;
-        }
-
-        // v2 needs a service to talk to; without one the cloud endpoints stay the fallback
-        return $this->serviceUrl() ? static::V2 : static::V1;
-    }
-
-    /**
      * Whether the catalog, installs and updates go through the Registry Service.
      */
     public function usesService(): bool
     {
-        return $this->apiVersion() === static::V2;
+        return $this->serviceUrl() !== null;
     }
 
     /**
@@ -128,33 +90,32 @@ class RegistryConfig
     }
 
     /**
+     * The registry organization this instance is registered to (`id`, `slug`, `name`): it owns the licences
+     * bought here, not the console company. Null before registration.
+     *
+     * @return array{id: string|null, slug: string|null, name: string|null}|null
+     */
+    public function organization(): ?array
+    {
+        $organization = $this->instance()['organization'] ?? null;
+        if (!is_array($organization)) {
+            return null;
+        }
+
+        $value = fn (string $key) => is_string($organization[$key] ?? null) && $organization[$key] !== '' ? $organization[$key] : null;
+        $out   = ['id' => $value('id'), 'slug' => $value('slug'), 'name' => $value('name')];
+
+        return array_filter($out) !== [] ? $out : null;
+    }
+
+    /**
      * Instance kind reported at registration and used to match an extension's hosting.
      */
     public function instanceKind(): string
     {
         $kind = $this->string('instance_kind');
-        if (in_array($kind, [static::KIND_SELF_HOSTED, static::KIND_CLOUD], true)) {
-            return $kind;
-        }
 
-        // An instance that runs its own registry tables is Fleetbase Cloud
-        return Utils::castBoolean($this->registry['self_hosted'] ?? false) === true ? static::KIND_CLOUD : static::KIND_SELF_HOSTED;
-    }
-
-    /**
-     * Whether this instance runs its own registry tables (the cloud).
-     */
-    public function isSelfHostedRegistry(): bool
-    {
-        return Utils::castBoolean($this->registry['self_hosted'] ?? false) === true;
-    }
-
-    /**
-     * Base URL for client requests in the active mode.
-     */
-    public function baseUrl(): string
-    {
-        return $this->usesService() ? (string) $this->serviceUrl() : static::normalizeUrl($this->host());
+        return in_array($kind, [static::KIND_SELF_HOSTED, static::KIND_CLOUD], true) ? $kind : static::KIND_SELF_HOSTED;
     }
 
     /**
@@ -175,6 +136,41 @@ class RegistryConfig
         $url = $this->serviceUrl();
 
         return $url ? $url . '/composer' : null;
+    }
+
+    /**
+     * Publisher portal URL (the service's website), or null without a service.
+     */
+    public function publisherUrl(): ?string
+    {
+        $url = $this->string('publisher_url');
+        if ($url !== '') {
+            return static::normalizeUrl($url);
+        }
+
+        return $this->usesService() ? $this->serviceUrl() : null;
+    }
+
+    /**
+     * Whether purchases go through the service checkout (`POST /v1/instances/me/purchases/checkout`).
+     *
+     * `checkout` is `auto` (on for a registered instance unless the service answered that it has no
+     * checkout), or a boolean to force it.
+     *
+     * @param bool $serviceSupportsCheckout false once the service answered 404 or 405 to a checkout
+     */
+    public function checkoutEnabled(bool $serviceSupportsCheckout = true): bool
+    {
+        if (!$this->usesService() || !$this->isRegistered()) {
+            return false;
+        }
+
+        $mode = $this->registry['checkout'] ?? 'auto';
+        if (is_string($mode) && in_array(strtolower(trim($mode)), ['', 'auto'], true)) {
+            return $serviceSupportsCheckout;
+        }
+
+        return SupportUtils::castBoolean($mode) === true;
     }
 
     /**

@@ -2,23 +2,32 @@
 
 namespace Fleetbase\RegistryBridge\Support\Installer;
 
+use Fleetbase\Models\Company;
 use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
 
 /**
  * Install records for Registry Service extensions (`registry_service_installs`),
  * which keep the engine loading and the Installed page working offline.
- * Company resolution is shared with the local recorder.
  */
 class ServiceInstallRecorder implements InstallRecorder
 {
-    public function __construct(private readonly InstallRecorder $companies, private readonly ?string $serviceUrl = null)
+    public function __construct(private readonly ?string $serviceUrl = null)
     {
     }
 
+    /**
+     * The company uuid for a uuid or public id, or the only company when none is given (single-tenant
+     * self-hosted instances run the CLI without one).
+     */
     public function resolveCompany(?string $company): ?string
     {
-        return $this->companies->resolveCompany($company);
+        if ($company !== null && $company !== '') {
+            return Company::where('uuid', $company)->orWhere('public_id', $company)->value('uuid');
+        }
+
+        // Through query(): Fleetbase's Company model has an instance count(), so Company::count() is a fatal error.
+        return Company::query()->count() === 1 ? Company::query()->value('uuid') : null;
     }
 
     public function isInstalled(string $company, ExtensionRef $extension): bool

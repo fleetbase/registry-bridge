@@ -1,8 +1,7 @@
 <?php
 
 /*
- * Registry data (extensions, bundles, installs, purchases, registry users and
- * developer accounts) only exists in the live database: this package ships with
+ * Registry data (installs from the Registry Service) only exists in the live database: this package ships with
  * `extra.fleetbase.sandbox-migrations: false`. When core-api switches a request
  * into sandbox ("test mode") it sets `database.default` and
  * `fleetbase.connection.db` to `sandbox`, and every Fleetbase model that is not
@@ -16,10 +15,7 @@
  */
 
 use Fleetbase\Models\Category;
-use Fleetbase\RegistryBridge\Expansions\CategoryExpansion;
 use Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryController;
-use Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RegistryExtensionController;
-use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
@@ -73,9 +69,7 @@ function bootSandboxHarness(): Capsule
                 SANDBOX_CONNECTION => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
             ],
         ],
-        'fleetbase' => ['connection' => ['db' => LIVE_CONNECTION]],
-        // The local registry tables are only read when this instance is itself the registry (cloud)
-        'registry-bridge' => ['registry' => ['self_hosted' => true]],
+        'fleetbase'       => ['connection' => ['db' => LIVE_CONNECTION]],
         'cache'           => ['default' => 'array', 'stores' => ['array' => ['driver' => 'array']]],
     ]));
 
@@ -111,32 +105,7 @@ function bootSandboxHarness(): Capsule
     }
 
     // Registry tables only exist on the live connection.
-    $schema = $capsule->schema(LIVE_CONNECTION);
-    $schema->create('registry_extension_bundles', function (Blueprint $table) {
-        $table->string('uuid')->primary();
-        $table->string('extension_uuid')->nullable();
-        $table->text('meta')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-    $schema->create('registry_extensions', function (Blueprint $table) {
-        $table->string('uuid')->primary();
-        $table->string('public_id')->nullable();
-        $table->string('name')->nullable();
-        $table->string('status')->nullable();
-        $table->string('category_uuid')->nullable();
-        $table->string('current_bundle_uuid')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-    $schema->create('registry_extension_installs', function (Blueprint $table) {
-        $table->string('uuid')->primary();
-        $table->string('company_uuid')->nullable();
-        $table->string('extension_uuid')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-    $schema->create('registry_service_installs', function (Blueprint $table) {
+    $capsule->schema(LIVE_CONNECTION)->create('registry_service_installs', function (Blueprint $table) {
         $table->increments('id');
         $table->string('uuid')->nullable();
         $table->string('company_uuid')->nullable();
@@ -147,41 +116,9 @@ function bootSandboxHarness(): Capsule
         $table->timestamps();
         $table->softDeletes();
     });
-    $schema->create('registry_extension_purchases', function (Blueprint $table) {
-        $table->string('uuid')->primary();
-        $table->string('company_uuid')->nullable();
-        $table->string('extension_uuid')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    $live = $capsule->getConnection(LIVE_CONNECTION);
-    $live->table('categories')->insert([
-        ['uuid' => 'cat-with-extension', 'public_id' => 'category_live1', 'name' => 'Telematics', 'slug' => 'telematics', 'for' => 'extension_category', 'core_category' => 1],
-        ['uuid' => 'cat-empty', 'public_id' => 'category_live2', 'name' => 'Empty', 'slug' => 'empty', 'for' => 'extension_category', 'core_category' => 1],
+    $capsule->getConnection(LIVE_CONNECTION)->table('registry_service_installs')->insert([
+        'uuid' => 'install-1', 'company_uuid' => TEST_COMPANY_UUID, 'extension_id' => 'ext_test', 'npm_package' => '@fleetbase/test-engine', 'version' => '1.2.0',
     ]);
-    $live->table('registry_extension_bundles')->insert([
-        'uuid'           => 'bundle-1',
-        'extension_uuid' => 'ext-1',
-        'meta'           => json_encode(['package.json' => ['name' => '@fleetbase/test-engine']]),
-    ]);
-    $live->table('registry_extensions')->insert([
-        'uuid'                => 'ext-1',
-        'public_id'           => 'extension_1',
-        'name'                => 'Test Engine',
-        'status'              => 'published',
-        'category_uuid'       => 'cat-with-extension',
-        'current_bundle_uuid' => 'bundle-1',
-    ]);
-    $live->table('registry_extension_installs')->insert(['uuid' => 'install-1', 'company_uuid' => TEST_COMPANY_UUID, 'extension_uuid' => 'ext-1']);
-    $live->table('registry_extension_purchases')->insert(['uuid' => 'purchase-1', 'company_uuid' => TEST_COMPANY_UUID, 'extension_uuid' => 'ext-1']);
-
-    // The sandbox database has a category of the same kind, which must never be returned.
-    $capsule->getConnection(SANDBOX_CONNECTION)->table('categories')->insert([
-        'uuid' => 'cat-sandbox', 'public_id' => 'category_sandbox', 'name' => 'Sandbox', 'slug' => 'sandbox', 'for' => 'extension_category', 'core_category' => 1,
-    ]);
-
-    Category::expand('registryExtensions', CategoryExpansion::registryExtensions());
 
     // Switch into sandbox mode exactly like Auth::setSandboxSession().
     config(['database.default' => SANDBOX_CONNECTION, 'fleetbase.connection.db' => SANDBOX_CONNECTION]);
@@ -211,7 +148,7 @@ afterEach(function () {
 });
 
 test('the models directory contains every registry model', function () {
-    expect(registryBridgeModelClasses())->toHaveCount(7);
+    expect(registryBridgeModelClasses())->toHaveCount(1);
 });
 
 test('every registry-bridge model is pinned to the live connection while sandbox is active', function () {
@@ -225,29 +162,10 @@ test('every registry-bridge model is pinned to the live connection while sandbox
     }
 });
 
-test('the registry extension category relation resolves against the live connection', function () {
-    $extension = RegistryExtension::where('uuid', 'ext-1')->firstOrFail();
-
-    expect($extension->category()->getQuery()->getConnection()->getName())->toBe(LIVE_CONNECTION);
-    expect($extension->category)->not->toBeNull();
-    expect($extension->category->uuid)->toBe('cat-with-extension');
-
-    $eager = RegistryExtension::with('category')->where('uuid', 'ext-1')->firstOrFail();
-    expect($eager->category->uuid)->toBe('cat-with-extension');
-});
-
-test('categories endpoint queries live categories and live registry extensions in sandbox mode', function () {
-    $response = app(RegistryController::class)->categories();
-    $uuids    = collect($response->resource)->pluck('uuid')->all();
-
-    expect($uuids)->toBe(['cat-with-extension']);
-    collect($response->resource)->each(fn ($category) => expect($category->getConnectionName())->toBe(LIVE_CONNECTION));
-});
-
 test('engines endpoint reads installs from the live connection in sandbox mode', function () {
     $response = app(RegistryController::class)->getInstalledEngines(sandboxRequest());
 
-    expect($response->getData(true))->toBe([['name' => '@fleetbase/test-engine']]);
+    expect($response->getData(true))->toBe([['name' => '@fleetbase/test-engine', 'version' => '1.2.0']]);
 });
 
 test('engine install status reads from the live connection in sandbox mode', function () {
@@ -255,16 +173,4 @@ test('engine install status reads from the live connection in sandbox mode', fun
     $request->merge(['engine' => '@fleetbase/test-engine']);
 
     expect(app(RegistryController::class)->getEngineInstallStatus($request))->toBe(['installed' => true]);
-});
-
-test('installed and purchased extensions are read from the live connection in sandbox mode', function () {
-    $controller = app(RegistryExtensionController::class);
-
-    foreach (['installed', 'purchased'] as $method) {
-        $response = $controller->{$method}();
-        $models   = collect($response->resource);
-
-        expect($models->pluck('uuid')->all())->toBe(['ext-1'], $method);
-        $models->each(fn ($extension) => expect($extension->getConnectionName())->toBe(LIVE_CONNECTION));
-    }
 });

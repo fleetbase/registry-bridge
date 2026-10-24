@@ -28,10 +28,6 @@ use Illuminate\Contracts\Encryption\StringEncrypter;
  */
 class RegistrySettings
 {
-    public const SETTING_HOST = 'registry-bridge.registry.host';
-
-    public const SETTING_TOKEN = 'registry-bridge.registry.token';
-
     /**
      * Container key marking the settings as applied for the current request or job.
      */
@@ -51,10 +47,7 @@ class RegistrySettings
      * Setting key => `registry-bridge.registry` config key.
      */
     public const KEYS = [
-        self::SETTING_HOST                           => 'host',
-        self::SETTING_TOKEN                          => 'token',
         InstanceRegistration::SETTING_SERVICE_URL    => 'service_url',
-        InstanceRegistration::SETTING_API_VERSION    => 'api_version',
         InstanceRegistration::SETTING_INSTANCE_TOKEN => 'instance_token',
         InstanceRegistration::SETTING_INSTANCE       => 'instance',
     ];
