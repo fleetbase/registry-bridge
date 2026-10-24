@@ -34,6 +34,11 @@ export default class PurchasedController extends Controller {
         return (this.extensions ?? []).filter((extension) => extension.is_installed !== true && extension.is_purchased === true).length;
     }
 
+    /** Refunded or revoked licences still listed: their extensions can no longer be installed again or updated. */
+    get blockedCount() {
+        return (this.extensions ?? []).filter((extension) => ['refunded', 'revoked'].includes(extension.meta?.licence_state)).length;
+    }
+
     get organizationName() {
         return this.registryContext.organizationName ?? this.intl.t('registry-bridge.purchase.your-organization');
     }

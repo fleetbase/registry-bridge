@@ -29,6 +29,7 @@ export default class ApplicationRoute extends Route {
         controller.rememberCategoryCounts(model);
         this.registryContext.load();
         this.registryContext.loadCounts();
+        this.registryContext.watchCounts(this.hostRouter);
         this.restoreFromUrl();
     }
 

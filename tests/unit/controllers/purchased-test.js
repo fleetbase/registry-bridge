@@ -42,6 +42,7 @@ module('Unit | Controller | purchased', function (hooks) {
             ['Registry Demo Pro', 'Acme Route Planner', 'Delisted Pro']
         );
         assert.strictEqual(controller.readyToInstall, 1, 'only the active licence counts as ready');
+        assert.strictEqual(controller.blockedCount, 2, 'the refunded and the revoked licence say updates are blocked');
         assert.strictEqual(this.owner.lookup('service:registry-context').countLoads, 1);
 
         const install = controller.columns.at(-1).actions.find((action) => action.icon === 'download');
