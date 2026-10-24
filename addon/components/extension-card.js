@@ -5,6 +5,7 @@ import { action } from '@ember/object';
 import { later } from '@ember/runloop';
 import formatCurrency from '@fleetbase/ember-ui/utils/format-currency';
 import isModel from '@fleetbase/ember-core/utils/is-model';
+import { installerChannel, runInstallerJob } from '../utils/installer-job';
 
 function removeParamFromCurrentUrl(paramToRemove) {
     const url = new URL(window.location.href);
@@ -27,6 +28,7 @@ export default class ExtensionCardComponent extends Component {
     @service stripe;
     @service urlSearchParams;
     @service abilities;
+    @service intl;
     @tracked extension;
 
     constructor(owner, { resource }) {
@@ -40,7 +42,7 @@ export default class ExtensionCardComponent extends Component {
     }
 
     @action onClick(options = {}) {
-        const installChannel = `install.${this.currentUser.companyId}.${this.extension.id}`;
+        const installChannel = installerChannel('install', this.currentUser.companyId, this.extension.id);
         const isAuthor = this.extension.is_author === true;
         const isSelfManaged = this.extension.self_managed === true;
         const isAlreadyPurchased = this.extension.is_purchased === true;
@@ -86,6 +88,8 @@ export default class ExtensionCardComponent extends Component {
             stepDescription: 'Awaiting install to begin...',
             progress: 0,
             extension: this.extension,
+            // Stay open after a failed install so the error and Retry are shown.
+            keepOpen: true,
             viewSelfManagesInstallInstructions: () => {
                 this.selfManagedInstallInstructions({
                     extension: this.extension,
@@ -117,44 +121,20 @@ export default class ExtensionCardComponent extends Component {
                     );
                 }
 
-                // Listen for install progress
-                this.socket.listen(installChannel, ({ process, step, progress }) => {
-                    let stepDescription;
-                    switch (step) {
-                        case 'server.install':
-                            stepDescription = '(1/3) Installing extension...';
-                            break;
-
-                        case 'engine.install':
-                            stepDescription = '(2/3) Installing extension...';
-                            break;
-
-                        case 'console.build':
-                            stepDescription = '(3/3) Completing install...';
-                            break;
-
-                        default:
-                            break;
-                    }
-                    modal.setOptions({ process, step, progress, stepDescription });
-                });
-
-                // Start install progress
-                modal.setOption('progress', 5);
-
-                // Run install
+                // Queue the install and follow the job until it completes or fails
                 try {
-                    await this.extension.install();
-                    this.notifications.info(`${this.extension.name} is now Installed.`);
-                    later(
-                        this,
-                        () => {
-                            window.location.reload(true);
-                        },
-                        600
-                    );
-                    removeParamFromCurrentUrl('extension_id');
-                    modal.done();
+                    const job = await runInstallerJob({
+                        modal,
+                        intl: this.intl,
+                        fetch: this.fetch,
+                        socket: this.socket,
+                        channel: installChannel,
+                        request: () => this.extension.install(),
+                    });
+                    if (job.status === 'completed') {
+                        this.notifications.info(this.intl.t('registry-bridge.installer.installed', { extensionName: this.extension.name }));
+                        removeParamFromCurrentUrl('extension_id');
+                    }
                 } catch (error) {
                     this.notifications.serverError(error);
                 }

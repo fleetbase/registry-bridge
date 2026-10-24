@@ -8,6 +8,7 @@ use Fleetbase\Models\File;
 use Fleetbase\Models\Model;
 use Fleetbase\Models\User;
 use Fleetbase\RegistryBridge\Exceptions\InstallFailedException;
+use Fleetbase\RegistryBridge\Support\Installer\OutputProgress;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Fleetbase\Support\SocketCluster\SocketClusterService;
 use Fleetbase\Traits\HasApiModelBehavior;
@@ -867,30 +868,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function composerOutputFriendly($output): string
     {
-        // Check for successful install/update
-        if (strpos($output, 'Generating optimized autoload files') !== false) {
-            return 'Installation successful. Packages have been updated.';
-        }
-
-        // Check for 'Nothing to install, update or remove'
-        if (strpos($output, 'Nothing to install, update or remove') !== false) {
-            return 'No changes made. Everything is already up-to-date.';
-        }
-
-        // Check for 'Package is abandoned'
-        if (preg_match_all('/Package (.+) is abandoned/', $output, $matches)) {
-            $abandonedPackages = implode(', ', $matches[1]);
-
-            return "Warning: The following packages are abandoned and should be replaced: $abandonedPackages.";
-        }
-
-        // Check for dependency issues
-        if (preg_match('/Problem (\d+)/', $output, $matches)) {
-            return 'Unable to install due to dependency compatibility issues.';
-        }
-
-        // If no known patterns are found, return a generic message or the original output
-        return 'An error occurred during installation. Please check the log for details.';
+        return OutputProgress::composerOutputFriendly((string) $output);
     }
 
     /**
@@ -905,62 +883,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function composerInstallOutputProgress($output): int
     {
-        // Trim the output to remove unnecessary whitespace
-        $output = trim($output);
-
-        // Initial phase, updating composer.json and resolving dependencies
-        if (strpos($output, 'Running composer update') !== false) {
-            return 10;
-        }
-        // Dependencies are being updated
-        elseif (strpos($output, 'Loading composer repositories with package information') !== false) {
-            return 20;
-        }
-        // Dependencies updating step
-        elseif (strpos($output, 'Updating dependencies') !== false) {
-            return 30;
-        }
-        // Lock file is being written
-        elseif (strpos($output, 'Lock file operations') !== false) {
-            return 40;
-        }
-        // Lock file writing in progress
-        elseif (strpos($output, 'Writing lock file') !== false) {
-            return 50;
-        }
-        // Installing dependencies
-        elseif (strpos($output, 'Installing dependencies from lock file') !== false) {
-            return 60;
-        }
-        // Package operations, installation begins
-        elseif (strpos($output, 'Package operations:') !== false) {
-            return 70;
-        }
-        // Downloading a specific package
-        elseif (strpos($output, '- Downloading') !== false) {
-            return 75;
-        }
-        // Extracting archive for a package
-        elseif (strpos($output, '- Installing') !== false) {
-            return 80;
-        }
-        // Autoload files are generated, nearing completion
-        elseif (strpos($output, 'Generating optimized autoload files') !== false) {
-            return 90;
-        }
-        // Final steps, package discovery and publishing assets
-        elseif (strpos($output, 'postAutoloadDump') !== false
-                || strpos($output, '@php artisan package:discover --ansi') !== false
-                || strpos($output, '@php artisan vendor:publish') !== false) {
-            return 95;
-        }
-        // Completion messages
-        elseif (strpos($output, 'No security vulnerability advisories found') !== false) {
-            return 100;
-        }
-
-        // Default progress if no known phrases are matched
-        return 0;
+        return OutputProgress::composerInstallOutputProgress((string) $output);
     }
 
     /**
@@ -976,58 +899,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function composerUninstallOutputProgress($output): int
     {
-        // Trim the output to remove unnecessary whitespace
-        $output = trim($output);
-
-        // Initial phase, updating composer.json and resolving dependencies
-        if (strpos($output, 'Running composer update') !== false) {
-            return 10;
-        }
-        // Loading repositories
-        elseif (strpos($output, 'Loading composer repositories with package information') !== false) {
-            return 20;
-        }
-        // Dependencies are being updated
-        elseif (strpos($output, 'Updating dependencies') !== false) {
-            return 30;
-        }
-        // Lock file operations are defined
-        elseif (strpos($output, 'Lock file operations') !== false) {
-            return 40;
-        }
-        // Lock file writing in progress
-        elseif (strpos($output, 'Writing lock file') !== false) {
-            return 50;
-        }
-        // Installing dependencies from lock file
-        elseif (strpos($output, 'Installing dependencies from lock file') !== false) {
-            return 60;
-        }
-        // Package operations, removal begins
-        elseif (strpos($output, 'Package operations:') !== false) {
-            return 70;
-        }
-        // Removing a specific package
-        elseif (strpos($output, '- Removing') !== false) {
-            return 80;
-        }
-        // Generating autoload files, nearing completion
-        elseif (strpos($output, 'Generating optimized autoload files') !== false) {
-            return 90;
-        }
-        // Final steps, package discovery and publishing assets
-        elseif (strpos($output, 'postAutoloadDump') !== false
-                || strpos($output, '@php artisan package:discover --ansi') !== false
-                || strpos($output, '@php artisan vendor:publish') !== false) {
-            return 95;
-        }
-        // Completion messages
-        elseif (strpos($output, 'No security vulnerability advisories found') !== false) {
-            return 100;
-        }
-
-        // Default progress if no known phrases are matched
-        return 0;
+        return OutputProgress::composerUninstallOutputProgress((string) $output);
     }
 
     /**
@@ -1041,35 +913,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function pnpmInstallOutputProgress($output): int
     {
-        $output = trim($output);
-
-        // Check if the output indicates starting phase
-        if (strpos($output, 'Packages: +1') !== false) {
-            return 10;
-        }
-        // Check for resolved packages progress
-        elseif (preg_match('/Progress: resolved (\d+),/', $output, $matches)) {
-            $resolved = (int) $matches[1];
-            if ($resolved < 500) {
-                return 20;
-            } elseif ($resolved < 1000) {
-                return 40;
-            } elseif ($resolved < 1500) {
-                return 60;
-            } else {
-                return 80;
-            }
-        }
-        // Check for final steps
-        elseif (strpos($output, 'dependencies:') !== false) {
-            return 90;
-        }
-        // Completion message
-        elseif (strpos($output, 'Done in') !== false) {
-            return 100;
-        }
-
-        return 0;
+        return OutputProgress::pnpmInstallOutputProgress((string) $output);
     }
 
     /**
@@ -1083,35 +927,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function pnpmUninstallOutputProgress($output): int
     {
-        $output = trim($output);
-
-        // Check for the uninstall initiation
-        if (strpos($output, 'Packages: -1') !== false) {
-            return 10;
-        }
-        // Check for resolved packages progress
-        elseif (preg_match('/Progress: resolved (\d+),/', $output, $matches)) {
-            $resolved = (int) $matches[1];
-            if ($resolved < 500) {
-                return 20;
-            } elseif ($resolved < 1000) {
-                return 40;
-            } elseif ($resolved < 1500) {
-                return 60;
-            } else {
-                return 80;
-            }
-        }
-        // Check for final steps
-        elseif (strpos($output, 'dependencies:') !== false) {
-            return 90;
-        }
-        // Completion message
-        elseif (strpos($output, 'Done in') !== false) {
-            return 100;
-        }
-
-        return 0;
+        return OutputProgress::pnpmUninstallOutputProgress((string) $output);
     }
 
     /**
@@ -1128,31 +944,7 @@ class RegistryExtensionBundle extends Model
      */
     public static function pnpmBuildOutputProgress($output): int
     {
-        $output = trim($output);
-
-        // Prebuild and setup phase
-        if (strpos($output, 'node prebuild.js') !== false) {
-            return 10;
-        }
-        // Initial building phase
-        elseif (strpos($output, '- Building') !== false) {
-            return 20;
-        }
-        // Middle build process, handling various transformations and optimizations
-        elseif (strpos($output, 'postcss-is-pseudo-class') !== false) {
-            return 50;
-        }
-        // Cleanup phase before completion
-        elseif (strpos($output, 'cleaning up...') !== false) {
-            return 80;
-        }
-        // Build completion message
-        elseif (strpos($output, 'Built project successfully') !== false) {
-            return 100;
-        }
-
-        // Default progress if no known phrases are matched
-        return 0;
+        return OutputProgress::pnpmBuildOutputProgress((string) $output);
     }
 
     /**

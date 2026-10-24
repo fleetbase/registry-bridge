@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
-import { later } from '@ember/runloop';
+import { installerChannel, runInstallerJob } from '../utils/installer-job';
 
 export default class InstalledController extends Controller {
     @service modalsManager;
@@ -10,6 +10,8 @@ export default class InstalledController extends Controller {
     @service socket;
     @service hostRouter;
     @service abilities;
+    @service intl;
+    @service fetch;
 
     @action about(extension) {
         this.modalsManager.show('modals/extension-details', {
@@ -23,7 +25,7 @@ export default class InstalledController extends Controller {
     }
 
     @action uninstall(extension) {
-        const uninstallChannel = `uninstall.${this.currentUser.companyId}.${extension.id}`;
+        const uninstallChannel = installerChannel('uninstall', this.currentUser.companyId, extension.id);
 
         this.modalsManager.show('modals/extension-uninstall', {
             title: `Uninstall ${extension.name}`,
@@ -38,47 +40,23 @@ export default class InstalledController extends Controller {
             stepDescription: 'Awaiting uninstall to begin...',
             progress: 0,
             extension,
+            // Stay open after a failed uninstall so the error and Retry are shown.
+            keepOpen: true,
             confirm: async (modal) => {
-                modal.startLoading();
-
-                // Listen for uninstall progress
-                this.socket.listen(uninstallChannel, ({ process, step, progress }) => {
-                    let stepDescription;
-                    switch (step) {
-                        case 'server.uninstall':
-                            stepDescription = '(1/3) Uninstalling extension...';
-                            break;
-
-                        case 'engine.uninstall':
-                            stepDescription = '(2/3) Uninstalling extension...';
-                            break;
-
-                        case 'console.build':
-                            stepDescription = '(3/3) Completing uninstall...';
-                            break;
-
-                        default:
-                            break;
-                    }
-                    modal.setOptions({ process, step, progress, stepDescription });
-                });
-
-                // Start uninstall progress
-                modal.setOption('progress', 5);
-
-                // Run uninstall
+                // Queue the uninstall and follow the job until it completes or fails
                 try {
-                    await extension.uninstall();
-                    await this.hostRouter.refresh();
-                    this.notifications.info(`${extension.name} is now Uninstalled.`);
-                    later(
-                        this,
-                        () => {
-                            window.location.reload(true);
-                        },
-                        600
-                    );
-                    modal.done();
+                    const job = await runInstallerJob({
+                        modal,
+                        intl: this.intl,
+                        fetch: this.fetch,
+                        socket: this.socket,
+                        channel: uninstallChannel,
+                        request: () => extension.uninstall(),
+                    });
+                    if (job.status === 'completed') {
+                        this.notifications.info(this.intl.t('registry-bridge.installer.uninstalled', { extensionName: extension.name }));
+                        await this.hostRouter.refresh();
+                    }
                 } catch (error) {
                     this.notifications.serverError(error);
                 }

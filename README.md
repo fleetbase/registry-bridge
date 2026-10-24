@@ -100,8 +100,10 @@ whenever one of the registry settings is written or deleted. A registration made
 `octane:reload` or `queue:restart`: on the next request with a shared cache store (Redis), and within the TTL when
 each container has its own store.
 
-Installs report to the service's instance API, which checks the licence and the extension's hosting before anything
-is installed. Composer and pnpm authenticate per process: `COMPOSER_AUTH` for Composer, and for npm
+Installs of service extensions run through the queued installer (see Extension installer below), which looks them up
+by `ext_` id, slug or package name. Its resolve step reports `installing` to the service's instance API, which checks
+the licence and the extension's hosting before anything is installed; `installed`, `failed` and uninstalls are reported
+when the job ends. Composer and pnpm authenticate per process: `COMPOSER_AUTH` for Composer, and for npm
 `NPM_CONFIG_//<host>/npm/:_authToken` plus `npm_config_userconfig` pointing at
 [`server/resources/npm/registry.npmrc`](server/resources/npm/registry.npmrc), which holds only `${…}` placeholders
 (pnpm 11 does not read `//host` credentials from the environment). No `auth.json` or `.npmrc` with a token is
@@ -155,6 +157,23 @@ pnpm start
 ```bash
 pnpm build
 ```
+
+## Extension installer
+
+Installs, uninstalls and updates run as `InstallExtensionJob` on the `installer` queue, one at a time per instance (a cache lock owned by the running job). The console's `POST installer/install` and `installer/uninstall` return `202 { status: "queued", job }`; poll `GET installer/jobs/{id}` or listen on `install.{company}.{extension}` (`uninstall.…` for uninstalls) for `step` and `progress`. The console's install and uninstall modals do both (`addon/utils/installer-job.js`): they show the queue position and each step, count down to a reload on success, and on failure show the step, message and log tail with Retry.
+
+```bash
+php artisan registry:install pallet --release=0.0.2   # or pallet@0.0.2; artisan reserves --version
+php artisan registry:update pallet --json
+php artisan registry:uninstall pallet --company=<uuid or public id>
+php artisan queue:work --queue=installer --timeout=7200   # the worker that runs them
+```
+
+`--sync` runs the job in the current process. Stages: resolve the release, download and verify checksums, snapshot `composer.json`, `composer.lock`, the console's `package.json` and `pnpm-lock.yaml`, the runtime manifest and the engine's `engines-dist` folder, `composer require`, the engine step, clear caches, record the install. Any failure restores the snapshot and reports the stage and the last 50 log lines.
+
+When a release carries a prebuilt engine dist (D3 Outcome A), the engine step checks it against the console's `dist/host-modules.json` with `@fleetbase/ember-core`'s compatibility check, unpacks it into the runtime engines directory (default `<console>/dist/engines-dist`) and adds it to the manifest served at `GET ~registry/v1/engines/runtime`, which the console reads at boot. Without a prebuilt dist it falls back to `pnpm add` and `pnpm build`. Settings live under `registry-bridge.installer` in `server/config/registry-bridge.php`.
+
+Where releases come from is a `ReleaseSource`: with a Registry Service configured the service catalog is asked first and this instance's registry tables second (`SourceRoutingReleaseSource`). The job record's `extension.source` (`registry-service` or `local`) decides where the install is recorded and whether the service hears about it (`InstallReporter`); credentials reach Composer and pnpm through `PackageCredentials`, as process environment only.
 
 ## Contributing
 See the Contributing Guide for details on how to contribute to this project.

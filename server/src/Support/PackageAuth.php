@@ -113,6 +113,36 @@ class PackageAuth
     }
 
     /**
+     * URL of a release's prebuilt engine dist on the service (`<service>/npm/<name>/-/dist/<version>`).
+     */
+    public function npmDistUrl(string $packageName, string $version): ?string
+    {
+        $npmUrl = $this->config->npmRegistryUrl();
+        if (!$npmUrl || $packageName === '' || $version === '') {
+            return null;
+        }
+
+        return $npmUrl . $packageName . '/-/dist/' . rawurlencode($version);
+    }
+
+    /**
+     * Headers for downloading `$url`: the instance token as a bearer for URLs on the configured service, nothing
+     * for any other host.
+     *
+     * @return array<string, string>
+     */
+    public function downloadHeaders(string $url): array
+    {
+        $serviceUrl = $this->config->serviceUrl();
+        $token      = $this->config->instanceToken();
+        if (!$serviceUrl || !$token || !str_starts_with($url, rtrim($serviceUrl, '/') . '/')) {
+            return [];
+        }
+
+        return ['Authorization' => 'Bearer ' . $token];
+    }
+
+    /**
      * `pnpm add` argument for an engine: `<name>@<tarball url>`, or `<name>@<version>` without a service.
      */
     public function npmInstallSpec(string $packageName, string $version): string

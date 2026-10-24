@@ -94,7 +94,8 @@ class RegistryServiceInstall extends Model
     }
 
     /**
-     * Shape of a local record that `ServiceCatalog` and `ServiceInstaller` accept in place of a listing.
+     * Shape of a local record that `ServiceCatalog` and `ServiceReleaseSource` accept in place of a
+     * listing, for extensions the service no longer lists.
      *
      * @return array<string, mixed>
      */
