@@ -12,6 +12,10 @@ use Symfony\Component\Console\Input\StreamableInputInterface;
  *
  * Pass the registration code on stdin with `--code-stdin` to keep it out of the process list. The instance
  * token is stored encrypted in settings and never printed.
+ *
+ * Running it on an instance that is already registered rotates that instance on the service (matched by its current
+ * token or its host): same id, installs and licence seats, new token. Web and queue workers pick the new
+ * registration up on their next request or job, without `octane:reload`.
  */
 class RegisterInstance extends Command
 {
@@ -52,7 +56,11 @@ class RegisterInstance extends Command
             $this->line((string) json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } else {
             $organization = is_array($summary['organization'] ?? null) ? $summary['organization'] : [];
-            $this->info(sprintf('Registered %s (%s) with %s.', static::text($summary['name'] ?? null, 'this instance'), static::text($summary['id'] ?? null, 'unknown id'), static::text($organization['name'] ?? $organization['slug'] ?? null, 'the registry organization')));
+            $rotated      = ($summary['rotated'] ?? false) === true;
+            $this->info(sprintf('%s %s (%s) with %s.', $rotated ? 'Re-registered' : 'Registered', static::text($summary['name'] ?? null, 'this instance'), static::text($summary['id'] ?? null, 'unknown id'), static::text($organization['name'] ?? $organization['slug'] ?? null, 'the registry organization')));
+            if ($rotated) {
+                $this->line('Same instance on the service: its installs and licence seats are kept, and the previous token no longer works.');
+            }
             $this->line(sprintf('Registry Service: %s', static::text($summary['service_url'] ?? null)));
             $this->line(sprintf('Instance token:   %s (stored encrypted)', static::text($summary['token_hint'] ?? null, 'stored')));
         }

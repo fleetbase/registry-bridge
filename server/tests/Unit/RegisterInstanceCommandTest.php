@@ -83,7 +83,8 @@ test('registry:register --json stores the token encrypted and prints the summary
     $request  = $this->service->requestsTo('POST', 'v1/instances/register')[0];
     expect($code)->toBe(0)
         ->and($output)->not->toContain(RegistryServiceFake::INSTANCE_TOKEN)
-        ->and(array_keys($summary))->toBe(['id', 'name', 'host', 'kind', 'status', 'organization', 'service_url', 'token_hint', 'registered_at'])
+        ->and(array_keys($summary))->toBe(['id', 'name', 'host', 'kind', 'status', 'organization', 'service_url', 'token_hint', 'registered_at', 'rotated'])
+        ->and($summary['rotated'])->toBeFalse()
         ->and($summary)->toMatchArray(['id' => 'inst_rsmdtgevid', 'service_url' => RegistryServiceFake::SERVICE_URL, 'token_hint' => 'flbi_…0000'])
         ->and($summary['organization'])->toBe(['id' => 'org_qqymqcyvgv', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer'])
         ->and($request->data())->toMatchArray(['code' => 'W9QA-SC8R-37JT-9PA8', 'name' => 'Acme Fleet', 'host' => 'https://fleet.example.test', 'kind' => 'self_hosted'])
@@ -104,6 +105,7 @@ test('registry:register reads the code from stdin and takes name and host overri
         ->and($request->url())->toBe(RegistryServiceFake::SERVICE_URL . '/v1/instances/register')
         ->and($request->data())->toMatchArray(['code' => 'W9QA-SC8R-37JT-9PA8', 'name' => 'Depot 7', 'host' => 'https://depot7.example.test', 'console_version' => '0.7.70'])
         ->and($output)->toContain('Registered Acme Fleet (self-hosted) (inst_rsmdtgevid) with Registry Demo Buyer.')
+        ->and($output)->not->toContain('Re-registered')
         ->and($output)->toContain('flbi_…0000')
         ->and($output)->not->toContain(RegistryServiceFake::INSTANCE_TOKEN);
 });
@@ -150,6 +152,25 @@ test('registering again sends the current token to the service that issued it, a
     expect([$same, $other])->toBe([0, 0])
         ->and($requests[0]->data()['previous_token'] ?? null)->toBe('flbi_previous0000000000000000000000000000000')
         ->and($requests[1]->data())->not->toHaveKey('previous_token');
+});
+
+test('a rotated registration says the same instance kept its installs and seats', function () {
+    config([
+        'registry-bridge.registry.service_url'    => RegistryServiceFake::SERVICE_URL,
+        'registry-bridge.registry.instance_token' => RegistryServiceFake::INSTANCE_TOKEN,
+    ]);
+    $this->service->on('POST', 'v1/instances/register', 'instances-register-rotated');
+
+    [$code, $output] = ($this->artisan)(['--code' => 'W9QA-SC8R-37JT-9PA8']);
+
+    $stored = RecordingInstanceRegistration::$settings[InstanceRegistration::SETTING_INSTANCE];
+    expect($code)->toBe(0)
+        ->and($output)->toContain('Re-registered Acme Fleet (self-hosted) (inst_rsmdtgevid) with Registry Demo Buyer.')
+        ->and($output)->toContain('installs and licence seats are kept')
+        ->and($output)->not->toContain(RegistryServiceFake::INSTANCE_TOKEN)
+        ->and($stored['rotated'])->toBeTrue()
+        ->and(InstanceRegistration::decryptToken(RecordingInstanceRegistration::$settings[InstanceRegistration::SETTING_INSTANCE_TOKEN], app('encrypter')))->toBe('flbi_buyer00000000000000000000000000000rotated')
+        ->and($this->service->requestsTo('POST', 'v1/instances/register')[0]->data()['previous_token'])->toBe(RegistryServiceFake::INSTANCE_TOKEN);
 });
 
 test('exactly one of --code and --code-stdin is required, and an empty stdin code is refused', function () {
