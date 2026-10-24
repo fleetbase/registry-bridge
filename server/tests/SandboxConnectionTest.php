@@ -74,7 +74,9 @@ function bootSandboxHarness(): Capsule
             ],
         ],
         'fleetbase' => ['connection' => ['db' => LIVE_CONNECTION]],
-        'cache'     => ['default' => 'array', 'stores' => ['array' => ['driver' => 'array']]],
+        // The local registry tables are only read when this instance is itself the registry (cloud)
+        'registry-bridge' => ['registry' => ['self_hosted' => true]],
+        'cache'           => ['default' => 'array', 'stores' => ['array' => ['driver' => 'array']]],
     ]));
 
     $capsule = new Capsule($app);
@@ -131,6 +133,17 @@ function bootSandboxHarness(): Capsule
         $table->string('uuid')->primary();
         $table->string('company_uuid')->nullable();
         $table->string('extension_uuid')->nullable();
+        $table->timestamps();
+        $table->softDeletes();
+    });
+    $schema->create('registry_service_installs', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('uuid')->nullable();
+        $table->string('company_uuid')->nullable();
+        $table->string('extension_id')->nullable();
+        $table->string('npm_package')->nullable();
+        $table->string('composer_package')->nullable();
+        $table->string('version')->nullable();
         $table->timestamps();
         $table->softDeletes();
     });
@@ -198,7 +211,7 @@ afterEach(function () {
 });
 
 test('the models directory contains every registry model', function () {
-    expect(registryBridgeModelClasses())->toHaveCount(6);
+    expect(registryBridgeModelClasses())->toHaveCount(7);
 });
 
 test('every registry-bridge model is pinned to the live connection while sandbox is active', function () {

@@ -4,6 +4,8 @@ namespace Fleetbase\RegistryBridge\Providers;
 
 use Fleetbase\Models\Setting;
 use Fleetbase\Providers\CoreServiceProvider;
+use Fleetbase\RegistryBridge\Support\RegistrySettings;
+use Illuminate\Queue\Events\JobProcessing;
 
 if (!class_exists(CoreServiceProvider::class)) {
     throw new \Exception('Registry Bridge cannot be loaded without `fleetbase/core-api` installed!');
@@ -77,34 +79,55 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
         $this->mergeConfigFrom(__DIR__ . '/../../config/registry-bridge.php', 'registry-bridge');
         $this->mergeConfigFromSettings();
+        $this->refreshSettingsPerOperation();
     }
 
     /**
      * Merge configuration settings from the database into the application configuration.
      *
-     * This function checks if there is a database connection available. If a connection exists,
-     * it retrieves the 'registry-bridge.registry.host' and 'registry-bridge.registry.token' values
-     * from the settings table and merges them into the application's configuration. If the settings
-     * are not available or the database connection does not exist, the function will return without
-     * making any changes.
+     * The registry settings (legacy host and token, Registry Service URL, API version, the encrypted instance
+     * token and the registered instance) override the config file and environment; see `RegistrySettings`.
+     * Without a database connection (installs, migrations) the config is left as it is.
+     *
+     * Long-lived workers read the settings again for each Octane request and each queued job, on first use
+     * through `RegistryConfig::current()`, so a registration made by `registry:register` or by another worker
+     * takes effect without `octane:reload`.
      *
      * @return void
      */
     public function mergeConfigFromSettings()
     {
+        $settings = RegistrySettings::instance();
         if (Setting::doesntHaveConnection()) {
+            $settings->markApplied();
+
             return;
         }
 
-        $registryHost  = Setting::getByKey('registry-bridge.registry.host');
-        $registryToken = Setting::getByKey('registry-bridge.registry.token');
+        $settings->apply();
+    }
 
-        if ($registryHost) {
-            config(['registry-bridge.registry.host' => $registryHost->value]);
+    /**
+     * Read the registry settings again at the start of every Octane request and queued job, and forget the cached
+     * settings whenever one of them is written or deleted through the `Setting` model.
+     *
+     * @return void
+     */
+    public function refreshSettingsPerOperation()
+    {
+        $events = $this->app['events'];
+
+        if (class_exists(Setting::class)) {
+            Setting::saved(fn ($setting) => RegistrySettings::settingChanged($setting->key ?? null));
+            Setting::deleted(fn ($setting) => RegistrySettings::settingChanged($setting->key ?? null));
         }
 
-        if ($registryToken) {
-            config(['registry-bridge.registry.token' => $registryToken->value]);
-        }
+        $events->listen('Laravel\Octane\Events\RequestReceived', function ($event) {
+            RegistrySettings::instance()->reset($event->sandbox ?? null);
+        });
+
+        $events->listen(JobProcessing::class, function () {
+            RegistrySettings::instance()->reset();
+        });
     }
 }

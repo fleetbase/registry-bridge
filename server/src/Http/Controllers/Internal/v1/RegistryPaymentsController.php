@@ -6,6 +6,7 @@ use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Resources\FleetbaseResource;
 use Fleetbase\RegistryBridge\Models\RegistryExtension;
 use Fleetbase\RegistryBridge\Models\RegistryExtensionPurchase;
+use Fleetbase\RegistryBridge\Support\CentralCatalog;
 use Fleetbase\RegistryBridge\Support\Utils;
 use Fleetbase\Support\Auth;
 use Illuminate\Http\Request;
@@ -127,6 +128,11 @@ class RegistryPaymentsController extends Controller
         $redirectUri       = $request->input('uri');
         $extension         = RegistryExtension::where('uuid', $request->input('extension'))->first();
         if (!$extension) {
+            $requested = $request->input('extension');
+            if (CentralCatalog::enabled() && CentralCatalog::find(is_string($requested) ? $requested : null)) {
+                return response()->error('This extension is listed from the central Fleetbase registry and cannot be purchased from this instance yet. Purchases will be available once the Registry Service launches.');
+            }
+
             return response()->error('The extension you attempted to purchase does not exist.');
         }
 

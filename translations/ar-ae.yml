@@ -58,6 +58,9 @@ registry-bridge:
         explore-extensions: استكشاف الامتدادات
         explore-category-extensions: >
           امتدادات {categoryName}
+        no-extensions-published: لم يتم نشر أي امتدادات في هذا السجل بعد
+        no-extensions-published-help: بمجرد نشر امتدادات في السجل المتصل بهذه اللوحة، ستظهر هنا.
+        open-registry-config: فتح إعدادات السجل
       extension-form:
         package-name: اسم الحزمة
         package-json-name: اسم package.json

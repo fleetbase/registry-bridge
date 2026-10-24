@@ -1,0 +1,95 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/catalog/extensions/registry-demo-pro"
+    },
+    "status": 200,
+    "body": {
+        "id": "ext_gzh4wgc9nr",
+        "slug": "registry-demo-pro",
+        "name": "Registry Demo Pro",
+        "subtitle": "Fixture extension seeded by registry:seed (pro).",
+        "fa_icon": "puzzle-piece",
+        "icon_url": null,
+        "tags": [
+            "demo"
+        ],
+        "hosting": "both",
+        "status": "published",
+        "publisher": {
+            "id": "org_dvetjog2vy",
+            "slug": "registry-demo",
+            "name": "Registry Demo",
+            "website": null,
+            "bio": null,
+            "avatar_url": null,
+            "is_verified": true,
+            "created_at": "2026-10-22T07:09:37.000000Z"
+        },
+        "category": {
+            "id": "cat_3a9uznxr8s",
+            "slug": "telematics",
+            "name": "Telematics",
+            "icon": "satellite-dish"
+        },
+        "latest_release": {
+            "id": "rel_gjrc6mixp0",
+            "version": "1.0.0",
+            "channel": "stable",
+            "status": "published",
+            "compat": {
+                "console": ">=0.7.0",
+                "api": ">=1.6.0"
+            },
+            "size_bytes": 873,
+            "checksum": "sha256:93885f12e28ddb3b3940f7f238a3eb80b7614d21860ba7d3b0e88f672dc7a414",
+            "notes": "Seeded by registry:seed --seed-release.",
+            "published_at": "2026-10-22T07:09:37.000000Z",
+            "yanked_at": null,
+            "created_at": "2026-10-22T07:09:37.000000Z"
+        },
+        "latest_version": "1.0.0",
+        "compat": {
+            "console": ">=0.7.0",
+            "api": ">=1.6.0"
+        },
+        "packages": {
+            "npm": "@registry-demo/pro-engine",
+            "composer": "registry-demo/pro-api"
+        },
+        "price": {
+            "model": "one_time",
+            "amount": 4900,
+            "currency": "USD",
+            "on_sale": false,
+            "sale_amount": null,
+            "effective_amount": 4900
+        },
+        "is_paid": true,
+        "installs_count": 0,
+        "published_at": "2026-10-22T07:09:37.000000Z",
+        "updated_at": "2026-10-22T07:09:37.000000Z",
+        "created_at": "2026-10-22T07:09:37.000000Z",
+        "description": "Demo listing used to exercise the npm and Composer endpoints.",
+        "promotional_text": null,
+        "languages": [
+            "en"
+        ],
+        "website_url": null,
+        "repo_url": null,
+        "support_url": null,
+        "privacy_url": null,
+        "tos_url": null,
+        "copyright": null,
+        "screenshots": [],
+        "versions": [
+            {
+                "id": "rel_gjrc6mixp0",
+                "version": "1.0.0",
+                "channel": "stable",
+                "published_at": "2026-10-22T07:09:37.000000Z"
+            }
+        ],
+        "versions_count": 1
+    }
+}

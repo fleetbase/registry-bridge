@@ -79,6 +79,9 @@ Route::prefix(config('registry-bridge.api.routing.prefix', '~registry'))->middle
                     $router->get('purchased', $controller('purchased'));
                     $router->get('config', $controller('getConfig'));
                     $router->post('config', $controller('saveConfig'));
+                    $router->post('config/test', $controller('testConfig'));
+                    $router->post('instance/register', $controller('registerInstance'));
+                    $router->delete('instance', $controller('unregisterInstance'));
                 });
 
                 $router->fleetbaseRoutes('registry-extension-bundles', function ($router, $controller) {

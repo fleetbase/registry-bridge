@@ -1,26 +1,24 @@
 import { module, test } from 'qunit';
-import { setupRenderingTest } from 'dummy/tests/helpers';
+import { setupRenderingTest, StubFetchService, stubStoreQuery } from 'dummy/tests/helpers';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
 module('Integration | Component | modals/select-extension-bundle', function (hooks) {
     setupRenderingTest(hooks);
 
-    test('it renders', async function (assert) {
-        // Set any properties with this.set('myProperty', 'value');
-        // Handle any actions with this.set('myAction', function(val) { ... });
+    hooks.beforeEach(function () {
+        this.owner.register('service:fetch', StubFetchService);
+    });
 
-        await render(hbs`<Modals::SelectExtensionBundle />`);
+    test('it loads the pending bundles for the extension and lists them', async function (assert) {
+        const calls = stubStoreQuery(this.owner, [{ id: 'bundle_1', public_id: 'bundle_1', bundle_number: 3, version: '1.2.0', status: 'pending' }]);
+        this.set('options', { title: 'Select bundle', extension: { id: 'ext_1', name: 'Fleet-Ops' } });
 
-        assert.dom().hasText('');
+        await render(hbs`<Modals::SelectExtensionBundle @modalIsOpened={{true}} @options={{this.options}} />`);
 
-        // Template block usage:
-        await render(hbs`
-      <Modals::SelectExtensionBundle>
-        template block text
-      </Modals::SelectExtensionBundle>
-    `);
-
-        assert.dom().hasText('template block text');
+        assert.strictEqual(calls.length, 1, 'one bundle query');
+        assert.strictEqual(calls[0].modelName, 'registry-extension-bundle');
+        assert.deepEqual(calls[0].query, { extension_uuid: 'ext_1', status: 'pending' });
+        assert.dom(document.body).containsText('1.2.0');
     });
 });

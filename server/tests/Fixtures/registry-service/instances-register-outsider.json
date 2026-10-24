@@ -1,0 +1,34 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register"
+    },
+    "status": 201,
+    "body": {
+        "token": "flbi_outsider00000000000000000000000000000000",
+        "token_type": "Bearer",
+        "instance": {
+            "id": "inst_wrkhg6rvab",
+            "name": "Outsider Fleet",
+            "host": "https://fleet.example.test",
+            "kind": "self_hosted",
+            "console_version": "0.7.69",
+            "api_version": "1.6.30",
+            "status": "active",
+            "organization": {
+                "id": "org_rgwgi94xkv",
+                "slug": "registry-demo-outsider",
+                "name": "Registry Demo Outsider",
+                "website": null,
+                "bio": null,
+                "avatar_url": null,
+                "is_personal": false,
+                "is_verified": true,
+                "verified_at": "2026-10-22T07:09:38.000000Z",
+                "created_at": "2026-10-22T07:09:38.000000Z"
+            },
+            "last_seen_at": "2026-10-22T07:09:49.000000Z",
+            "created_at": "2026-10-22T07:09:49.000000Z"
+        }
+    }
+}

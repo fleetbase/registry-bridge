@@ -2,7 +2,10 @@
     <Card.header class={{@headerClass}}>
         <div class="flex flex-row items-center justify-between">
             <div class="font-semibold">{{@resource.name}}</div>
-            <div>
+            <div class="flex items-center space-x-1">
+                {{#if @resource.update_available}}
+                    <Badge @status="info" @hideStatusDot={{true}} data-test-update-available>Update {{@resource.latest_version}}</Badge>
+                {{/if}}
                 {{#if @resource.payment_required}}
                     <Badge @status="success" @hideStatusDot={{true}}>{{format-currency @resource.price @resource.currency}}</Badge>
                 {{else}}
