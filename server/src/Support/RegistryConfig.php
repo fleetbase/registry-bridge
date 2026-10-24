@@ -24,6 +24,9 @@ class RegistryConfig
 
     public const KIND_CLOUD = 'cloud';
 
+    /** Shown while the cutover freeze is on and no message was given. */
+    public const DEFAULT_MAINTENANCE_MESSAGE = 'Extensions are being moved to the new Fleetbase registry. Installing, updating, uninstalling and buying extensions are paused until the move is finished.';
+
     /**
      * @param array<string, mixed> $registry the `registry-bridge.registry` config array
      */
@@ -109,13 +112,71 @@ class RegistryConfig
     }
 
     /**
-     * Instance kind reported at registration and used to match an extension's hosting.
+     * Instance kind reported at registration and used to match an extension's hosting. Always `cloud` when this API
+     * registers itself as the cloud instance.
      */
     public function instanceKind(): string
     {
+        if ($this->cloudAutoRegister()) {
+            return static::KIND_CLOUD;
+        }
+
         $kind = $this->string('instance_kind');
 
         return in_array($kind, [static::KIND_SELF_HOSTED, static::KIND_CLOUD], true) ? $kind : static::KIND_SELF_HOSTED;
+    }
+
+    /**
+     * Whether this API is a cloud instance that serves many companies: requests to the instance API then name the
+     * company they are for (`X-Registry-Tenant`), whose organization owns the licences and installs.
+     */
+    public function actsForCompanies(): bool
+    {
+        return $this->instanceKind() === static::KIND_CLOUD;
+    }
+
+    /**
+     * Shared secret that signs the cloud registration, or null.
+     */
+    public function platformSecret(): ?string
+    {
+        $secret = $this->registry['cloud']['platform_secret'] ?? null;
+
+        return is_string($secret) && trim($secret) !== '' ? trim($secret) : null;
+    }
+
+    /**
+     * Whether this API registers itself with the service as the cloud instance (`REGISTRY_CLOUD_AUTO_REGISTER` and the
+     * platform secret both set).
+     */
+    public function cloudAutoRegister(): bool
+    {
+        return SupportUtils::castBoolean($this->registry['cloud']['auto_register'] ?? false) === true && $this->platformSecret() !== null;
+    }
+
+    /**
+     * The cutover freeze: on when `registry:maintenance on` stored it or `REGISTRY_MAINTENANCE` forces it.
+     *
+     * @return array{enabled: bool, forced: bool, message: string, since: string|null}
+     */
+    public function maintenance(): array
+    {
+        $env    = is_array($this->registry['maintenance'] ?? null) ? $this->registry['maintenance'] : [];
+        $stored = is_array($this->registry['maintenance_window'] ?? null) ? $this->registry['maintenance_window'] : [];
+        $forced = SupportUtils::castBoolean($env['enabled'] ?? false) === true;
+        $text   = fn (mixed $value) => is_string($value) && trim($value) !== '' ? trim($value) : null;
+
+        return [
+            'enabled' => $forced || ($stored['enabled'] ?? false) === true,
+            'forced'  => $forced,
+            'message' => $text($stored['message'] ?? null) ?? $text($env['message'] ?? null) ?? static::DEFAULT_MAINTENANCE_MESSAGE,
+            'since'   => $text($stored['since'] ?? null),
+        ];
+    }
+
+    public function inMaintenance(): bool
+    {
+        return $this->maintenance()['enabled'];
     }
 
     /**

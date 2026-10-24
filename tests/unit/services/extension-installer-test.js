@@ -125,4 +125,18 @@ module('Unit | Service | extension-installer', function (hooks) {
         this.service.install(this.extension);
         assert.true(this.modals.options.acceptButtonDisabled);
     });
+
+    test('the cutover freeze says why instead of opening the installer', function (assert) {
+        this.owner.lookup('service:registry-context').context = { maintenance: { enabled: true, message: 'Back at 14:00 UTC.' } };
+        const notifications = this.owner.lookup('service:notifications');
+
+        assert.strictEqual(this.service.install(this.extension), null);
+        assert.strictEqual(this.service.uninstall({ ...this.extension, installed_version: '0.9.0' }), null);
+        assert.strictEqual(this.modals.shown.length, 0, 'no modal');
+        assert.deepEqual(notifications.messages, [
+            { type: 'warning', message: 'Back at 14:00 UTC.' },
+            { type: 'warning', message: 'Back at 14:00 UTC.' },
+        ]);
+        assert.strictEqual(this.fetch.calls.length, 0);
+    });
 });

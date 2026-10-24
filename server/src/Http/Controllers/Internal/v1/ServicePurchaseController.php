@@ -4,9 +4,11 @@ namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 
 use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\RegistryBridge\Exceptions\RegistryException;
+use Fleetbase\RegistryBridge\Exceptions\RegistryMaintenanceException;
 use Fleetbase\RegistryBridge\Exceptions\RegistryServiceException;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
+use Fleetbase\RegistryBridge\Support\RegistryMaintenance;
 use Fleetbase\RegistryBridge\Support\ServiceCheckout;
 use Fleetbase\RegistryBridge\Support\ServiceReceipts;
 use Illuminate\Http\Request;
@@ -36,6 +38,12 @@ class ServicePurchaseController extends Controller
         }
 
         $config = RegistryConfig::current();
+
+        try {
+            RegistryMaintenance::guard($config);
+        } catch (RegistryMaintenanceException $e) {
+            return response()->error($e->getMessage(), 503, ['maintenance' => true]);
+        }
 
         try {
             $checkout = ServiceCheckout::start(RegistryClient::fromConfig($config), $config, $extension, $returnUrl, $cancelUrl ?: null, $request->user()?->email);

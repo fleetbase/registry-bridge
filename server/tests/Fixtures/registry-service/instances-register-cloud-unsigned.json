@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register/cloud"
+    },
+    "status": 401,
+    "body": {
+        "errors": [
+            "The request is not signed with the platform secret."
+        ]
+    }
+}
