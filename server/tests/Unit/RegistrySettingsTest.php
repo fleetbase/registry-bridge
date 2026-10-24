@@ -5,6 +5,8 @@ use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
 use Fleetbase\RegistryBridge\Support\RegistrySettings;
 use Fleetbase\RegistryBridge\Tests\Support\StoredRegistrySettings;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository as Cache;
 use Illuminate\Config\Repository as Config;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Encryption\StringEncrypter;
@@ -157,4 +159,73 @@ test('without a readable settings table the config is left as it is', function (
     expect($config->isRegistered())->toBeFalse()
         ->and($config->host())->toBe('https://registry.fleetbase.io')
         ->and(StoredRegistrySettings::$reads)->toBe(1);
+});
+
+/**
+ * Bind an array cache store as the application cache and return it.
+ */
+function settingsCache(Container $container): Cache
+{
+    $cache = new Cache(new ArrayStore());
+    $container->instance('cache', $cache);
+
+    return $cache;
+}
+
+test('the stored settings are cached between requests until one of them changes', function () {
+    $cache                          = settingsCache($this->container);
+    StoredRegistrySettings::$stored = storedRegistration('flbi_first', 'inst_first');
+    expect(RegistryConfig::current()->instanceToken())->toBe('flbi_first');
+
+    // The next request is served from the cache
+    RegistrySettings::instance()->reset();
+    expect(RegistryConfig::current()->instanceToken())->toBe('flbi_first')
+        ->and(StoredRegistrySettings::$reads)->toBe(1)
+        ->and($cache->get(RegistrySettings::CACHE_KEY))->toBe(StoredRegistrySettings::$stored);
+
+    // `registry:register` in another process writes the token, which forgets the cache
+    StoredRegistrySettings::$stored = storedRegistration('flbi_second', 'inst_first');
+    RegistrySettings::settingChanged(InstanceRegistration::SETTING_INSTANCE_TOKEN);
+    RegistrySettings::instance()->reset();
+
+    expect(RegistryConfig::current()->instanceToken())->toBe('flbi_second')
+        ->and(StoredRegistrySettings::$reads)->toBe(2);
+});
+
+test('only the registry settings forget the cache', function () {
+    $cache = settingsCache($this->container);
+    $cache->put(RegistrySettings::CACHE_KEY, ['kept' => true], 30);
+
+    RegistrySettings::settingChanged('company.default_currency');
+    RegistrySettings::settingChanged(null);
+    expect($cache->get(RegistrySettings::CACHE_KEY))->toBe(['kept' => true]);
+
+    RegistrySettings::settingChanged(RegistrySettings::SETTING_HOST);
+    expect($cache->has(RegistrySettings::CACHE_KEY))->toBeFalse();
+});
+
+test('a cache TTL of 0 reads the settings table on every request', function () {
+    $cache = settingsCache($this->container);
+    $this->container['config']->set('registry-bridge.registry.settings_cache_ttl', 0);
+    StoredRegistrySettings::$stored = storedRegistration('flbi_first', 'inst_first');
+
+    RegistryConfig::current();
+    RegistrySettings::instance()->reset();
+    RegistryConfig::current();
+
+    expect(StoredRegistrySettings::$reads)->toBe(2)
+        ->and($cache->has(RegistrySettings::CACHE_KEY))->toBeFalse();
+});
+
+test('an unreadable settings table is not cached', function () {
+    $cache                          = settingsCache($this->container);
+    StoredRegistrySettings::$stored = null;
+    RegistryConfig::current();
+
+    StoredRegistrySettings::$stored = storedRegistration('flbi_first', 'inst_first');
+    RegistrySettings::instance()->reset();
+
+    expect(RegistryConfig::current()->instanceToken())->toBe('flbi_first')
+        ->and(StoredRegistrySettings::$reads)->toBe(2)
+        ->and($cache->has(RegistrySettings::CACHE_KEY))->toBeTrue();
 });

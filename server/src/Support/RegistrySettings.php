@@ -4,6 +4,8 @@ namespace Fleetbase\RegistryBridge\Support;
 
 use Fleetbase\Models\Setting;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
 
 /**
@@ -15,6 +17,12 @@ use Illuminate\Contracts\Encryption\StringEncrypter;
  * (the admin endpoint) takes effect everywhere on the next request without `octane:reload`.
  *
  * A key with no stored value falls back to what the config file and environment gave it before the first apply.
+ *
+ * The stored values are kept in the application cache for `registry.settings_cache_ttl` seconds (30 by default, 0 to
+ * turn it off), so a request costs a cache read rather than a query. Writing or deleting one of the settings forgets
+ * that cache (`forgetCached()`, called from a `Setting` model listener and by `InstanceRegistration`), so with a shared
+ * cache store (Redis, the default in the Docker stack) every worker sees a change on its next request; with a
+ * per-container store a worker in another container sees it within the TTL.
  *
  * @phpstan-consistent-constructor
  */
@@ -28,6 +36,16 @@ class RegistrySettings
      * Container key marking the settings as applied for the current request or job.
      */
     public const APPLIED = 'registry-bridge.registry.settings-applied';
+
+    /**
+     * Cache key holding the stored settings between requests.
+     */
+    public const CACHE_KEY = 'registry-bridge:registry-settings';
+
+    /**
+     * Seconds the stored settings stay cached when `registry.settings_cache_ttl` is not set.
+     */
+    public const CACHE_TTL = 30;
 
     /**
      * Setting key => `registry-bridge.registry` config key.
@@ -137,11 +155,71 @@ class RegistrySettings
     }
 
     /**
-     * Stored values of the registry settings (setting key => value), or null when the settings table cannot be read.
+     * Forget the cached settings so the next request in every worker reads them from the settings table.
+     */
+    public static function forgetCached(): void
+    {
+        $cache = static::cache();
+
+        try {
+            $cache?->forget(static::CACHE_KEY);
+        } catch (\Throwable $e) {
+            // An unreachable cache store holds nothing to forget
+        }
+    }
+
+    /**
+     * Forget the cached settings when one of the registry settings is written or deleted.
+     */
+    public static function settingChanged(?string $key): void
+    {
+        if (is_string($key) && array_key_exists($key, static::KEYS)) {
+            static::forgetCached();
+        }
+    }
+
+    /**
+     * Stored values of the registry settings (setting key => value) from the cache, else the settings table; null
+     * when the table cannot be read (never cached, so the next request tries again).
      *
      * @return array<string, mixed>|null
      */
     protected function stored(): ?array
+    {
+        $cache = static::cache();
+        $ttl   = $this->cacheTtl();
+        if ($cache === null || $ttl <= 0) {
+            return $this->query();
+        }
+
+        try {
+            $cached = $cache->get(static::CACHE_KEY);
+        } catch (\Throwable $e) {
+            return $this->query();
+        }
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $stored = $this->query();
+        if ($stored !== null) {
+            try {
+                $cache->put(static::CACHE_KEY, $stored, $ttl);
+            } catch (\Throwable $e) {
+                // Serve this request from the table; the next one tries the cache again
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * Stored values of the registry settings read from the settings table, or null when it cannot be read.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function query(): ?array
     {
         try {
             return Setting::query()
@@ -149,6 +227,36 @@ class RegistrySettings
                 ->get(['key', 'value'])
                 ->mapWithKeys(fn ($setting) => [$setting->key => $setting->value])
                 ->all();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Seconds to cache the stored settings (`registry.settings_cache_ttl`, else `CACHE_TTL`); 0 turns the cache off.
+     */
+    protected function cacheTtl(): int
+    {
+        $container = Container::getInstance();
+        $ttl       = $container->bound('config') ? $container->make('config')->get('registry-bridge.registry.settings_cache_ttl') : null;
+
+        return is_numeric($ttl) ? max(0, (int) $ttl) : static::CACHE_TTL;
+    }
+
+    /**
+     * The application cache, or null when none is bound (some tests, early boot).
+     */
+    protected static function cache(): ?CacheRepository
+    {
+        $container = Container::getInstance();
+        if (!$container->bound('cache')) {
+            return null;
+        }
+
+        try {
+            $cache = $container->make('cache');
+
+            return $cache instanceof CacheFactory ? $cache->store() : ($cache instanceof CacheRepository ? $cache : null);
         } catch (\Throwable $e) {
             return null;
         }

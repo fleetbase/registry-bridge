@@ -506,6 +506,10 @@ class RegistryExtensionController extends RegistryBridgeController
      * for an instance token via `POST /v1/instances/register`, reporting this instance's name, host,
      * kind and console and API versions. The token is stored encrypted in settings and never returned.
      *
+     * An instance that is already registered sends its current token, and the service matches it by that token or
+     * by its host, so registering again rotates the same instance (same id, installs and licence seats) and
+     * `instance.rotated` is true in the response.
+     *
      * @param AdminRequest $request `code` (required), optional `service_url`, `name`, `host`, `console_version`
      *
      * @return \Illuminate\Http\JsonResponse the configuration (see `getConfig()`)
@@ -565,6 +569,7 @@ class RegistryExtensionController extends RegistryBridgeController
                 'organization'  => $instance['organization'] ?? null,
                 'token_hint'    => $config->isRegistered() ? InstanceRegistration::maskToken($config->instanceToken()) : null,
                 'registered_at' => $instance['registered_at'] ?? null,
+                'rotated'       => ($instance['rotated'] ?? false) === true,
             ],
         ];
     }
