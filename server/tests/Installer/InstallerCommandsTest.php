@@ -1,5 +1,6 @@
 <?php
 
+use Fleetbase\RegistryBridge\Console\Commands\InstallerJobStatus;
 use Fleetbase\RegistryBridge\Console\Commands\InstallExtension;
 use Fleetbase\RegistryBridge\Console\Commands\UninstallExtension;
 use Fleetbase\RegistryBridge\Console\Commands\UpdateExtension;
@@ -34,12 +35,13 @@ beforeEach(function () {
             return true;
         }
     };
+    $this->container->instance(InstallerJobStore::class, $this->store);
     $this->container->instance(InstallerService::class, new InstallerService($queue, $this->store, $this->sandbox->releases, $this->sandbox->recorder, $this->sandbox->installer()));
 
     $this->artisan = function (array $input): array {
         $app = new Artisan($this->container, new Events($this->container), 'test');
         $app->setAutoExit(false);
-        foreach ([InstallExtension::class, UninstallExtension::class, UpdateExtension::class] as $class) {
+        foreach ([InstallExtension::class, UninstallExtension::class, UpdateExtension::class, InstallerJobStatus::class] as $class) {
             $command = new $class();
             $command->setLaravel($this->container);
             $app->add($command);
@@ -123,4 +125,52 @@ test('registry:uninstall and registry:update queue jobs for installed extensions
     expect([$uninstallCode, $updateCode])->toBe([0, 0]);
     expect($uninstall)->toMatchArray(['action' => 'uninstall', 'company' => 'company-1', 'version' => null]);
     expect($update)->toMatchArray(['action' => 'update', 'version' => '1.2.0']);
+});
+
+test('registry:job --json prints the job record with its queue position', function () {
+    ($this->artisan)(['command' => 'registry:install', 'extension' => 'extension_widgets']);
+    $first = $this->bus->dispatched[0]->jobId;
+    $this->store->update($first, ['status' => 'running', 'stage' => 'composer', 'progress' => 40, 'message' => 'Installing Composer package', 'log' => ['Resolving acme/widgets-api', 'Installing acme/widgets-api (1.0.0)']]);
+    $this->sandbox->releases->add(new Fleetbase\RegistryBridge\Support\Installer\Release(new Fleetbase\RegistryBridge\Support\Installer\ExtensionRef('ext-uuid-0', 'extension_zero', 'Zero'), '1.0.0', 'acme/zero', '1.0.0'));
+    ($this->artisan)(['command' => 'registry:install', 'extension' => 'extension_zero']);
+    $second = $this->bus->dispatched[1]->jobId;
+
+    [$code, $output]   = ($this->artisan)(['command' => 'registry:job', 'id' => $first, '--json' => true]);
+    [, $queuedOutput]  = ($this->artisan)(['command' => 'registry:job', 'id' => $second, '--json' => true]);
+
+    $job = json_decode($output, true);
+    expect($code)->toBe(0);
+    expect($job)->toBe($this->store->find($first));
+    expect($job)->toMatchArray(['id' => $first, 'action' => 'install', 'status' => 'running', 'stage' => 'composer', 'progress' => 40, 'message' => 'Installing Composer package', 'position' => 0]);
+    expect($job['log'])->toBe(['Resolving acme/widgets-api', 'Installing acme/widgets-api (1.0.0)']);
+    expect(json_decode($queuedOutput, true))->toMatchArray(['id' => $second, 'status' => 'queued', 'position' => 1]);
+    expect($output)->toContain('"stage": "composer"');
+});
+
+test('registry:job prints a summary with the stage and log tail', function () {
+    ($this->artisan)(['command' => 'registry:install', 'extension' => 'extension_widgets']);
+    $id = $this->bus->dispatched[0]->jobId;
+    $this->store->update($id, ['status' => 'failed', 'stage' => 'composer', 'failed_stage' => 'composer', 'progress' => 40, 'message' => 'composer require failed', 'log' => array_map(fn ($n) => 'line ' . $n, range(1, 12))]);
+
+    [$code, $output] = ($this->artisan)(['command' => 'registry:job', 'id' => $id]);
+
+    expect($code)->toBe(0);
+    expect($output)->toContain('Job ' . $id . ': install of Widgets')
+        ->toContain('Status:   failed')
+        ->toContain('Stage:    composer (failed)')
+        ->toContain('Progress: 40%')
+        ->toContain('Message:  composer require failed')
+        ->toContain('line 3')
+        ->toContain('line 12')
+        ->not->toContain('line 2' . PHP_EOL);
+});
+
+test('registry:job exits non-zero for an unknown job, as JSON when asked', function () {
+    [$code, $output]     = ($this->artisan)(['command' => 'registry:job', 'id' => 'missing-job', '--json' => true]);
+    [$textCode, $text]   = ($this->artisan)(['command' => 'registry:job', 'id' => 'missing-job']);
+
+    expect($code)->toBe(1);
+    expect(json_decode($output, true))->toBe(['error' => 'Installer job missing-job was not found.']);
+    expect($textCode)->toBe(1);
+    expect($text)->toContain('Installer job missing-job was not found.');
 });

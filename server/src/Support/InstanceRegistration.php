@@ -4,6 +4,8 @@ namespace Fleetbase\RegistryBridge\Support;
 
 use Composer\InstalledVersions;
 use Fleetbase\Models\Setting;
+use Fleetbase\RegistryBridge\Exceptions\RegistryServiceException;
+use Fleetbase\RegistryBridge\Exceptions\RegistryUnavailableException;
 use Illuminate\Contracts\Encryption\StringEncrypter;
 use Illuminate\Support\Arr;
 
@@ -24,6 +26,46 @@ class InstanceRegistration
     public const SETTING_INSTANCE_TOKEN = 'registry-bridge.registry.instance_token';
 
     public const SETTING_INSTANCE = 'registry-bridge.registry.instance';
+
+    /**
+     * Exchange a registration code for an instance token and store it (the admin endpoint and `registry:register`).
+     *
+     * The service URL defaults to the configured one; name, host and console version default to the app name,
+     * the app URL and the console's package.json. An instance already registered with that service sends its
+     * current token, so the service rotates it instead of creating a second instance.
+     *
+     * @return array<string, mixed> the stored instance summary (never the token)
+     *
+     * @throws RegistryServiceException     with status 422 when the code or service URL is missing, or the service's status when it refuses the code
+     * @throws RegistryUnavailableException when the service cannot be reached
+     */
+    public static function register(string $code, ?string $serviceUrl = null, ?string $name = null, ?string $host = null, ?string $consoleVersion = null): array
+    {
+        $code = trim($code);
+        if ($code === '') {
+            throw new RegistryServiceException('Enter the registration code from your registry organization.', 422);
+        }
+
+        $config     = RegistryConfig::current();
+        $serviceUrl = $serviceUrl !== null && trim($serviceUrl) !== '' ? RegistryConfig::normalizeUrl(trim($serviceUrl)) : $config->serviceUrl();
+        if (!$serviceUrl) {
+            throw new RegistryServiceException('Set the Registry Service URL before registering this instance.', 422);
+        }
+
+        $payload = static::payload(
+            $code,
+            $name ?: (static::configString('app.name') ?? 'Fleetbase'),
+            $host ?: static::configString('app.url'),
+            $config->instanceKind(),
+            $consoleVersion ?: static::detectConsoleVersion(static::configString('fleetbase.console.path')),
+            static::detectApiVersion(),
+            static::previousToken($config, $serviceUrl)
+        );
+
+        $registration = (new RegistryClient($serviceUrl, null, RegistryConfig::V2, $config))->registerInstance($payload);
+
+        return static::store($registration, $serviceUrl);
+    }
 
     /**
      * Body for `POST /v1/instances/register`.
@@ -135,9 +177,9 @@ class InstanceRegistration
     {
         $summary = static::instanceSummary($registration['instance'], $serviceUrl, $registration['token'], date(DATE_ATOM), ($registration['rotated'] ?? false) === true);
 
-        Setting::configure(static::SETTING_SERVICE_URL, $serviceUrl);
-        Setting::configure(static::SETTING_INSTANCE_TOKEN, static::encryptToken($registration['token'], app('encrypter')));
-        Setting::configure(static::SETTING_INSTANCE, $summary);
+        static::configure(static::SETTING_SERVICE_URL, $serviceUrl);
+        static::configure(static::SETTING_INSTANCE_TOKEN, static::encryptToken($registration['token'], app('encrypter')));
+        static::configure(static::SETTING_INSTANCE, $summary);
 
         config([
             'registry-bridge.registry.service_url'    => $serviceUrl,
@@ -149,6 +191,21 @@ class InstanceRegistration
         RegistryClient::flush();
 
         return $summary;
+    }
+
+    /**
+     * Write one setting (overridden in tests, which have no database).
+     */
+    protected static function configure(string $key, mixed $value): void
+    {
+        Setting::configure($key, $value);
+    }
+
+    protected static function configString(string $key): ?string
+    {
+        $value = config($key);
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

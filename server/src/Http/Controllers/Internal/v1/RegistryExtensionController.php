@@ -516,37 +516,19 @@ class RegistryExtensionController extends RegistryBridgeController
      */
     public function registerInstance(AdminRequest $request)
     {
-        $code = trim((string) $request->input('code', ''));
-        if ($code === '') {
-            return response()->error('Enter the registration code from your registry organization.', 422);
-        }
-
-        $config     = RegistryConfig::current();
-        $serviceUrl = trim((string) $request->input('service_url', ''));
-        $serviceUrl = $serviceUrl !== '' ? RegistryConfig::normalizeUrl($serviceUrl) : $config->serviceUrl();
-        if (!$serviceUrl) {
-            return response()->error('Set the Registry Service URL before registering this instance.', 422);
-        }
-
-        $payload = InstanceRegistration::payload(
-            $code,
-            (string) ($request->input('name') ?: config('app.name', 'Fleetbase')),
-            $request->input('host') ?: config('app.url'),
-            $config->instanceKind(),
-            $request->input('console_version') ?: InstanceRegistration::detectConsoleVersion(config('fleetbase.console.path')),
-            InstanceRegistration::detectApiVersion(),
-            InstanceRegistration::previousToken($config, $serviceUrl)
-        );
-
         try {
-            $registration = (new RegistryClient($serviceUrl, null, RegistryConfig::V2, $config))->registerInstance($payload);
+            InstanceRegistration::register(
+                (string) $request->input('code', ''),
+                (string) $request->input('service_url', ''),
+                (string) $request->input('name', ''),
+                (string) $request->input('host', ''),
+                (string) $request->input('console_version', '')
+            );
         } catch (RegistryServiceException $e) {
             return response()->error($e->getMessage(), $e->status() >= 400 && $e->status() < 500 ? 422 : 502);
         } catch (RegistryException $e) {
             return response()->error($e->getMessage(), 503);
         }
-
-        InstanceRegistration::store($registration, $serviceUrl);
 
         return response()->json($this->configPayload(RegistryConfig::current()));
     }
