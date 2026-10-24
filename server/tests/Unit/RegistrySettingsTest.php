@@ -3,6 +3,7 @@
 use Fleetbase\RegistryBridge\Providers\RegistryBridgeServiceProvider;
 use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
+use Fleetbase\RegistryBridge\Support\RegistryMaintenance;
 use Fleetbase\RegistryBridge\Support\RegistrySettings;
 use Fleetbase\RegistryBridge\Tests\Support\StoredRegistrySettings;
 use Illuminate\Cache\ArrayStore;
@@ -15,7 +16,7 @@ use Illuminate\Queue\Events\JobProcessing;
 
 function settingsEncrypter(): StringEncrypter
 {
-    return new class() implements StringEncrypter {
+    return new class implements StringEncrypter {
         public function encryptString($value)
         {
             return 'enc:' . base64_encode(strrev($value));
@@ -73,14 +74,16 @@ test('stored settings override the config file and missing ones fall back to it'
             InstanceRegistration::SETTING_SERVICE_URL    => '',
             InstanceRegistration::SETTING_INSTANCE_TOKEN => 'not-encrypted',
             InstanceRegistration::SETTING_INSTANCE       => ['id' => 'inst_1'],
+            RegistryMaintenance::SETTING                 => ['enabled' => true, 'message' => 'Moving'],
         ],
         settingsEncrypter()
     );
 
     expect($values)->toBe([
-        'service_url'    => 'https://env.example.test',
-        'instance_token' => null,
-        'instance'       => ['id' => 'inst_1'],
+        'service_url'        => 'https://env.example.test',
+        'instance_token'     => null,
+        'instance'           => ['id' => 'inst_1'],
+        'maintenance_window' => ['enabled' => true, 'message' => 'Moving'],
     ]);
 });
 

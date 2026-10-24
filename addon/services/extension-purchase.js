@@ -89,6 +89,12 @@ export default class ExtensionPurchaseService extends Service {
         const extensionId = extension.public_id ?? extension.id;
         const returnUrl = checkoutReturnUrl(window.location.href, extensionId);
         this.lastError = null;
+
+        // The cutover freeze: the server refuses the checkout too
+        if (this.registryContext.inMaintenance) {
+            this.lastError = { extension: extensionId, message: this.registryContext.maintenanceMessage ?? this.intl.t('registry-bridge.maintenance.title') };
+            return null;
+        }
         this.isStarting = true;
 
         try {

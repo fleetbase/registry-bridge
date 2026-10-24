@@ -1,0 +1,36 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register/cloud"
+    },
+    "status": 201,
+    "body": {
+        "token": "flbi_cloud00000000000000000000000000000000001",
+        "token_type": "Bearer",
+        "rotated": false,
+        "instance": {
+            "id": "inst_vpqcxozlqq",
+            "name": "Fleetbase Cloud",
+            "host": "https://api.staging.fleetbase.test",
+            "kind": "cloud",
+            "console_version": "0.8.0",
+            "api_version": "1.6.80",
+            "status": "active",
+            "organization": {
+                "id": "org_q7zde0f5vr",
+                "slug": "fleetbase",
+                "name": "Fleetbase Cloud",
+                "website": null,
+                "bio": null,
+                "avatar_url": null,
+                "is_personal": false,
+                "is_staff": false,
+                "is_verified": false,
+                "verified_at": null,
+                "created_at": "2026-10-24T12:23:44.000000Z"
+            },
+            "last_seen_at": "2026-10-24T12:23:50.000000Z",
+            "created_at": "2026-10-24T12:23:50.000000Z"
+        }
+    }
+}

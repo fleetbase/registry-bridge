@@ -67,6 +67,9 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         \Fleetbase\RegistryBridge\Console\Commands\UpdateExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\InstallerJobStatus::class,
         \Fleetbase\RegistryBridge\Console\Commands\RegisterInstance::class,
+        \Fleetbase\RegistryBridge\Console\Commands\RegisterCloudInstance::class,
+        \Fleetbase\RegistryBridge\Console\Commands\SyncCloudInstalls::class,
+        \Fleetbase\RegistryBridge\Console\Commands\ManageMaintenance::class,
     ];
 
     /**
@@ -236,6 +239,28 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../../config/registry-bridge.php', 'registry-bridge');
         $this->mergeConfigFromSettings();
         $this->refreshSettingsPerOperation();
+        $this->scheduleCloudRegistration();
+
+        // On the cloud instance, the service names a company's organization after the company the first time it acts for it
+        RegistryClient::resolveCompanyNamesUsing(fn (string $company) => \Fleetbase\Models\Company::where('uuid', $company)->value('name'));
+    }
+
+    /**
+     * On Fleetbase Cloud, check the instance token every five minutes and register again when the service no longer
+     * accepts it (a rotation by another deployment, a revoke). One request while it is accepted.
+     *
+     * @return void
+     */
+    public function scheduleCloudRegistration()
+    {
+        $this->scheduleCommands(function ($schedule) {
+            $schedule->command('registry:cloud-register')
+                ->everyFiveMinutes()
+                ->name('registry-cloud-register')
+                ->withoutOverlapping()
+                ->onOneServer()
+                ->when(fn () => RegistryConfig::current()->cloudAutoRegister());
+        });
     }
 
     /**

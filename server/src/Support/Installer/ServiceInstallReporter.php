@@ -40,7 +40,7 @@ class ServiceInstallReporter implements InstallReporter
         }
 
         try {
-            $this->client->reportInstall($this->payload($extension, $release, 'installing', $user));
+            $this->client->forCompany($company)->reportInstall($this->payload($extension, $release, 'installing', $user));
         } catch (RegistryServiceException $e) {
             throw new InstallerException($e->getMessage(), $e->status(), $e);
         } catch (RegistryException $e) {
@@ -54,19 +54,21 @@ class ServiceInstallReporter implements InstallReporter
             return;
         }
 
+        $client = $this->client->forCompany($company);
         if ($action !== 'uninstall') {
-            $this->client->reportInstall($this->payload($extension, $release, 'installed', $user));
+            $client->reportInstall($this->payload($extension, $release, 'installed', $user));
 
             return;
         }
 
-        // The seat belongs to the instance: keep it while another company still has the extension
-        if (!$lastOnInstance) {
+        // The seat belongs to the instance: keep it while another company still has the extension. On the cloud
+        // instance each company holds its own seat, so its uninstall always releases it.
+        if (!$lastOnInstance && !$this->config->actsForCompanies()) {
             return;
         }
 
         try {
-            $this->client->reportUninstall($extension->id);
+            $client->reportUninstall($extension->id);
         } catch (RegistryServiceException $e) {
             // 404: the service never saw the install (an earlier report was lost); nothing to release
             if ($e->status() !== 404) {
@@ -81,7 +83,7 @@ class ServiceInstallReporter implements InstallReporter
             return;
         }
 
-        $this->client->reportInstall([
+        $this->client->forCompany($company)->reportInstall([
             ...$this->payload($extension, $release, 'failed', $user),
             'error' => strlen($message) > self::ERROR_LIMIT ? substr($message, 0, self::ERROR_LIMIT) . '…' : $message,
         ]);

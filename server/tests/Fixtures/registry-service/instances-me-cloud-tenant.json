@@ -1,0 +1,65 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me"
+    },
+    "status": 200,
+    "body": {
+        "instance": {
+            "id": "inst_smr2n66hg6",
+            "name": "Fleetbase Cloud",
+            "host": "https://api.fleetbase.test",
+            "kind": "cloud",
+            "console_version": "0.8.0",
+            "api_version": "1.6.80",
+            "status": "active",
+            "organization": {
+                "id": "org_q7zde0f5vr",
+                "slug": "fleetbase",
+                "name": "Fleetbase Cloud",
+                "website": null,
+                "bio": null,
+                "avatar_url": null,
+                "is_personal": false,
+                "is_staff": false,
+                "is_verified": false,
+                "verified_at": null,
+                "created_at": "2026-10-24T12:23:44.000000Z"
+            },
+            "last_seen_at": "2026-10-24T12:23:50.000000Z",
+            "created_at": "2026-10-24T12:23:44.000000Z"
+        },
+        "tenant": {
+            "id": "org_ody7qrpeda",
+            "slug": "beta-freight",
+            "name": "Beta Freight",
+            "website": null,
+            "bio": null,
+            "avatar_url": null,
+            "is_personal": false,
+            "is_staff": false,
+            "is_verified": false,
+            "verified_at": null,
+            "created_at": "2024-01-02T00:00:00.000000Z"
+        },
+        "licences": [
+            {
+                "id": "lic_ly94snk8v8",
+                "extension": {
+                    "id": "ext_lrzijn541q",
+                    "slug": "fleet-insights",
+                    "name": "Fleet Insights"
+                },
+                "purchase": "pur_mjig02aosw",
+                "receipt_url": null,
+                "kind": "paid",
+                "status": "active",
+                "max_activations": 5,
+                "seats_used": 1,
+                "activated_here": true,
+                "expires_at": null,
+                "created_at": "2024-07-02T00:00:00.000000Z"
+            }
+        ]
+    }
+}
