@@ -33,6 +33,9 @@ return [
         // `self_hosted` or `cloud`; defaults to `cloud` when `self_hosted` (this instance is the v1 registry) is true.
         'instance_kind' => env('REGISTRY_INSTANCE_KIND'),
         'instance' => [],
+        // Seconds the stored registry settings stay in the application cache between requests; writing one of
+        // them forgets the cache at once. 0 reads the settings table on every request.
+        'settings_cache_ttl' => env('REGISTRY_SETTINGS_CACHE_TTL', 30),
     ],
     'stripe' => [
         'key' => env('STRIPE_KEY', env('STRIPE_API_KEY')),

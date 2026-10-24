@@ -74,7 +74,18 @@ test('the stored summary keeps what the service returned but never the token', f
         'token_hint'  => 'flbi_…0000',
     ])
         ->and($summary['organization'])->toBe(['id' => 'org_qqymqcyvgv', 'slug' => 'registry-demo-buyer', 'name' => 'Registry Demo Buyer'])
+        ->and($summary['rotated'])->toBeFalse()
         ->and(json_encode($summary))->not->toContain($registration['token']);
+});
+
+test('the stored summary records that the service rotated an existing instance', function () {
+    $registration = RegistryServiceFake::body('instances-register-rotated');
+
+    $summary = InstanceRegistration::instanceSummary($registration['instance'], RegistryServiceFake::SERVICE_URL, $registration['token'], '2026-10-24T09:10:00+00:00', $registration['rotated']);
+
+    expect($summary['rotated'])->toBeTrue()
+        ->and($summary['id'])->toBe('inst_rsmdtgevid')
+        ->and($summary['token_hint'])->toBe('flbi_…ated');
 });
 
 test('tokens are masked to their prefix and last four characters', function () {

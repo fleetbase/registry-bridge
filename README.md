@@ -79,10 +79,26 @@ the cloud catalog at `REGISTRY_HOST` (`~registry/v1/extensions`), read-only.
 | `REGISTRY_API_VERSION` | `v2` (default when a service URL is set) or `v1` to keep the cloud catalog fallback |
 | `REGISTRY_INSTANCE_KIND` | `self_hosted` (default) or `cloud`; reported at registration and matched against each extension's hosting |
 | `REGISTRY_INSTANCE_TOKEN` | Instance token, normally issued by registering from the admin page and stored encrypted in settings instead |
+| `REGISTRY_SETTINGS_CACHE_TTL` | Seconds the stored registry settings stay cached between requests (default `30`, `0` reads the table every request); a change forgets the cache at once |
 
 Register the instance on the admin Registry Configuration page with a one-time code from an owner or admin of your
 registry organization (`POST /v1/account/instance-codes` on the service). The instance token is stored encrypted with
 the app key and only ever shown masked.
+
+Registering an instance that is already registered (the admin page again, `php artisan registry:register`, or
+`flb instance register`) rotates it rather than creating a second instance: the bridge sends its current token as
+`previous_token` (only to the service that issued it), and the service matches the instance by that token, or by its
+host within the same registry organization when the token was lost (for example after Unregister). The instance keeps
+its id, its installs and its licence seats; only the token changes, and the old one stops working. A new host, or a
+code from another organization, registers a new instance. See *Re-registration* in the service's README.
+
+The registration (service URL, instance token, instance) lives in the `settings` table and is read per request, not
+merged into config once at boot: each Octane request and each queued job reads it on first use, through a short
+application-cache entry (`REGISTRY_SETTINGS_CACHE_TTL`, 30 seconds by default, `0` to turn it off) that is forgotten
+whenever one of the registry settings is written or deleted. A registration made in another process, such as
+`registry:register` run by `flb instance register`, therefore applies to every web worker and queue worker without
+`octane:reload` or `queue:restart`: on the next request with a shared cache store (Redis), and within the TTL when
+each container has its own store.
 
 Installs report to the service's instance API, which checks the licence and the extension's hosting before anything
 is installed. Composer and pnpm authenticate per process: `COMPOSER_AUTH` for Composer, and for npm
