@@ -1,0 +1,6 @@
+<div class="flex flex-row flex-wrap items-center gap-1" data-test-release-version={{@row.version}}>
+    <span class="font-mono text-xs">{{@row.version}}</span>
+    {{#if @row.is_latest}}<Badge @status="info" @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}}>{{t "registry-bridge.detail.versions.latest"}}</Badge>{{/if}}
+    {{#if @row.is_installed}}<Badge @status="success" @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}}>{{t "registry-bridge.card.installed"}}</Badge>{{/if}}
+    {{#if @row.is_yanked}}<Badge @status="error" @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}}>{{t "registry-bridge.detail.versions.yanked"}}</Badge>{{/if}}
+</div>

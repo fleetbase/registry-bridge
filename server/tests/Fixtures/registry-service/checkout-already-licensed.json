@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 409,
+    "body": {
+        "errors": [
+            "Registry Demo Buyer already holds a licence for Acme Route Planner. Ask Fleetbase staff for more seats."
+        ]
+    }
+}

@@ -4,150 +4,82 @@ namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 
 use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\RegistryBridge\Http\Requests\InstallExtensionRequest;
-use Fleetbase\RegistryBridge\Models\RegistryExtension;
-use Fleetbase\RegistryBridge\Models\RegistryExtensionInstall;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerException;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerService;
 
 class ExtensionInstallerController extends Controller
 {
     /**
-     * Installs a specified extension for a company.
+     * Queue an install of a Registry Service extension for the current company.
      *
-     * This method handles the installation process of an extension. It first looks up
-     * the extension in the `RegistryExtension` model using its public identifier provided
-     * in the request. Then, it ensures that the installation is recorded in the
-     * `RegistryExtensionInstall` model, linking the extension to the current company.
-     * If the installation record already exists, it does not create a duplicate.
+     * Returns `202 { status: "queued", job }` straight away; progress arrives on
+     * the `install.{company}.{extension}` socket channel and through
+     * GET installer/jobs/{id}. When `registry-bridge.installer.async` is off
+     * the job runs inside the request and the response is
+     * `{ status: "ok", job, install }`.
      *
-     * @param InstallExtensionRequest $request The request object containing the extension
-     *                                         identifier. Expected to have an 'extension'
-     *                                         field with the public ID of the extension.
-     *
-     * @return \Illuminate\Http\JsonResponse Returns a JSON response indicating the status.
-     *                                       The response contains a 'status' key with the
-     *                                       value 'ok' if the process is successful.
-     *
-     * @throws \Exception throws an exception if the specified extension is not found in the
-     *                    `RegistryExtension` model, leading to a potential error when
-     *                    trying to access properties of a non-object (`$extension->uuid`)
+     * Instances with preinstalled extensions (cloud) only record the install
+     * (see InstallerService).
      */
-    public function install(InstallExtensionRequest $request)
+    public function install(InstallExtensionRequest $request, InstallerService $installer)
     {
-        set_time_limit(120 * 6);
-        $extension = RegistryExtension::where('public_id', $request->input('extension'))->first();
-
-        // Check if already installed
-        $installed = RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $extension->uuid])->exists();
-        if ($installed) {
-            return response()->error('This extension is already installed.');
-        }
-
-        // Check if extensions are pre-installed to system
-        $PREINSTALLED_EXTENSIONS = config('registry-bridge.extensions.preinstalled') === true;
-
-        // Run installers if extension needs to be installed
-        if ($PREINSTALLED_EXTENSIONS === false) {
-            // Install for Composer
-            try {
-                $extension->currentBundle->installComposerPackage();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
-
-            // Install for Console
-            try {
-                $extension->currentBundle->installEnginePackage();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
-
-            // Rebuild Console
-            try {
-                $extension->currentBundle->buildConsole();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
-        }
-
-        // Run installer progress if preinstalled
-        if ($PREINSTALLED_EXTENSIONS === true) {
-            $extension->currentBundle->runInstallerProgress();
-        }
-
-        // Create install record
-        $install = RegistryExtensionInstall::create([
-            'company_uuid'   => session('company'),
-            'extension_uuid' => $extension->uuid,
-        ]);
-
-        return response()->json(['status' => 'ok', 'install' => $install]);
+        return $this->enqueue($installer, 'install', $request);
     }
 
     /**
-     * Uninstall a specific extension for the current company.
-     *
-     * This function handles the uninstallation of an extension specified by the public ID
-     * provided in the request. It first checks if the extension is already uninstalled for
-     * the company identified by the `company_uuid` stored in the session. If the extension
-     * is not installed, an error response is returned.
-     *
-     * If the extension is installed, it proceeds to uninstall the extension using Composer
-     * and removes the corresponding installation records from the database. If any errors
-     * occur during the Composer uninstallation process, an error response is returned.
-     *
-     * @param InstallExtensionRequest $request the request containing the public ID of the extension to be uninstalled
-     *
-     * @return \Illuminate\Http\JsonResponse a JSON response indicating the status of the uninstallation process
+     * Queue an uninstall of an extension for the current company. Same
+     * responses as install(); progress arrives on `uninstall.{company}.{extension}`.
      */
-    public function uninstall(InstallExtensionRequest $request)
+    public function uninstall(InstallExtensionRequest $request, InstallerService $installer)
     {
-        set_time_limit(120 * 6);
-        $extension   = RegistryExtension::where('public_id', $request->input('extension'))->first();
-        $uninstalled = false;
+        return $this->enqueue($installer, 'uninstall', $request);
+    }
 
-        // Check if already uninstalled
-        $uninstalled = RegistryExtensionInstall::where(['company_uuid' => session('company'), 'extension_uuid' => $extension->uuid])->doesntExist();
-        if ($uninstalled) {
-            return response()->error('This extension is not installed.');
+    /**
+     * Queue an update of an installed extension, to `version` or the newest compatible release. Same
+     * responses as install(); progress arrives on `install.{company}.{extension}`.
+     */
+    public function update(InstallExtensionRequest $request, InstallerService $installer)
+    {
+        return $this->enqueue($installer, 'update', $request);
+    }
+
+    /**
+     * An installer job of the current company: status, stage, progress, queue
+     * position and, once finished, the result (failed stage, message and the
+     * last log lines on failure).
+     */
+    public function job(string $id, InstallerService $installer)
+    {
+        $job = $installer->find($id, session('company'));
+        if ($job === null) {
+            return response()->error('Installer job not found.', 404);
         }
 
-        // Check if extensions are pre-installed to system
-        $PREINSTALLED_EXTENSIONS = config('registry-bridge.extensions.preinstalled') === true;
+        return response()->json(['job' => $job]);
+    }
 
-        // Run installers if extension needs to be installed
-        if ($PREINSTALLED_EXTENSIONS === false) {
-            // Uninstall for Composer
-            try {
-                $extension->currentBundle->uninstallComposerPackage();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
+    private function enqueue(InstallerService $installer, string $action, InstallExtensionRequest $request)
+    {
+        $async = config('registry-bridge.installer.async', true) !== false;
 
-            // Unnstall for Console
-            try {
-                $extension->currentBundle->uninstallEnginePackage();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
-
-            // Rebuild Console
-            try {
-                $extension->currentBundle->buildConsole();
-            } catch (\Throwable $e) {
-                return response()->error($e->getMessage());
-            }
+        try {
+            $job = $installer->request($action, (string) $request->input('extension'), $request->input('version'), session('company'), session('user'), !$async);
+        } catch (InstallerException $e) {
+            return response()->error($e->getMessage());
         }
 
-        // Run installer progress if preinstalled
-        if ($PREINSTALLED_EXTENSIONS === true) {
-            $extension->currentBundle->runUninstallerProgress();
+        if ($async) {
+            return response()->json(['status' => 'queued', 'job' => $job], 202);
         }
 
-        // Remove install records
-        $uninstalled = RegistryExtensionInstall::where([
-            'company_uuid'   => session('company'),
-            'extension_uuid' => $extension->uuid,
-        ])->delete();
+        if (($job['status'] ?? null) === 'failed') {
+            return response()->error($job['message'] ?? 'The installer job failed.');
+        }
 
-        return response()->json(['status' => 'ok', 'uninstalled' => $uninstalled]);
+        $install = RegistryServiceInstall::where(['company_uuid' => session('company'), 'extension_id' => $job['extension']['id'] ?? null])->first();
+
+        return response()->json(['status' => 'ok', 'job' => $job, $action === 'uninstall' ? 'uninstalled' : 'install' => $action === 'uninstall' ? $install === null : $install]);
     }
 }

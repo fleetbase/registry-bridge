@@ -1,34 +1,48 @@
-<Layout::Resource::Card  {{on "click" this.onClick}} {{did-update this.onExtensionUpdated @resource}} ...attributes as |Card|>
-    <Card.header class={{@headerClass}}>
-        <div class="flex flex-row items-center justify-between">
-            <div class="font-semibold">{{@resource.name}}</div>
-            <div>
-                {{#if @resource.payment_required}}
-                    <Badge @status="success" @hideStatusDot={{true}}>{{format-currency @resource.price @resource.currency}}</Badge>
-                {{else}}
-                    <Badge @status="success" @hideStatusDot={{true}}>Free</Badge>
+<Layout::Resource::Card class="extension-card" data-test-extension-card data-state={{this.model.state}} ...attributes as |Card|>
+    <Card.header class="extension-card-header">
+        <div class="flex flex-row items-start gap-3">
+            <Image
+                src={{this.extension.icon_url}}
+                alt=""
+                @fallbackSrc={{config "defaultValues.extensionIcon"}}
+                class="extension-card-icon"
+            />
+            <div class="flex-1 min-w-0">
+                <button type="button" class="extension-card-name" {{on "click" (fn this.openDetails (hash))}} data-test-extension-card-name>{{this.extension.name}}</button>
+                {{#if this.subtitle}}
+                    <div class="extension-card-subtitle" data-test-extension-card-subtitle>{{this.subtitle}}</div>
                 {{/if}}
             </div>
+            <Badge @status={{this.price.status}} @hideStatusDot={{true}} @disableHumanize={{true}} class="flex-shrink-0" data-test-extension-card-price>
+                {{this.price.text}}
+                {{#if this.price.original}}
+                    <s class="ml-1 opacity-70" data-test-extension-card-price-original>{{this.price.original}}</s>
+                {{/if}}
+            </Badge>
         </div>
-        {{#if (has-block "header")}}
-            {{yield to="header"}}
-        {{/if}}
+        {{yield to="header"}}
     </Card.header>
-    <Card.body class={{@bodyClass}}>
-        <Image src={{@resource.icon_url}} alt={{@resource.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} class="card-img-lg {{@iconClass}}" />
-        {{#if (has-block "body")}}
-            {{yield to="body"}}
-        {{/if}}
+    <Card.body class="extension-card-body">
+        <p class="extension-card-description" data-test-extension-card-description>{{or this.description (t "registry-bridge.card.no-description")}}</p>
+        {{yield to="body"}}
     </Card.body>
-    <Card.footer class={{@footerClass}}>
-        <div>
-            <p class="text-xs">{{n-a @resource.description}}</p>
-        </div>
-        {{#if (has-block "footer")}}
-            {{yield to="footer"}}
+    <Card.footer class="extension-card-footer">
+        {{#if this.badges.length}}
+            <div class="extension-card-badges" data-test-extension-card-badges>
+                {{#each this.badges as |badge|}}
+                    <Badge @status={{badge.status}} @size="xs" @hideStatusDot={{true}} @disableHumanize={{true}} @helpText={{badge.help}} data-test-extension-card-badge>{{badge.text}}</Badge>
+                {{/each}}
+            </div>
         {{/if}}
-        <div class="mt-1">
-            <div class="text-gray-300 dark:text-gray-500 text-xs">Last Modified: {{@resource.updatedAt}}</div>
+        {{#if this.unavailableReason}}
+            <p class="extension-card-reason" data-test-extension-card-reason>{{this.unavailableReason}}</p>
+        {{/if}}
+        {{yield to="footer"}}
+        <div class="extension-card-actions">
+            <ExtensionCard::Action @resource={{this.extension}} @onOpen={{@onOpen}} @onAction={{@onAction}} />
+            {{#if this.meta}}
+                <span class="extension-card-meta" data-test-extension-card-meta>{{this.meta}}</span>
+            {{/if}}
         </div>
     </Card.footer>
 </Layout::Resource::Card>

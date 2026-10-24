@@ -1,32 +1,63 @@
-<Layout::Section::Header @title={{t "registry-bridge.installed.title"}} />
-
-<Layout::Section::Body class="overflow-y-scroll h-full">
-    <div class="m-auto p-8">
-        <div class="extension-card-grid-container">
-            {{#each @model as |extension|}}
-                <div class="extension-card-container">
-                    <div class="extension-card-icon-container">
-                        <Image src={{extension.icon_url}} alt={{extension.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} />
-                    </div>
-                    <div class="extension-card-body-container">
-                        <div class="flex flex-col">
-                            <div class="font-semibold text-sm block">{{extension.name}}</div>
-                            <div class="text-xs">{{n-a extension.description}}</div>
-                        </div>
-                        <div class="flex flex-col flex-1 pt-1 space-y-2">
-                            <Button
-                                @type="default"
-                                @text={{t "registry-bridge.common.about-extension" extensionName=extension.name}}
-                                @icon="circle-info"
-                                @onClick={{fn this.about extension}}
-                                class="w-full btn-block"
-                            />
-                            <Button @type="danger" @text={{t "registry-bridge.common.uninstall"}} @icon="trash" @onClick={{fn this.uninstall extension}} class="w-full btn-block" />
-                        </div>
-                    </div>
-                </div>
-            {{/each}}
-        </div>
-    </div>
-    <Spacer @height="300px" />
-</Layout::Section::Body>
+<Layout::Resource::Tabular
+    @resource="registry-extension"
+    @title={{t "registry-bridge.installed.title"}}
+    @searchQuery={{this.query}}
+    @onSearch={{perform this.search}}
+    @data={{this.rows}}
+    @columns={{this.columns}}
+    @controller={{this}}
+    @selectable={{false}}
+    @canSelectAll={{false}}
+    @pagination={{false}}
+    @hideColumnsPicker={{not this.isTable}}
+    @onReload={{perform this.load}}
+    data-test-installed
+>
+    <:header>
+        {{#if this.updatesAvailable}}
+            <Badge @status="info" @hideStatusDot={{true}} @disableHumanize={{true}} data-test-installed-updates>{{t "registry-bridge.installed.updates-available" count=this.updatesAvailable}}</Badge>
+        {{/if}}
+        <Button @icon={{if this.isTable "table-cells-large" "table-list"}} @size="xs" @helpText={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} @onClick={{fn this.setLayout (if this.isTable "grid" "table")}} aria-label={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} data-test-installed-layout />
+    </:header>
+    <:default as |rows|>
+        {{#if this.load.isRunning}}
+            <div class="p-4" aria-busy="true" data-test-installed-loading>
+                {{#if this.isTable}}<Skeleton::Table @rows={{7}} @columns={{6}} @checkbox={{false}} />{{else}}<Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />{{/if}}
+            </div>
+        {{else if this.error}}
+            <div class="p-4" data-test-installed-error>
+                <InfoBlock @type="danger" @icon="triangle-exclamation">
+                    <div>{{t "registry-bridge.installed.error"}}</div>
+                    <div class="mt-2"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{perform this.load}} /></div>
+                </InfoBlock>
+            </div>
+        {{else if this.isTable}}
+            <Table
+                @rows={{rows}}
+                @columns={{this.columns}}
+                @selectable={{false}}
+                @canSelectAll={{false}}
+                @pagination={{false}}
+                @searchQuery={{this.query}}
+                @emptyStateComponent={{component
+                    "table/empty-state"
+                    icon="inbox"
+                    title=(t "registry-bridge.installed.empty.title")
+                    description=(t "registry-bridge.installed.empty.body")
+                    filteredTitle=(t "registry-bridge.installed.empty.filtered")
+                    primaryText=(t "registry-bridge.installed.empty.explore")
+                    primaryIcon="shapes"
+                    primaryAction=this.explore
+                    secondaryText=(t "registry-bridge.installed.empty.purchased")
+                    secondaryIcon="bag-shopping"
+                    secondaryAction=this.purchased
+                }}
+                data-test-installed-table
+            />
+        {{else}}
+            <Layout::Resource::CardsGrid @resource="registry-extension" @data={{rows}} @gap="sm" @columns="4" @containerClass="p-4" @emptyStateText={{t "registry-bridge.installed.empty.body"}} as |Item|>
+                <ExtensionCard @resource={{Item.model}} />
+            </Layout::Resource::CardsGrid>
+        {{/if}}
+    </:default>
+</Layout::Resource::Tabular>

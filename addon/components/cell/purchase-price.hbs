@@ -1,0 +1,5 @@
+{{#if this.amount}}
+    <span class="text-sm {{if this.revoked 'line-through text-gray-500 dark:text-gray-400'}}" data-test-purchase-price>{{format-currency this.amount this.currency}}</span>
+{{else}}
+    <span class="text-xs text-gray-500 dark:text-gray-400" data-test-purchase-price>-</span>
+{{/if}}

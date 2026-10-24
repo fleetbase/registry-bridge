@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 404,
+    "body": {
+        "errors": [
+            "Extension not found."
+        ]
+    }
+}

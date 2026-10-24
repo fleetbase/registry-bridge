@@ -1,5 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import { PANEL_PARAM } from '../services/extension-panel';
 
 export default class ApplicationRoute extends Route {
     @service fetch;
@@ -7,6 +8,10 @@ export default class ApplicationRoute extends Route {
     @service hostRouter;
     @service abilities;
     @service intl;
+    @service registryContext;
+    @service extensionPanel;
+    @service extensionPurchase;
+    @service urlSearchParams;
 
     beforeModel() {
         if (this.abilities.cannot('registry-bridge see extension')) {
@@ -16,12 +21,29 @@ export default class ApplicationRoute extends Route {
     }
 
     model() {
-        return this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' });
+        return this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' }).catch(() => []);
     }
 
-    // async setupController(controller) {
-    //     super.setupController(...arguments);
-    //     // controller.categories = await this.store.query('category', { for: 'extension_category', core_category: 1 });
-    //     controller.categories = await this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' });
-    // }
+    setupController(controller, model) {
+        super.setupController(...arguments);
+        controller.rememberCategoryCounts(model);
+        this.registryContext.load();
+        this.registryContext.loadCounts();
+        this.registryContext.watchCounts(this.hostRouter);
+        this.restoreFromUrl();
+    }
+
+    /**
+     * Reopen the panel from `?extension_id=`, and finish a purchase when the
+     * page is the return from a checkout.
+     */
+    async restoreFromUrl() {
+        const resumed = await this.extensionPurchase.resume();
+        if (resumed === null) {
+            const extensionId = this.urlSearchParams.get(PANEL_PARAM);
+            if (extensionId) {
+                await this.extensionPanel.openById(extensionId);
+            }
+        }
+    }
 }

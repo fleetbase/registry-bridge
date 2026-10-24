@@ -2,373 +2,297 @@
 
 namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 
-use Fleetbase\Exceptions\FleetbaseRequestValidationException;
+use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Requests\AdminRequest;
 use Fleetbase\Models\Setting;
-use Fleetbase\RegistryBridge\Http\Controllers\RegistryBridgeController;
-use Fleetbase\RegistryBridge\Http\Requests\CreateRegistryExtensionRequest;
-use Fleetbase\RegistryBridge\Http\Requests\RegistryExtensionActionRequest;
-use Fleetbase\RegistryBridge\Http\Resources\PublicRegistryExtension;
-use Fleetbase\RegistryBridge\Models\RegistryExtension;
-use Fleetbase\RegistryBridge\Support\Utils;
+use Fleetbase\RegistryBridge\Exceptions\RegistryException;
+use Fleetbase\RegistryBridge\Exceptions\RegistryServiceException;
+use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
+use Fleetbase\RegistryBridge\Support\InstanceRegistration;
+use Fleetbase\RegistryBridge\Support\RegistryClient;
+use Fleetbase\RegistryBridge\Support\RegistryConfig;
+use Fleetbase\RegistryBridge\Support\ServiceCatalog;
+use Fleetbase\RegistryBridge\Support\ServiceCheckout;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-class RegistryExtensionController extends RegistryBridgeController
+/**
+ * The Registry Service catalog and this instance's place in it, for the console's Extensions module.
+ */
+class RegistryExtensionController extends Controller
 {
     /**
-     * The resource to query.
+     * One page of Explore: `query`, `category`, `pricing`, `hosting`, `hide_installed`, `sort`, `page`, `limit`.
      *
-     * @var string
+     * @return \Illuminate\Http\JsonResponse `{registryExtensions, meta}`
      */
-    public $resource = 'registry_extension';
-
-    /**
-     * Display a public list of all published extensions.
-     *
-     * This endpoint is publicly accessible and returns all extensions with a status of 'published'.
-     * The results are cached for 15 minutes to improve performance and reduce database load.
-     * This endpoint is designed to be called by self-hosted instances to discover available extensions.
-     *
-     * @param Request $request the incoming HTTP request
-     *
-     * @return \Illuminate\Http\JsonResponse the collection of published extensions
-     */
-    public function listPublicExtensions(Request $request)
+    public function query(Request $request)
     {
-        $cacheKey = 'public-extensions-list';
-        $cacheTtl = now()->addMinutes(15);
-
-        $extensions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTtl, function () {
-            return RegistryExtension::where('status', 'published')
-                ->with(['company', 'category', 'currentBundle'])
-                ->withCount('installs')
-                ->orderBy('installs_count', 'desc')
-                ->get();
-        });
-
-        PublicRegistryExtension::withoutWrapping();
-
-        return PublicRegistryExtension::collection($extensions);
-    }
-
-    /**
-     * Creates a record with request payload.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function createRecord(Request $request)
-    {
-        // Create validation request
-        $createRegistryExtensionRequest  = CreateRegistryExtensionRequest::createFrom($request);
-        $rules                           = $createRegistryExtensionRequest->rules();
-
-        // Manually validate request
-        $validator = Validator::make($request->input('registryExtension'), $rules);
-        if ($validator->fails()) {
-            return $createRegistryExtensionRequest->responseWithErrors($validator);
-        }
+        $config = RegistryConfig::current();
 
         try {
-            $record = $this->model->createRecordFromRequest($request);
-
-            return ['registryExtension' => new $this->resource($record)];
-        } catch (\Throwable $e) {
-            return response()->error($e->getMessage());
-        } catch (\Illuminate\Database\QueryException $e) {
-            return response()->error($e->getMessage());
-        } catch (FleetbaseRequestValidationException $e) {
-            return response()->error($e->getErrors());
+            $page = ServiceCatalog::query($request, RegistryClient::fromConfig($config), $config, RegistryServiceInstall::packageNames(session('company')));
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
         }
+
+        return response()->json(['registryExtensions' => $page->items(), 'meta' => static::paginationMeta($page)]);
     }
 
     /**
-     * Display a list of installed extensions for the current company.
+     * One listing by `ext_` id or slug, decorated with this instance's install and licence state.
      *
-     * This function retrieves all extensions that are installed for the company
-     * identified by the `company_uuid` stored in the session. It disables the cache
-     * for the `RegistryExtension` model to ensure fresh data is fetched from the database.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function find(string $id)
+    {
+        $config = RegistryConfig::current();
+
+        try {
+            $extension = ServiceCatalog::find($id, RegistryClient::fromConfig($config), $config, RegistryServiceInstall::packageNames(session('company')));
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
+        }
+
+        if ($extension === null) {
+            return response()->error('Extension not found.', 404);
+        }
+
+        return response()->json(['registryExtension' => $extension]);
+    }
+
+    /**
+     * Published and yanked releases of a listing for the Versions tab.
      *
-     * The extensions are filtered based on their association with any installation
-     * record that matches the `company_uuid` from the session. The resulting collection
-     * of installed extensions is then wrapped and returned as a resource collection.
+     * @return \Illuminate\Http\JsonResponse `{latest, channels, releases}`
+     */
+    public function releases(Request $request, string $id)
+    {
+        $installed = $request->input('installed_version');
+
+        try {
+            $releases = ServiceCatalog::releases($id, RegistryClient::fromConfig(RegistryConfig::current()), is_string($installed) && $installed !== '' ? $installed : null);
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
+        }
+
+        if ($releases === null) {
+            return response()->error('Extension not found.', 404);
+        }
+
+        return response()->json($releases);
+    }
+
+    /**
+     * What every console user needs to know about the registry: the service URL, whether this instance is
+     * registered, its kind, the registry organization that owns its licences, the publisher portal and whether
+     * paid extensions can be bought here. No secrets.
      *
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection the collection of installed extensions wrapped as a resource
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function context()
+    {
+        $config = RegistryConfig::current();
+
+        return response()->json([
+            'service_url'        => $config->serviceUrl(),
+            'registered'         => $config->isRegistered(),
+            'instance_kind'      => $config->instanceKind(),
+            'organization'       => $config->organization(),
+            'publisher_url'      => $config->publisherUrl(),
+            'checkout_available' => ServiceCheckout::available($config),
+        ]);
+    }
+
+    /**
+     * Sidebar counts: installed extensions, updates available and purchased (active paid) licences.
+     *
+     * @return \Illuminate\Http\JsonResponse `{installed, updates, purchased}`
+     */
+    public function counts()
+    {
+        $config   = RegistryConfig::current();
+        $localIds = RegistryServiceInstall::where('company_uuid', session('company'))->pluck('extension_id')->filter()->values()->all();
+        $state    = ServiceCatalog::state(RegistryClient::fromConfig($config), $config);
+
+        return response()->json(ServiceCatalog::counts($state, $localIds));
+    }
+
+    /**
+     * Extensions installed on this instance: what the service reports in `updates` plus local install records,
+     * with installed and latest versions.
+     *
+     * @return \Illuminate\Http\JsonResponse `{registryExtensions}`
      */
     public function installed()
     {
-        $installedExtensions = RegistryExtension::whereHas('installs', function ($query) {
-            $query->where('company_uuid', session('company'));
-        })->get();
+        $config        = RegistryConfig::current();
+        $localInstalls = RegistryServiceInstall::where('company_uuid', session('company'))->get()->map(fn ($install) => $install->toLocalInstall())->all();
 
-        $this->resource::wrap('registryExtensions');
+        try {
+            $extensions = ServiceCatalog::installed(RegistryClient::fromConfig($config), $config, $localInstalls, RegistryServiceInstall::packageNames(session('company')));
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
+        }
 
-        return $this->resource::collection($installedExtensions);
+        return response()->json(['registryExtensions' => $extensions]);
     }
 
     /**
-     * Display a list of purchased extensions for the current company.
+     * Extensions the instance's organization bought: active paid licences, and refunded or revoked ones with
+     * their state and receipt. Only active ones entitle installs.
      *
-     * This function retrieves all extensions that are purchased for the company
-     * identified by the `company_uuid` stored in the session. It disables the cache
-     * for the `RegistryExtension` model to ensure fresh data is fetched from the database.
-     *
-     * The extensions are filtered based on their association with any purchase
-     * record that matches the `company_uuid` from the session. The resulting collection
-     * of purchased extensions is then wrapped and returned as a resource collection.
-     *
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection the collection of purchased extensions wrapped as a resource
+     * @return \Illuminate\Http\JsonResponse `{registryExtensions}`
      */
     public function purchased()
     {
-        $purchasedExtensions = RegistryExtension::whereHas('purchases', function ($query) {
-            $query->where('company_uuid', session('company'));
-        })->get();
+        $config = RegistryConfig::current();
 
-        $this->resource::wrap('registryExtensions');
+        try {
+            $extensions = ServiceCatalog::purchased(RegistryClient::fromConfig($config), $config, RegistryServiceInstall::packageNames(session('company')));
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
+        }
 
-        return $this->resource::collection($purchasedExtensions);
+        return response()->json(['registryExtensions' => $extensions]);
     }
 
     /**
-     * Retrieve analytics for a specific registry extension.
-     *
-     * This method fetches analytics for a registry extension identified by
-     * the provided ID. It gathers various metrics, including the number of
-     * installs, uninstalls, purchases, and the total purchase amount. If the
-     * extension cannot be found, it returns an error response. Otherwise, it
-     * returns the collected metrics as a JSON response.
-     *
-     * @param Request $request
-     *                         The incoming request instance containing the extension ID
+     * The registry configuration for the admin page.
      *
      * @return \Illuminate\Http\JsonResponse
-     *                                       A JSON response containing the collected analytics metrics or an error message
-     */
-    public function analytics(Request $request)
-    {
-        $id        = $request->input('id');
-        $extension = RegistryExtension::find($id);
-        if (!$extension) {
-            return response()->error('Unable to find extension to fetch analytics.');
-        }
-
-        $metrics = [];
-
-        // Get number of installs
-        $metrics['install_count'] = $extension->installs()->count();
-
-        // Get number of uninstalls
-        $metrics['uninstall_count'] = $extension->installs()->withoutGlobalScopes()->whereNotNull('deleted_at')->count();
-
-        // Get number of purchases
-        $metrics['purchase_count'] = $extension->purchases()->count();
-
-        // Get total amount in purchases
-        $totalPurchaseAmount        = $extension->purchases()->get()->sum('locked_price');
-        $metrics['purchase_amount'] = Utils::moneyFormat($totalPurchaseAmount, $extension->currency);
-
-        // Respond with metrics
-        return response()->json($metrics);
-    }
-
-    /**
-     * Approves a specific extension by its ID.
-     *
-     * This function locates a `RegistryExtension` using the provided ID and sets its status to 'approved'.
-     * If the extension is successfully found and updated, it returns the extension resource. If the extension
-     * cannot be found, it returns an error response indicating the inability to locate the extension.
-     *
-     * @param RegistryExtensionActionRequest $request the validated request object
-     *
-     * @return \Illuminate\Http\Response|array returns an array containing the extension resource if successful,
-     *                                         or an error response if the extension cannot be found
-     */
-    public function approve(RegistryExtensionActionRequest $request)
-    {
-        $id        = $request->input('id');
-        $extension = RegistryExtension::find($id);
-        if ($extension) {
-            $extension->update(['status' => 'approved', 'current_bundle_uuid' => $extension->next_bundle_uuid]);
-            $extension->nextBundle()->update(['status' => 'approved']);
-        } else {
-            return response()->error('Unable to find extension for approval.');
-        }
-
-        return ['registryExtension' => new $this->resource($extension)];
-    }
-
-    /**
-     * Mannually publishes a specific extension by its ID.
-     *
-     * This function locates a `RegistryExtension` using the provided ID and sets its status to 'published'.
-     * If the extension is successfully found and updated, it returns the extension resource. If the extension
-     * cannot be found, it returns an error response indicating the inability to locate the extension.
-     *
-     * @param RegistryExtensionActionRequest $request the validated request object
-     *
-     * @return \Illuminate\Http\Response|array returns an array containing the extension resource if successful,
-     *                                         or an error response if the extension cannot be found
-     */
-    public function manualPublish(RegistryExtensionActionRequest $request)
-    {
-        $id        = $request->input('id');
-        $extension = RegistryExtension::find($id);
-        if ($extension) {
-            $extension->update(['status' => 'published', 'current_bundle_uuid' => $extension->next_bundle_uuid]);
-            $extension->nextBundle()->update(['status' => 'published']);
-        } else {
-            return response()->error('Unable to find extension to publish.');
-        }
-
-        return ['registryExtension' => new $this->resource($extension)];
-    }
-
-    /**
-     * Rejects a specific extension by its ID.
-     *
-     * Locates a `RegistryExtension` using the provided ID and updates its status to 'rejected'. It also
-     * intends to send a rejection reason via email to the extension's author (as indicated by commented code).
-     * If the extension is found and updated, it returns the extension resource. If not found, it returns an
-     * error response indicating the extension could not be located.
-     *
-     * Note: This method assumes the rejection reason is handled separately (possibly by another request).
-     *
-     * @param RegistryExtensionActionRequest $request the validated request object
-     *
-     * @return \Illuminate\Http\Response|array returns an array containing the extension resource if successful,
-     *                                         or an error response if the extension cannot be found
-     */
-    public function reject(RegistryExtensionActionRequest $request)
-    {
-        $id        = $request->input('id');
-        $extension = RegistryExtension::find($id);
-        if ($extension) {
-            $extension->update(['status' => 'rejected']);
-            $extension->nextBundle()->update(['status' => 'rejected']);
-        } else {
-            return response()->error('Unable to find extension for rejection.');
-        }
-
-        // send rejection reason via email to extension author
-        // $reason = $request->input('reason');
-
-        return ['registryExtension' => new $this->resource($extension)];
-    }
-
-    /**
-     * Submits an extension for review based on its ID.
-     *
-     * This method attempts to submit a `RegistryExtension` for review. It first checks
-     * if the extension is ready for submission by calling the static method
-     * `isExtensionReadyForSubmission`. If the extension is not ready, it returns an error response.
-     * If the extension is ready, it updates the extension's status to 'awaiting_review' and returns
-     * a JSON response indicating success.
-     *
-     * @param string $id the unique identifier of the extension to be submitted
-     *
-     * @return \Illuminate\Http\JsonResponse returns a JSON response indicating the outcome of the operation
-     *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException if no extension with the given ID is found
-     */
-    public function submit(string $id)
-    {
-        $isReady = RegistryExtension::isExtensionReadyForSubmission($id);
-        if (!$isReady) {
-            return response()->error('Unable to submit extension for review.');
-        }
-
-        $extension = RegistryExtension::find($id);
-        if ($extension) {
-            $extension->update(['status' => 'awaiting_review']);
-        }
-
-        return ['registryExtension' => new $this->resource($extension)];
-    }
-
-    /**
-     * Handles the download request for an extension bundle.
-     *
-     * This function retrieves a specific `RegistryExtension` by its ID and attempts to download
-     * its latest bundle. If the extension exists and has an associated bundle, it returns a download response
-     * with the appropriate file. If the extension doesn't exist or doesn't have a bundle, it returns an error response.
-     *
-     * @param RegistryExtensionActionRequest $request the validated request object
-     *
-     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
-     *                                                                                        Returns a download response for the bundle if successful, or an error response if not
-     */
-    public function downloadBundle(RegistryExtensionActionRequest $request)
-    {
-        $id        = $request->input('id');
-        $extension = RegistryExtension::find($id);
-        if ($extension && $extension->nextBundle) {
-            $bundleFile = data_get($extension, 'nextBundle.bundle');
-            if ($bundleFile) {
-                return Storage::disk($bundleFile->disk)->download($bundleFile->path, $bundleFile->name);
-            }
-        }
-
-        return response()->error('Failed to download extension bundle');
-    }
-
-    /**
-     * Retrieve the current registry configuration.
-     *
-     * This method fetches the current registry host and token from the configuration
-     * settings or environment variables and returns them in a JSON response.
-     *
-     * @param AdminRequest $request the incoming HTTP request containing the new host and token
-     *
-     * @return \Illuminate\Http\JsonResponse a JSON response containing the registry host and token
      */
     public function getConfig(AdminRequest $request)
     {
-        $registryHost     = config('registry-bridge.registry.host', env('REGISTRY_HOST', 'https://registry.fleetbase.io'));
-        $registryToken    = config('registry-bridge.registry.token', env('REGISTRY_TOKEN'));
-
-        return response()->json([
-            'host'  => $registryHost,
-            'token' => $registryToken,
-        ]);
+        return response()->json($this->configPayload(RegistryConfig::current()));
     }
 
     /**
-     * Save the registry configuration.
+     * Save the Registry Service URL. Pointing the instance at a different service forgets its registration,
+     * since the instance token belongs to the service that issued it.
      *
-     * This method updates the registry host and token based on the provided request input.
-     * If no input is provided, it uses the current configuration values or environment variables.
-     * The updated configuration is then saved in the settings and returned in a JSON response.
-     *
-     * @param AdminRequest $request the incoming HTTP request containing the new host and token
-     *
-     * @return \Illuminate\Http\JsonResponse a JSON response containing the updated registry host and token
+     * @return \Illuminate\Http\JsonResponse the saved configuration (see `getConfig()`)
      */
     public function saveConfig(AdminRequest $request)
     {
-        $currentRegistryHost     = config('registry-bridge.registry.host', env('REGISTRY_HOST', 'https://registry.fleetbase.io'));
-        $currentRegistryToken    = config('registry-bridge.registry.token', env('REGISTRY_TOKEN'));
-        $registryHost            = $request->input('host', $currentRegistryHost);
-        $registryToken           = $request->input('token', $currentRegistryToken);
+        $current = RegistryConfig::current();
 
-        // Save values in settings and config
-        if ($registryHost) {
-            Setting::configure('registry-bridge.registry.host', $registryHost);
-            config(['registry-bridge.registry.host' => $registryHost]);
+        if ($request->exists('service_url')) {
+            $serviceUrl = trim((string) $request->input('service_url'));
+            $serviceUrl = $serviceUrl !== '' ? RegistryConfig::normalizeUrl($serviceUrl) : null;
+
+            if ($serviceUrl !== $current->serviceUrl() && $current->isRegistered()) {
+                InstanceRegistration::forget();
+            }
+
+            Setting::configure(InstanceRegistration::SETTING_SERVICE_URL, $serviceUrl);
+            config(['registry-bridge.registry.service_url' => $serviceUrl]);
         }
 
-        if ($registryToken) {
-            Setting::configure('registry-bridge.registry.token', $registryToken);
-            config(['registry-bridge.registry.token' => $registryToken]);
+        // Drop any catalog cached for the previous service
+        RegistryClient::flush();
+
+        return response()->json($this->configPayload(RegistryConfig::current()));
+    }
+
+    /**
+     * Call the Registry Service once, uncached: the saved URL, or `service_url` from the request so an unsaved
+     * value can be tried. The saved instance token is checked too when the URL tested is the saved one.
+     *
+     * @return \Illuminate\Http\JsonResponse `{ok, latency_ms, status, extension_count, host, error, api_version, instance}`
+     */
+    public function testConfig(AdminRequest $request)
+    {
+        $config     = RegistryConfig::current();
+        $serviceUrl = trim((string) $request->input('service_url', ''));
+        $serviceUrl = $serviceUrl !== '' ? RegistryConfig::normalizeUrl($serviceUrl) : (string) ($config->serviceUrl() ?? RegistryConfig::DEFAULT_SERVICE_URL);
+        $token      = $serviceUrl === $config->serviceUrl() ? $config->instanceToken() : null;
+
+        return response()->json((new RegistryClient($serviceUrl, $token, $config))->testConnection());
+    }
+
+    /**
+     * Register this instance with the Registry Service: exchanges a one-time registration code (minted by an
+     * organization owner or admin on the service) for an instance token, stored encrypted and never returned.
+     *
+     * An instance that is already registered sends its current token, and the service matches it by that token or
+     * by its host, so registering again rotates the same instance (same id, installs and licence seats) and
+     * `instance.rotated` is true in the response.
+     *
+     * @return \Illuminate\Http\JsonResponse the configuration (see `getConfig()`)
+     */
+    public function registerInstance(AdminRequest $request)
+    {
+        try {
+            InstanceRegistration::register(
+                (string) $request->input('code', ''),
+                (string) $request->input('service_url', ''),
+                (string) $request->input('name', ''),
+                (string) $request->input('host', ''),
+                (string) $request->input('console_version', '')
+            );
+        } catch (RegistryServiceException $e) {
+            return response()->error($e->getMessage(), $e->status() >= 400 && $e->status() < 500 ? 422 : 502);
+        } catch (RegistryException $e) {
+            return response()->error($e->getMessage(), 503);
         }
 
-        // Reboot registry auth
-        Utils::bootRegistryAuth(true);
+        return response()->json($this->configPayload(RegistryConfig::current()));
+    }
 
-        return response()->json([
-            'host'  => $registryHost,
-            'token' => $registryToken,
-        ]);
+    /**
+     * Forget this instance's registration (instance token and details) on this side.
+     *
+     * @return \Illuminate\Http\JsonResponse the configuration (see `getConfig()`)
+     */
+    public function unregisterInstance(AdminRequest $request)
+    {
+        InstanceRegistration::forget();
+
+        return response()->json($this->configPayload(RegistryConfig::current()));
+    }
+
+    /**
+     * Pagination meta in the shape the console's `Pagination` component reads.
+     *
+     * @param LengthAwarePaginator<array<string, mixed>> $page
+     *
+     * @return array<string, int|null>
+     */
+    public static function paginationMeta(LengthAwarePaginator $page): array
+    {
+        return [
+            'total'        => $page->total(),
+            'per_page'     => $page->perPage(),
+            'current_page' => $page->currentPage(),
+            'last_page'    => $page->lastPage(),
+            'from'         => $page->firstItem(),
+            'to'           => $page->lastItem(),
+        ];
+    }
+
+    /**
+     * Configuration as returned to the admin page.
+     *
+     * @return array<string, mixed>
+     */
+    protected function configPayload(RegistryConfig $config): array
+    {
+        $instance = $config->instance();
+
+        return [
+            'service_url'   => $config->serviceUrl(),
+            'publisher_url' => $config->publisherUrl(),
+            'instance_kind' => $config->instanceKind(),
+            'instance'      => [
+                'registered'    => $config->isRegistered(),
+                'id'            => $instance['id'] ?? null,
+                'name'          => $instance['name'] ?? null,
+                'organization'  => $instance['organization'] ?? null,
+                'token_hint'    => $config->isRegistered() ? InstanceRegistration::maskToken($config->instanceToken()) : null,
+                'registered_at' => $instance['registered_at'] ?? null,
+                'rotated'       => ($instance['rotated'] ?? false) === true,
+            ],
+        ];
     }
 }
