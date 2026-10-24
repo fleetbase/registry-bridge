@@ -44,7 +44,7 @@ class ArtifactDownloader
         }
 
         if (!Checksum::matches($target, $artifact->checksum)) {
-            throw new \RuntimeException(sprintf('Checksum mismatch for the %s artifact: expected %s, got %s.', $artifact->role, $artifact->checksum, Checksum::sha256($target)));
+            throw new ChecksumMismatchException(sprintf('Checksum mismatch for the %s artifact: expected %s, got %s.', $artifact->role, $artifact->checksum, Checksum::sha256($target)));
         }
 
         return $target;
