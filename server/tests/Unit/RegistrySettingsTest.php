@@ -195,7 +195,7 @@ test('only the registry settings forget the cache', function () {
     RegistrySettings::settingChanged(null);
     expect($cache->get(RegistrySettings::CACHE_KEY))->toBe(['kept' => true]);
 
-    RegistrySettings::settingChanged(RegistrySettings::SETTING_HOST);
+    RegistrySettings::settingChanged(InstanceRegistration::SETTING_SERVICE_URL);
     expect($cache->has(RegistrySettings::CACHE_KEY))->toBeFalse();
 });
 

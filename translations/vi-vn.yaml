@@ -290,6 +290,8 @@ registry-bridge:
   purchased:
     title: Tiện ích đã mua
     ready: "{count, plural, other {# sẵn sàng cài đặt}}"
+    blocked: "{count, plural, other {# giấy phép đã hoàn tiền hoặc bị thu hồi: chặn cập nhật}}"
+    blocked-help: "Tiện ích đã hoàn tiền hoặc bị thu hồi vẫn được cài đặt và hoạt động ở nơi đã cài, nhưng không thể cài lại hoặc cập nhật. Biên lai vẫn được liệt kê ở đây."
     error: Không thể tải danh sách tiện ích đã mua.
     activations: "{used} / {max} phiên bản"
     receipt: Biên lai Stripe
@@ -332,6 +334,9 @@ registry-bridge:
         registered-at: Ngày đăng ký
         register: Đăng ký phiên bản này
         url-first: Hãy nhập URL dịch vụ trước.
+        register-again: "Đăng ký lại"
+        register-again-help: "Dán mã mới từ tổ chức kho của bạn. Phiên bản này giữ nguyên mã định danh, các bản cài đặt và chỗ giấy phép trên dịch vụ; chỉ token được thay thế."
+        cancel: "Hủy"
       result:
         connected: Đã kết nối với kho
         failed: Không thể kết nối với kho
@@ -347,8 +352,9 @@ registry-bridge:
       saved: Đã lưu cấu hình kho.
       this-instance: phiên bản này
       registered-toast: "Đã đăng ký với {host} dưới tên {name}."
+      reregistered-toast: "Đã đăng ký lại {name} ({id}) với {host}: cùng phiên bản, token mới. Các bản cài đặt và chỗ giấy phép được giữ nguyên."
       unregistered-toast: Phiên bản này không còn đăng ký với dịch vụ kho.
       unregister:
         title: Hủy đăng ký phiên bản này?
-        body: Phiên bản này sẽ quên token kho và không thể cài đặt, cập nhật hoặc mua tiện ích nữa. Các tiện ích đã cài vẫn hoạt động. Để thu hồi chính token đó, hãy xóa phiên bản khỏi tổ chức của bạn trên kho.
+        body: "Phiên bản này sẽ quên token kho và không thể cài đặt, cập nhật hoặc mua tiện ích nữa. Các tiện ích đã cài vẫn hoạt động. Để thu hồi chính token đó, hãy xóa phiên bản khỏi tổ chức của bạn trên kho. Nếu sau này đăng ký lại bảng điều khiển này, dịch vụ vẫn giữ cùng một phiên bản."
         accept: Hủy đăng ký

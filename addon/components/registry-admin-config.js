@@ -19,6 +19,8 @@ export default class RegistryAdminConfigComponent extends Component {
     @tracked instanceKind;
     @tracked instance;
     @tracked registrationCode = '';
+    /** Registering an instance that is already registered: the service rotates its token on the same instance. */
+    @tracked isReregistering = false;
 
     constructor() {
         super(...arguments);
@@ -99,11 +101,27 @@ export default class RegistryAdminConfigComponent extends Component {
             );
             this.applyConfig(config);
             this.registrationCode = '';
+            this.isReregistering = false;
             this.testResult = null;
-            this.notifications.success(this.t('registered-toast', { host: config.service_url, name: config.instance?.name ?? this.t('this-instance') }));
+            const name = config.instance?.name ?? this.t('this-instance');
+            if (config.instance?.rotated) {
+                this.notifications.success(this.t('reregistered-toast', { host: config.service_url, name, id: config.instance?.id ?? '' }));
+            } else {
+                this.notifications.success(this.t('registered-toast', { host: config.service_url, name }));
+            }
         } catch (error) {
             this.notifications.serverError(error);
         }
+    }
+
+    @action startReregister() {
+        this.registrationCode = '';
+        this.isReregistering = true;
+    }
+
+    @action cancelReregister() {
+        this.registrationCode = '';
+        this.isReregistering = false;
     }
 
     @action confirmUnregister() {

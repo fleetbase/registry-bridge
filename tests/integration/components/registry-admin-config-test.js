@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { setupRenderingTest, StubFetchService } from 'dummy/tests/helpers';
+import { setupRenderingTest, StubFetchService, NotificationsStub } from 'dummy/tests/helpers';
 import { render, click, fillIn, findAll, waitFor } from '@ember/test-helpers';
 import Service from '@ember/service';
 import { hbs } from 'ember-cli-htmlbars';
@@ -116,6 +116,47 @@ module('Integration | Component | registry-admin-config', function (hooks) {
             'sends the trimmed code, service URL and the console origin'
         );
         assert.dom('[data-test-token-hint]').hasText('flbi_…0000');
+    });
+
+    test('it registers again with a new code and says the same instance was rotated', async function (assert) {
+        this.owner.register('service:notifications', NotificationsStub);
+        this.fetch.responses['registry-extensions/config'] = REGISTERED;
+        this.fetch.responses['registry-extensions/instance/register'] = {
+            ...REGISTERED,
+            instance: { ...REGISTERED.instance, token_hint: 'flbi_…ated', registered_at: '2026-10-24T09:10:00+00:00', rotated: true },
+        };
+
+        await render(TEMPLATE);
+        assert.notOk(this.element.querySelector('[data-test-reregister]'), 'no code field until asked');
+
+        await click(buttonLabelled('Register again'));
+        assert.dom('[data-test-reregister]').containsText('only its token is replaced');
+        assert.true(buttonLabelled('Register again').disabled, 'registering again needs a code');
+        assert.notOk(buttonLabelled('Unregister'), 'unregister is hidden while registering again');
+
+        await fillIn('input[placeholder="XXXX-XXXX-XXXX-XXXX"]', 'k2pq-7tzm-4hwd-x9cv');
+        await click(buttonLabelled('Register again'));
+        await waitFor('[data-test-token-hint]');
+
+        const call = this.fetch.calls.find((call) => call.path === 'registry-extensions/instance/register');
+        assert.deepEqual(call.data, { code: 'k2pq-7tzm-4hwd-x9cv', service_url: 'https://registry.example.test', host: window.location.origin });
+        assert.dom('[data-test-token-hint]').hasText('flbi_…ated');
+        assert.notOk(this.element.querySelector('[data-test-reregister]'), 'the code field closes');
+        const [toast] = this.owner.lookup('service:notifications').messages;
+        assert.strictEqual(toast.type, 'success');
+        assert.true(toast.message.includes('Re-registered Acme Fleet (self-hosted) (inst_rsmdtgevid)'), toast.message);
+        assert.true(toast.message.includes('licence seats are kept'), toast.message);
+    });
+
+    test('registering again can be cancelled', async function (assert) {
+        this.fetch.responses['registry-extensions/config'] = REGISTERED;
+
+        await render(TEMPLATE);
+        await click(buttonLabelled('Register again'));
+        await click(buttonLabelled('Cancel'));
+
+        assert.notOk(this.element.querySelector('[data-test-reregister]'));
+        assert.ok(buttonLabelled('Unregister'));
     });
 
     test('it unregisters after confirmation', async function (assert) {

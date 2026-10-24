@@ -290,6 +290,8 @@ registry-bridge:
   purchased:
     title: Purchased extensions
     ready: "{count, plural, one {# ready to install} other {# ready to install}}"
+    blocked: "{count, plural, one {# licence refunded or revoked: updates blocked} other {# licences refunded or revoked: updates blocked}}"
+    blocked-help: "A refunded or revoked extension stays installed and keeps working where it is, but it can no longer be installed again or updated. Its receipt stays listed here."
     error: Could not load the purchased extensions.
     activations: "{used} of {max} instances"
     receipt: Stripe receipt
@@ -332,6 +334,9 @@ registry-bridge:
         registered-at: Registered
         register: Register this instance
         url-first: Enter the service URL first.
+        register-again: "Register again"
+        register-again-help: "Paste a new code from your registry organization. This instance keeps its id, installs and licence seats on the service; only its token is replaced."
+        cancel: "Cancel"
       result:
         connected: Connected to the registry
         failed: Unable to connect to the registry
@@ -347,8 +352,9 @@ registry-bridge:
       saved: Registry configuration saved.
       this-instance: this instance
       registered-toast: "Registered with {host} as {name}."
+      reregistered-toast: "Re-registered {name} ({id}) with {host}: same instance, new token. Its installs and licence seats are kept."
       unregistered-toast: This instance is no longer registered with the registry service.
       unregister:
         title: Unregister this instance?
-        body: This instance forgets its registry token and can no longer install, update or buy extensions. Installed extensions keep working. To revoke the token itself, remove the instance from your registry organization.
+        body: "This instance forgets its registry token and can no longer install, update or buy extensions. Installed extensions keep working. To revoke the token itself, remove the instance from your registry organization. Registering this console again later keeps the same instance on the service."
         accept: Unregister
