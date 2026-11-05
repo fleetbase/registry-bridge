@@ -1,0 +1,10 @@
+<Button
+    @size={{or @size "sm"}}
+    @type={{this.action.type}}
+    @text={{this.action.text}}
+    @disabled={{this.action.disabled}}
+    @permission={{this.action.permission}}
+    @onClick={{this.run}}
+    data-test-extension-card-action={{this.action.kind}}
+    ...attributes
+/>

@@ -24,7 +24,9 @@ class InstallExtensionRequest extends FleetbaseRequest
     public function rules()
     {
         return [
-            'extension' => ['required', 'exists:registry_extensions,public_id'],
+            // A local public id or a Registry Service id, slug or package name; the installer resolves it
+            'extension' => ['required', 'string', 'max:255'],
+            'version'   => ['nullable', 'string', 'max:64'],
         ];
     }
 }

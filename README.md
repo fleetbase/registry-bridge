@@ -67,6 +67,58 @@ Install the Ember.js Engine/Addon:
 pnpm install @fleetbase/registry-bridge-engine
 ```
 
+## Registry Service
+
+Explore, Installed, Purchased, installs, updates and purchases all go through the
+[Fleetbase Registry Service](https://github.com/fleetbase/registry). Publishing, review and payouts live on the
+service's publisher website; the console links to it as "Publisher portal".
+
+| Setting (env) | Purpose |
+| --- | --- |
+| `REGISTRY_SERVICE_URL` | Service base URL, default `https://registry.fleetbase.io`. Also editable on the admin Registry Configuration page |
+| `REGISTRY_INSTANCE_KIND` | `self_hosted` (default) or `cloud`; reported at registration and matched against each extension's hosting |
+| `REGISTRY_INSTANCE_TOKEN` | Instance token, normally issued by registering from the admin page and stored encrypted in settings instead |
+| `REGISTRY_PUBLISHER_URL` | Publisher portal the console links to; defaults to the service URL |
+| `REGISTRY_SERVICE_CHECKOUT` | `auto` (default: on for a registered instance unless the service has no checkout route), `true` or `false` |
+| `REGISTRY_SETTINGS_CACHE_TTL` | Seconds the stored registry settings stay cached between requests (default `30`, `0` reads the table every request); a change forgets the cache at once |
+
+Explore lists every published extension. Those this instance cannot install (another hosting kind, no release) show
+why on the card and in the detail panel; without a registration, a banner says installs and purchases need one.
+
+Paid extensions are bought through the service's hosted Stripe Checkout ("Instance checkout" in the service README):
+`POST ~registry/v1/purchases/checkout` starts it and the console redirects; Stripe returns with `handoff` (and
+`cancelled=1` on cancel) and the console polls `GET ~registry/v1/purchases/{handoff}` until the webhook has created
+the licence. The receipt of a completed hand-off is kept for Purchased until the service sends it on the licence.
+
+Register the instance on the admin Registry Configuration page with a one-time code from an owner or admin of your
+registry organization (`POST /v1/account/instance-codes` on the service). The instance token is stored encrypted with
+the app key and only ever shown masked.
+
+Registering an instance that is already registered (the admin page again, `php artisan registry:register`, or
+`flb instance register`) rotates it rather than creating a second instance: the bridge sends its current token as
+`previous_token` (only to the service that issued it), and the service matches the instance by that token, or by its
+host within the same registry organization when the token was lost (for example after Unregister). The instance keeps
+its id, its installs and its licence seats; only the token changes, and the old one stops working. A new host, or a
+code from another organization, registers a new instance. See *Re-registration* in the service's README.
+
+The registration (service URL, instance token, instance) lives in the `settings` table and is read per request, not
+merged into config once at boot: each Octane request and each queued job reads it on first use, through a short
+application-cache entry (`REGISTRY_SETTINGS_CACHE_TTL`, 30 seconds by default, `0` to turn it off) that is forgotten
+whenever one of the registry settings is written or deleted. A registration made in another process, such as
+`registry:register` run by `flb instance register`, therefore applies to every web worker and queue worker without
+`octane:reload` or `queue:restart`: on the next request with a shared cache store (Redis), and within the TTL when
+each container has its own store.
+
+Installs of service extensions run through the queued installer (see Extension installer below), which looks them up
+by `ext_` id, slug or package name. Its resolve step reports `installing` to the service's instance API, which checks
+the licence and the extension's hosting before anything is installed; `installed`, `failed` and uninstalls are reported
+when the job ends. Composer and pnpm authenticate per process: `COMPOSER_AUTH` for Composer, and for npm
+`NPM_CONFIG_//<host>/npm/:_authToken` plus `npm_config_userconfig` pointing at
+[`server/resources/npm/registry.npmrc`](server/resources/npm/registry.npmrc), which holds only `${…}` placeholders
+(pnpm 11 does not read `//host` credentials from the environment). No `auth.json` or `.npmrc` with a token is
+written. The installer adds the service's Composer repository to the API's `composer.json` and adds engines by
+tarball URL, so an engine's npm scope is never remapped.
+
 ## Usage
 
 ### Backend
@@ -114,6 +166,23 @@ pnpm start
 ```bash
 pnpm build
 ```
+
+## Extension installer
+
+Installs, uninstalls and updates run as `InstallExtensionJob` on the `installer` queue, one at a time per instance (a cache lock owned by the running job). The console's `POST installer/install`, `installer/update` and `installer/uninstall` return `202 { status: "queued", job }`; poll `GET installer/jobs/{id}` or listen on `install.{company}.{extension}` (`uninstall.…` for uninstalls) for `step` and `progress`. The console's install and uninstall modals do both (`addon/utils/installer-job.js`): they show the queue position and each step, count down to a reload on success, and on failure show the step, message and log tail with Retry.
+
+```bash
+php artisan registry:install pallet --release=0.0.2   # or pallet@0.0.2; artisan reserves --version
+php artisan registry:update pallet --json
+php artisan registry:uninstall pallet --company=<uuid or public id>
+php artisan queue:work --queue=installer --timeout=7200   # the worker that runs them
+```
+
+`--sync` runs the job in the current process. Stages: resolve the release, download and verify checksums, snapshot `composer.json`, `composer.lock`, the console's `package.json` and `pnpm-lock.yaml`, the runtime manifest and the engine's `engines-dist` folder, `composer require`, the engine step, clear caches, record the install. Any failure restores the snapshot and reports the stage and the last 50 log lines.
+
+When a release carries a prebuilt engine dist (D3 Outcome A), the engine step checks it against the console's `dist/host-modules.json` with `@fleetbase/ember-core`'s compatibility check, unpacks it into the runtime engines directory (default `<console>/dist/engines-dist`) and adds it to the manifest served at `GET ~registry/v1/engines/runtime`, which the console reads at boot. Without a prebuilt dist it falls back to `pnpm add` and `pnpm build`. Settings live under `registry-bridge.installer` in `server/config/registry-bridge.php`.
+
+Releases come from the Registry Service (`ServiceReleaseSource`); installs are recorded in `registry_service_installs` and reported to the service (`InstallReporter`); credentials reach Composer and pnpm through `PackageCredentials`, as process environment only.
 
 ## Contributing
 See the Contributing Guide for details on how to contribute to this project.

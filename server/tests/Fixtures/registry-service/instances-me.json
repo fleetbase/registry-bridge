@@ -1,0 +1,49 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me"
+    },
+    "status": 200,
+    "body": {
+        "instance": {
+            "id": "inst_rsmdtgevid",
+            "name": "Acme Fleet (self-hosted)",
+            "host": "https://fleet.example.test",
+            "kind": "self_hosted",
+            "console_version": "0.7.69",
+            "api_version": "1.6.30",
+            "status": "active",
+            "organization": {
+                "id": "org_qqymqcyvgv",
+                "slug": "registry-demo-buyer",
+                "name": "Registry Demo Buyer",
+                "website": null,
+                "bio": null,
+                "avatar_url": null,
+                "is_personal": false,
+                "is_verified": true,
+                "verified_at": "2026-10-22T07:09:38.000000Z",
+                "created_at": "2026-10-22T07:09:38.000000Z"
+            },
+            "last_seen_at": "2026-10-22T07:09:50.000000Z",
+            "created_at": "2026-10-22T07:09:47.000000Z"
+        },
+        "licences": [
+            {
+                "id": "lic_ssxvltl4dx",
+                "extension": {
+                    "id": "ext_gzh4wgc9nr",
+                    "slug": "registry-demo-pro",
+                    "name": "Registry Demo Pro"
+                },
+                "kind": "paid",
+                "status": "active",
+                "max_activations": 5,
+                "seats_used": 0,
+                "activated_here": false,
+                "expires_at": null,
+                "created_at": "2026-10-22T07:09:38.000000Z"
+            }
+        ]
+    }
+}

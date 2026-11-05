@@ -1,0 +1,17 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "The return url field is required."
+        ],
+        "fields": {
+            "return_url": [
+                "The return url field is required."
+            ]
+        }
+    }
+}

@@ -2,33 +2,21 @@
 
 namespace Fleetbase\RegistryBridge\Console\Commands;
 
-use Fleetbase\RegistryBridge\Support\Utils;
 use Illuminate\Console\Command;
 
+/**
+ * Kept for deploy scripts that still call it. Installs from the Registry Service inject package
+ * credentials per process, so there is no `.npmrc` or `auth.json` to write any more.
+ */
 class Initialize extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'registry:init';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Runs initialization for registry bridge.';
+    protected $description = 'No-op: the registry bridge needs no initialization with the Registry Service.';
 
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
     public function handle()
     {
-        Utils::bootRegistryAuth(true);
+        $this->info('Nothing to initialize: installs from the Registry Service carry their own credentials.');
 
         return 0;
     }

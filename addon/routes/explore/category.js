@@ -1,34 +1,57 @@
-import Route from '@ember/routing/route';
+import ExploreIndexRoute from './index';
 import { inject as service } from '@ember/service';
+import { isArray } from '@ember/array';
 
-export default class ExploreCategoryRoute extends Route {
+const refresh = { refreshModel: true };
+
+export default class ExploreCategoryRoute extends ExploreIndexRoute {
     @service store;
-    @service notifications;
-    @service hostRouter;
-    @service abilities;
-    @service intl;
 
     queryParams = {
-        query: {
-            refreshModel: false,
-        },
+        query: refresh,
+        pricing: refresh,
+        hosting: refresh,
+        hide_installed: refresh,
+        sort: refresh,
+        page: refresh,
     };
 
-    beforeModel() {
-        if (this.abilities.cannot('registry-bridge list extension')) {
-            this.notifications.warning(this.intl.t('common.unauthorized-access'));
-            return this.hostRouter.transitionTo('console');
-        }
+    /** The sidebar transitions with `{ slug }`, the URL with the slug param; both end up here. */
+    model(params) {
+        return { ...params, slug: params.slug };
     }
 
-    async model({ slug, query }) {
-        try {
-            const category = await this.store.queryRecord('category', { slug, for: 'extension_category', core_category: 1, single: 1 });
-            if (!category) return [];
+    async afterModel(model) {
+        this.categoryRecord = await this.findCategory(model?.slug);
+    }
 
-            return this.store.query('registry-extension', { explore: 1, category: category.id, query: query });
+    setupController(controller, model) {
+        controller.slug = model?.slug ?? null;
+        controller.categoryRecord = this.categoryRecord;
+        super.setupController(...arguments);
+    }
+
+    /**
+     * Resolve the category for a slug from the categories the application route already loaded
+     * (which come from the registry in use), falling back to a local lookup.
+     */
+    async findCategory(slug) {
+        if (!slug) {
+            return null;
+        }
+
+        const categories = this.modelFor('application');
+        if (isArray(categories)) {
+            const category = categories.find((category) => category.slug === slug || category.id === slug);
+            if (category) {
+                return category;
+            }
+        }
+
+        try {
+            return await this.store.queryRecord('category', { slug, for: 'extension_category', core_category: 1, single: 1 });
         } catch {
-            return [];
+            return null;
         }
     }
 }

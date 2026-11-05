@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/installs"
+    },
+    "status": 403,
+    "body": {
+        "errors": [
+            "'registry-demo-pro' is a paid extension and your organization does not hold an active licence for it."
+        ]
+    }
+}
