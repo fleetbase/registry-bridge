@@ -9,7 +9,7 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches: [ main, 'release/v*' ]
+    branches: [ main, 'release/v*', 'feature/extensions-registry-v2' ]
 
 jobs:
   build:
