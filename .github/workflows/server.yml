@@ -6,7 +6,7 @@ on:
     tags:
       - 'v*'
   pull_request:
-    branches: [ main, 'release/v*', 'feature/extensions-registry-v2' ]
+    branches: [ main, 'release/v*', 'dev-v*', feature/extensions-registry-v2 ]
 
 jobs:
   build:
@@ -37,5 +37,9 @@ jobs:
     - name: Run Lint
       run: composer lint
 
-    # - name: Run Tests -- Will add tests back after phppest issue https://github.com/pestphp/pest/issues/920 is fixed
-    #   run: composer test:unit
+    # Pest only looks for <root>/vendor/autoload.php and ignores Composer's vendor-dir
+    # (https://github.com/pestphp/pest/issues/920, still so in Pest 3), so point vendor at server_vendor.
+    - name: Run Tests
+      run: |
+        ln -sfn server_vendor vendor
+        composer test:unit
