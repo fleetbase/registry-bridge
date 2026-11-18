@@ -1,0 +1,19 @@
+{{#if this.applicable}}
+    <div class="flex flex-row items-center gap-1" data-test-auto-update={{this.extension.id}} ...attributes>
+        <select
+            class="form-select form-select-sm w-36"
+            aria-label={{t "registry-bridge.installed.auto-update.label"}}
+            title={{t "registry-bridge.installed.auto-update.help"}}
+            disabled={{this.disabled}}
+            {{on "change" this.change}}
+            data-test-auto-update-select
+        >
+            {{#each this.options as |choice|}}
+                <option value={{choice.value}} selected={{eq choice.value this.policy}}>{{choice.label}}</option>
+            {{/each}}
+        </select>
+        {{#if this.lastFailed}}
+            <FaIcon @icon="triangle-exclamation" @size="sm" class="text-yellow-500" title={{this.lastFailed}} aria-label={{this.lastFailed}} data-test-auto-update-failed />
+        {{/if}}
+    </div>
+{{/if}}

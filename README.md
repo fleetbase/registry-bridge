@@ -184,6 +184,34 @@ When a release carries a prebuilt engine dist (D3 Outcome A), the engine step ch
 
 Releases come from the Registry Service (`ServiceReleaseSource`); installs are recorded in `registry_service_installs` and reported to the service (`InstallReporter`); credentials reach Composer and pnpm through `PackageCredentials`, as process environment only.
 
+### Auto-update policies
+
+Each extension installed from the Registry Service has an auto-update policy, set in the Auto-update column of the console's Installed page (`POST ~registry/v1/registry-extensions/{id}/auto-update` with `policy`) and stored in `registry_service_installs.auto_update`:
+
+| policy | updates to |
+| --- | --- |
+| `none` (default) | nothing; update by hand |
+| `patch` | the newest compatible `x.y.Z` (`~x.y.z`) |
+| `minor` | the newest compatible `x.Y.z` (`^x.y.z`: a `0.x` extension stays on its minor, as 0.x minors may break) |
+
+`registry:auto-update` runs hourly from the Laravel scheduler (`REGISTRY_AUTO_UPDATE=false` turns the schedule off, `REGISTRY_AUTO_UPDATE_SCHEDULE` takes a cron expression). It reads the service's `me/updates`, whose releases are already filtered to this instance's console and API versions, takes `latest_patch` or `latest_minor`, and queues `update` through the installer above, so the job takes the lock, snapshots and rolls back like the Update button. With preinstalled extensions (cloud, `REGISTRY_PREINSTALLED_EXTENSIONS`) only the install record changes. The last attempt is kept in the install's `meta.auto_update`; a version whose automatic update failed is not retried until a newer one appears (or `--retry-failed`), and the Installed page flags it.
+
+```bash
+php artisan registry:auto-update --dry-run     # what would be queued
+php artisan registry:auto-update --json
+```
+
+### Before upgrading Fleetbase
+
+`registry:compat` asks the service (`GET /v1/instances/me/compatibility`) whether every installed extension has a release for a target core version. It prints, per extension, the installed release, the action (`keep`, `update`, `downgrade`, `blocked`), the newest compatible release and whether its prebuilt dist fits the target console's host modules. It exits 0 when nothing is blocked, 1 when something is, 2 when the check could not run.
+
+```bash
+php artisan registry:compat --console=0.8.1 --api=2.0.2
+php artisan registry:compat --console=0.8.1 --host-modules=/path/to/new-console/dist/host-modules.json --json
+```
+
+The client-upgrades automation runs the same check from the target release tag and holds the upgrade while anything is `blocked`.
+
 ## Contributing
 See the Contributing Guide for details on how to contribute to this project.
 

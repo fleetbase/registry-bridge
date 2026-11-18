@@ -277,6 +277,15 @@ registry-bridge:
       installed: Installed
       latest: Latest
       status: Status
+      auto-update: "Auto-update"
+    auto-update:
+      label: "Auto-update policy"
+      none: "Off"
+      patch: "Patch releases"
+      minor: "Minor releases"
+      help: "Patch installs x.y.Z releases, minor installs x.Y.z releases (0.x stays on its minor). Updates are queued hourly with a snapshot and rollback, and only to releases compatible with this console."
+      saved: "Auto-update for {name} set to {policy}."
+      last-failed: "Last automatic update to v{version} failed; it is not retried until a newer release appears."
     status:
       up-to-date: Up to date
       update-available: Update available

@@ -277,6 +277,15 @@ registry-bridge:
       installed: Đã cài
       latest: Mới nhất
       status: Trạng thái
+      auto-update: "Tự động cập nhật"
+    auto-update:
+      label: "Chính sách tự động cập nhật"
+      none: "Tắt"
+      patch: "Bản vá"
+      minor: "Bản phụ"
+      help: "Bản vá cài các phiên bản x.y.Z, bản phụ cài x.Y.z (0.x giữ nguyên bản phụ). Cập nhật được xếp hàng mỗi giờ với ảnh chụp và khôi phục, và chỉ tới phiên bản tương thích với console này."
+      saved: "Đã đặt tự động cập nhật cho {name}: {policy}."
+      last-failed: "Lần tự động cập nhật gần nhất lên v{version} thất bại; sẽ không thử lại cho tới khi có phiên bản mới hơn."
     status:
       up-to-date: Đã cập nhật
       update-available: Có bản cập nhật
