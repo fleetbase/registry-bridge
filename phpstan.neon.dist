@@ -3,6 +3,9 @@ parameters:
     paths:
         - server/src
 
-    checkMissingIterableValueType: true
-    checkGenericClassInNonGenericObjectType: false
     reportUnmatchedIgnoredErrors: true
+    ignoreErrors:
+        # PHPStan 1's checkGenericClassInNonGenericObjectType: false
+        -
+            identifier: missingType.generics
+            reportUnmatched: false
