@@ -19,9 +19,10 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  *   resolve   release.resolve   the release from the ReleaseSource, then the InstallReporter
  *                               (the Registry Service checks the licence and claims a seat here)
  *   download  release.download  artifacts, checksums, and the prebuilt dist unpacked and verified
- *   snapshot  snapshot.create   composer.json/lock, console package.json/pnpm-lock.yaml,
+ *   snapshot  snapshot.create   the extensions manifest's composer.json/lock, console package.json/pnpm-lock.yaml,
  *                               the runtime manifest and the engine's engines-dist folder
- *   composer  server.install    composer config (the release's repository, if any), composer require
+ *   composer  server.install    the release's repository (if any) and package written to the extensions
+ *                               manifest, then `composer update <package> fleetbase/core-platform` there
  *   engine    engine.install    prebuilt: compat check against host-modules.json, unpack,
  *                               add to the runtime manifest; otherwise pnpm add
  *   build     console.build     pnpm build (only without a prebuilt dist)
@@ -29,10 +30,16 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  *                               never cache:clear, which flushes a shared Redis database)
  *   record    install.record    the company's install record
  *
- * Uninstall runs resolve, snapshot, composer remove (server.uninstall), the
- * engine removal (engine.uninstall, plus console.build for built engines),
- * caches and record. Packages stay when another company still has the
- * extension installed.
+ * Uninstall runs resolve, snapshot, the package's removal from the manifest
+ * (server.uninstall), the engine removal (engine.uninstall, plus console.build
+ * for built engines), caches and record. Packages stay when another company
+ * still has the extension installed.
+ *
+ * Composer packages go into the extensions manifest (api/extensions, see
+ * ExtensionsManifest), a Composer project of its own, so an install never
+ * edits core's composer.json or composer.lock. A core from before the manifest
+ * has none; there the installer runs composer require/remove in the API as it
+ * always did.
  *
  * Composer and pnpm run with the PackageCredentials environment for their
  * command; nothing writes credentials to disk. The InstallReporter hears
@@ -154,7 +161,13 @@ class ExtensionInstaller
 
         if ($release->composerPackage !== null) {
             $this->stage($ctx, 'composer', 'server.install', function () use ($ctx, $release) {
-                $ctx->snapshot()->flag('composer');
+                $ctx->snapshot()->flag('composer', $this->composerProjectPath());
+                $manifest = $this->extensionsManifest();
+                if ($manifest !== null) {
+                    $this->requireInManifest($ctx, $manifest, $release);
+
+                    return;
+                }
                 if ($release->composerRepository !== null) {
                     // composer.json is in the snapshot, so a rollback removes the repository again
                     $repository = $release->composerRepository;
@@ -222,11 +235,26 @@ class ExtensionInstaller
                 $ctx->snapshot = Snapshot::capture($this->config->jobDirectory($ctx->id) . '/snapshot', $this->snapshotPaths($release));
             });
 
-            if ($release->composerPackage !== null && $this->composerRequires($release->composerPackage)) {
-                $this->stage($ctx, 'composer', 'server.uninstall', function () use ($ctx, $release) {
-                    $ctx->snapshot()->flag('composer');
-                    $this->exec($ctx, [$this->config->composerBinary, 'remove', (string) $release->composerPackage, '--no-interaction'], $this->config->apiPath, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
+            $manifest = $this->extensionsManifest();
+            if ($release->composerPackage !== null && $manifest !== null && $manifest->requires($release->composerPackage)) {
+                $this->stage($ctx, 'composer', 'server.uninstall', function () use ($ctx, $release, $manifest) {
+                    $ctx->snapshot()->flag('composer', $manifest->directory);
+                    $manifest->remove((string) $release->composerPackage);
+                    $ctx->log->add(sprintf('Removed %s from %s', $release->composerPackage, $manifest->file()));
+                    $ctx->result['composer_project'] = $manifest->directory;
+                    $this->exec($ctx, [$this->config->composerBinary, 'update', (string) $release->composerPackage, '--no-interaction'], $manifest->directory, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
                 });
+            } elseif ($release->composerPackage !== null && $this->composerRequires($release->composerPackage)) {
+                if ($manifest !== null) {
+                    // Installed into core before the manifest existed: core's composer.json is not the installer's to change.
+                    $ctx->result['server_package_kept'] = sprintf('%s is required by the API\'s own composer.json, so it stays installed. Run `php artisan extensions:migrate-manifest` to move it into the extensions manifest.', $release->composerPackage);
+                    $ctx->log->add($ctx->result['server_package_kept']);
+                } else {
+                    $this->stage($ctx, 'composer', 'server.uninstall', function () use ($ctx, $release) {
+                        $ctx->snapshot()->flag('composer', $this->config->apiPath);
+                        $this->exec($ctx, [$this->config->composerBinary, 'remove', (string) $release->composerPackage, '--no-interaction'], $this->config->apiPath, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
+                    });
+                }
             }
 
             $engine = $release->enginePackage;
@@ -450,7 +478,10 @@ class ExtensionInstaller
 
         $commands = [];
         if ($snapshot->flagged('composer')) {
-            $commands[] = [[$this->config->composerBinary, 'install', '--no-interaction'], $this->config->apiPath];
+            // The project composer ran in (the extensions manifest, or the API on a core without one); jobs
+            // snapshotted before the manifest only flagged `true`.
+            $project    = $snapshot->flagged('composer');
+            $commands[] = [[$this->config->composerBinary, 'install', '--no-interaction'], is_string($project) ? $project : $this->config->apiPath];
         }
         if ($snapshot->flagged('pnpm')) {
             $commands[] = [[$this->config->pnpmBinary, 'install', '--frozen-lockfile'], $this->config->consolePath];
@@ -609,14 +640,51 @@ class ExtensionInstaller
      */
     private function snapshotPaths(Release $release): array
     {
-        $api     = rtrim($this->config->apiPath, '/');
+        $project = $this->composerProjectPath();
         $console = rtrim($this->config->consolePath, '/');
-        $paths   = [$api . '/composer.json', $api . '/composer.lock', $console . '/package.json', $console . '/pnpm-lock.yaml', $this->config->runtimeManifestFile()];
+        $paths   = [$project . '/composer.json', $project . '/composer.lock', $console . '/package.json', $console . '/pnpm-lock.yaml', $this->config->runtimeManifestFile()];
         if ($release->enginePackage !== null) {
             $paths[] = $this->config->engineDirectory($release->enginePackage);
         }
 
         return $paths;
+    }
+
+    /**
+     * Write the release's repository and package to the manifest, then resolve just that package (and
+     * core-platform, so a core changed since the last resolve is taken into account) in the manifest's project.
+     */
+    private function requireInManifest(InstallContext $ctx, ExtensionsManifest $manifest, Release $release): void
+    {
+        $package = (string) $release->composerPackage;
+        if ($release->composerRepository !== null) {
+            // The manifest is in the snapshot, so a rollback removes the repository again.
+            $repository = $release->composerRepository;
+            $name       = $repository['name'];
+            unset($repository['name']);
+            $manifest->setRepository($name, $repository);
+            $ctx->log->add(sprintf('Repository %s set to %s in %s', $name, $repository['url'], $manifest->file()));
+        }
+        $manifest->require($package, $release->composerConstraint);
+        $ctx->log->add(sprintf('Required %s in %s', (string) $release->composerRequirement(), $manifest->file()));
+        $ctx->result['composer_project'] = $manifest->directory;
+
+        $allow = $manifest->requires(ExtensionsManifest::CORE_PLATFORM) ? [$package, ExtensionsManifest::CORE_PLATFORM] : [$package];
+        // No --with-dependencies, like the `composer require` this replaces: packages already locked keep their versions.
+        $this->exec($ctx, [$this->config->composerBinary, 'update', ...$allow, '--no-interaction'], $manifest->directory, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
+    }
+
+    private function extensionsManifest(): ?ExtensionsManifest
+    {
+        return ExtensionsManifest::find($this->config->extensionsDirectory());
+    }
+
+    /**
+     * Where Composer runs: the extensions manifest, or the API on a core without one.
+     */
+    private function composerProjectPath(): string
+    {
+        return $this->extensionsManifest()?->directory ?? rtrim($this->config->apiPath, '/');
     }
 
     private function composerRequires(string $package): bool

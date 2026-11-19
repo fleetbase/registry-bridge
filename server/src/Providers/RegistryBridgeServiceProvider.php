@@ -116,6 +116,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
             return InstallerConfig::fromArray([
                 ...$config,
                 'api_path'          => $config['api_path'] ?? base_path(),
+                // The extensions manifest (fleetbase/fleetbase api/extensions) the API loads; <api_path>/extensions on cores that do not bind it.
+                'extensions_path'   => $this->app->bound('path.extensions') ? $this->app->make('path.extensions') : null,
                 'console_path'      => $consolePath,
                 'work_path'         => $config['work_path'] ?? storage_path('app/registry-installer'),
                 'build_environment' => $config['build_environment'] ?? config('app.env', 'production'),

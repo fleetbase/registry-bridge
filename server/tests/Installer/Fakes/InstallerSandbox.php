@@ -199,6 +199,33 @@ class InstallerSandbox
     }
 
     /**
+     * Give the API an extensions manifest (fleetbase/fleetbase api/extensions) as a release ships it, and
+     * make `composer update` there lock what the manifest requires, like the real tool.
+     *
+     * @param array<string, mixed> $manifest overrides for the manifest's composer.json
+     */
+    public function withExtensionsManifest(array $manifest = []): string
+    {
+        $directory = $this->api . '/extensions';
+        Files::write($directory . '/composer.json', (string) json_encode(array_replace([
+            'name'         => 'fleetbase/extensions',
+            'require'      => ['fleetbase/core-platform' => '*', 'fleetbase/fleetops-api' => '^0.6.74'],
+            'repositories' => ['core-platform' => ['type' => 'path', 'url' => 'core-platform', 'options' => ['symlink' => false]]],
+            'config'       => ['allow-plugins' => new \stdClass(), 'sort-packages' => true],
+        ], $manifest), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        Files::write($directory . '/composer.lock', '{"packages":["fleetbase/core-platform","fleetbase/fleetops-api"]}');
+
+        $this->runner->on(['composer', 'update'], function (array $command, string $cwd) {
+            $require = array_keys((array) (Files::readJson($cwd . '/composer.json')['require'] ?? []));
+            file_put_contents($cwd . '/composer.lock', (string) json_encode(['packages' => $require]));
+
+            return ['Loading composer repositories with package information', 'Updating dependencies', 'Lock file operations: 1 install, 0 updates, 0 removals', 'Writing lock file', 'Installing dependencies from lock file', 'Package operations: 1 install', '  - Installing ' . $command[2], 'Generating optimized autoload files'];
+        });
+
+        return $directory;
+    }
+
+    /**
      * composer require/remove and pnpm add/remove edit the manifests like the
      * real tools; install --frozen-lockfile and composer install are no-ops.
      */
