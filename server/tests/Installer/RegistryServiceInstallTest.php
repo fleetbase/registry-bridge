@@ -155,7 +155,10 @@ test('a service release installs from the service package endpoints with credent
     expect(json_decode($env[1]['COMPOSER_AUTH'], true))->toBe(['bearer' => ['registry.example.test' => RegistryServiceFake::INSTANCE_TOKEN]])
         ->and($env[2]['FLEETBASE_REGISTRY_TOKEN'])->toBe(RegistryServiceFake::INSTANCE_TOKEN)
         ->and($env[2]['npm_config_userconfig'])->toBe(PackageAuth::npmrcPath())
-        ->and($env[4])->toBe([]);
+        ->and($env[3]['FLEETBASE_HOST_MODULES'])->toBe('1')
+        ->and($env[4])->toBe([])
+        ->and($result['prebuilt_skipped'])->toBe(HELLO_NPM . ' 1.0.0 has no prebuilt dist on the registry service.')
+        ->and(implode("\n", $result['log']))->toContain('has no prebuilt dist on the registry service. Installing the engine package and rebuilding the console instead.');
     foreach ($this->sandbox->runner->commands() as $command) {
         expect($command)->not->toContain(RegistryServiceFake::INSTANCE_TOKEN);
     }
@@ -239,6 +242,36 @@ test('a console that cannot take the prebuilt dist installs the engine package a
         ->and($this->sandbox->runner->commands())->toContain('pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL . ' --config.ignore-workspace-root-check=true', 'pnpm build --environment production')
         ->and($this->sandbox->manifest()->has(HELLO_NPM))->toBeFalse();
 })->with(['built in', 'no host modules', 'incompatible']);
+
+test('a dist the service cannot serve falls back to the engine package and a rebuild, with the reason logged', function () {
+    [$listing] = helloListingWithDist($this->sandbox);
+    $this->service->respondWith('GET', 'v1/catalog/extensions/' . HELLO_ID, 200, $listing);
+    $this->service->on('POST', 'v1/instances/me/installs', 'instances-installs-installing', 'instances-installs-installed');
+    $fetcher = fn (string $url) => throw new \RuntimeException(sprintf('Could not download %s.', $url));
+
+    $result = serviceInstaller($this->sandbox, RegistryServiceFake::config(), $fetcher)->run(helloJob());
+
+    expect($result['status'])->toBe('completed')
+        ->and($result['mode'])->toBe('build')
+        ->and($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'build', 'caches', 'record'])
+        ->and($result['prebuilt_skipped'])->toBe('The prebuilt dist could not be downloaded: Could not download ' . HELLO_DIST . '.')
+        ->and($this->sandbox->runner->commands())->toContain('pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL . ' --config.ignore-workspace-root-check=true', 'pnpm build --environment production')
+        ->and($this->sandbox->manifest()->has(HELLO_NPM))->toBeFalse();
+});
+
+test('the dist downloads from dist.url when the service names one', function () {
+    $listing                           = helloListing();
+    $listing['latest_release']['dist'] = ['url' => RegistryServiceFake::SERVICE_URL . '/v1/instances/me/releases/rel_fshrg663og/dist', 'size' => 10, 'sha256' => str_repeat('ab', 32), 'integrity' => null, 'built_against' => []];
+    $source                            = new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config());
+
+    expect($source->release(helloRef(), $listing)->artifact('dist')?->uri)->toBe(RegistryServiceFake::SERVICE_URL . '/v1/instances/me/releases/rel_fshrg663og/dist');
+
+    $listing['latest_release']['dist']['url'] = '/v1/instances/me/releases/rel_fshrg663og/dist';
+    expect($source->release(helloRef(), $listing)->artifact('dist')?->uri)->toBe(rtrim(RegistryServiceFake::SERVICE_URL, '/') . '/v1/instances/me/releases/rel_fshrg663og/dist');
+
+    $listing['latest_release']['dist']['url'] = 'ftp://elsewhere.test/dist';
+    expect($source->release(helloRef(), $listing)->artifact('dist')?->uri)->toBe(HELLO_DIST);
+});
 
 test('a release from an older service without dist metadata keeps the rebuild path', function () {
     $release = (new ServiceReleaseSource(RegistryClient::fromConfig(RegistryServiceFake::config()), RegistryServiceFake::config()))->release(helloRef(), helloListing());

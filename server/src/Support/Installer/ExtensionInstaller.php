@@ -129,9 +129,20 @@ class ExtensionInstaller
             $directory = $this->config->jobDirectory($ctx->id);
             foreach ($release->artifacts as $artifact) {
                 $ctx->log->add(sprintf('Downloading %s artifact', $artifact->role));
-                $ctx->downloads[$artifact->role] = $this->downloader->download($artifact, $directory . '/downloads');
+                try {
+                    $ctx->downloads[$artifact->role] = $this->downloader->download($artifact, $directory . '/downloads');
+                } catch (ChecksumMismatchException $e) {
+                    throw $e;
+                } catch (\RuntimeException $e) {
+                    // The service always has the engine package too, so a dist it cannot serve right now (unreachable,
+                    // 404, a licence refusal on a host the token is not sent to) costs a rebuild, not the install.
+                    if ($artifact->role !== Artifact::DIST || $release->source !== ExtensionRef::REGISTRY_SERVICE) {
+                        throw $e;
+                    }
+                    $this->skipPrebuilt($ctx, sprintf('The prebuilt dist could not be downloaded: %s', $e->getMessage()));
+                }
             }
-            if ($release->hasPrebuiltEngine()) {
+            if ($release->hasPrebuiltEngine() && isset($ctx->downloads[Artifact::DIST])) {
                 $ctx->engineRelease = EngineRelease::extract($ctx->downloads[Artifact::DIST], $directory . '/dist', (string) $release->enginePackage);
                 $ctx->log->add(sprintf('Verified %s@%s (%d files)', $ctx->engineRelease->name(), $ctx->engineRelease->version(), count($ctx->engineRelease->manifest['files'] ?? [])));
             }
@@ -170,9 +181,10 @@ class ExtensionInstaller
                     if ($release->source !== ExtensionRef::REGISTRY_SERVICE) {
                         throw new \RuntimeException($refusal);
                     }
-                    $ctx->log->add($refusal . ' Installing the engine package and rebuilding the console instead.');
-                    $ctx->result['prebuilt_skipped'] = $refusal;
-                    $rebuild                         = true;
+                    $this->skipPrebuilt($ctx, $refusal);
+                    $rebuild = true;
+                } elseif ($release->source === ExtensionRef::REGISTRY_SERVICE && !isset($ctx->result['prebuilt_skipped'])) {
+                    $this->skipPrebuilt($ctx, sprintf('%s %s has no prebuilt dist on the registry service.', $release->enginePackage, $release->version));
                 }
                 $this->addEnginePackage($ctx, $release);
             });
@@ -265,6 +277,23 @@ class ExtensionInstaller
     }
 
     /**
+     * Record why a release installs by rebuild instead of from its prebuilt dist: in the job log, in the result as
+     * `prebuilt_skipped`, and in the application log, so an operator can see what cost the rebuild.
+     */
+    private function skipPrebuilt(InstallContext $ctx, string $reason): void
+    {
+        $ctx->log->add($reason . ' Installing the engine package and rebuilding the console instead.');
+        $ctx->result['prebuilt_skipped'] = $reason;
+        if (function_exists('logger')) {
+            try {
+                logger()->warning('[registry-bridge] Prebuilt dist not used, rebuilding the console', ['job' => $ctx->id, 'reason' => $reason]);
+            } catch (\Throwable) {
+                // Outside a Laravel application (tests, scripts) the job log is the record.
+            }
+        }
+    }
+
+    /**
      * `pnpm add` the engine package for a console build. A runtime copy of the same engine is removed (the
      * snapshot restores it on failure), so the rebuilt console does not load it twice.
      */
@@ -325,7 +354,9 @@ class ExtensionInstaller
 
         try {
             $ctx->snapshot?->flag('built');
-            $this->exec($ctx, [$this->config->pnpmBinary, 'build', '--environment', $this->config->buildEnvironment], $this->config->consolePath, 'console.build', [OutputProgress::class, 'pnpmBuildOutputProgress']);
+            // FLEETBASE_HOST_MODULES=1 keeps dist/host-modules.json in every environment: without it a non-production
+            // rebuild drops the file and the console refuses every prebuilt engine afterwards.
+            $this->exec($ctx, [$this->config->pnpmBinary, 'build', '--environment', $this->config->buildEnvironment], $this->config->consolePath, 'console.build', [OutputProgress::class, 'pnpmBuildOutputProgress'], ['FLEETBASE_HOST_MODULES' => '1']);
         } finally {
             foreach ($preserved as $path => $copy) {
                 Files::move($copy, $path);
@@ -474,13 +505,14 @@ class ExtensionInstaller
     /**
      * @param array<int, string>         $command
      * @param callable(string): int|null $progress maps an output line to a percentage
+     * @param array<string, string>      $env      extra environment for this command, over the credentials'
      */
-    private function exec(InstallContext $ctx, array $command, string $cwd, ?string $step = null, ?callable $progress = null): ProcessResult
+    private function exec(InstallContext $ctx, array $command, string $cwd, ?string $step = null, ?callable $progress = null, array $env = []): ProcessResult
     {
         $ctx->log->add('$ ' . implode(' ', $command));
         $last = 0;
 
-        $env    = $this->credentials->environment($command);
+        $env    = array_merge($this->credentials->environment($command), $env);
         $result = $this->runner->run($command, $cwd, function (string $line) use ($ctx, $step, $progress, &$last) {
             $ctx->log->add($line);
             if ($step && $progress) {
