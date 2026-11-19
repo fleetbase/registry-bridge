@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "This extension is only available for cloud instances."
+        ]
+    }
+}

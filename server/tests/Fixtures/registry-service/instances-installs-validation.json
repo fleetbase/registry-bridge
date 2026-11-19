@@ -1,0 +1,25 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/installs"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "The version field is required when release is not present.",
+            "The release field is required when version is not present.",
+            "The status field is required."
+        ],
+        "fields": {
+            "version": [
+                "The version field is required when release is not present."
+            ],
+            "release": [
+                "The release field is required when version is not present."
+            ],
+            "status": [
+                "The status field is required."
+            ]
+        }
+    }
+}

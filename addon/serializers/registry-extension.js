@@ -9,12 +9,7 @@ export default class RegistryExtensionSerializer extends ApplicationSerializer.e
      */
     get attrs() {
         return {
-            company: { embedded: 'always' },
-            created_by: { embedded: 'always' },
             category: { embedded: 'always' },
-            icon: { embedded: 'always' },
-            current_bundle: { embedded: 'always' },
-            next_bundle: { embedded: 'always' },
             screenshots: { embedded: 'always' },
         };
     }

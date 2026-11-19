@@ -18,6 +18,13 @@ module.exports = function (environment) {
             // Here you can pass flags/options to your application instance
             // when it is created
         },
+
+        // The engine's adapters extend @fleetbase/ember-core's application adapter,
+        // which reads the host console's API config at module load. `host` is left
+        // blank so ember-core points requests at the test server's own origin.
+        API: {
+            namespace: 'int/v1',
+        },
     };
 
     if (environment === 'development') {

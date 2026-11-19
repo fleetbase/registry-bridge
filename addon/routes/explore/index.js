@@ -1,17 +1,23 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import { isArray } from '@ember/array';
+
+const refresh = { refreshModel: true };
 
 export default class ExploreIndexRoute extends Route {
-    @service store;
     @service notifications;
     @service hostRouter;
     @service abilities;
     @service intl;
 
     queryParams = {
-        query: {
-            refreshModel: true,
-        },
+        query: refresh,
+        category: refresh,
+        pricing: refresh,
+        hosting: refresh,
+        hide_installed: refresh,
+        sort: refresh,
+        page: refresh,
     };
 
     beforeModel() {
@@ -21,7 +27,15 @@ export default class ExploreIndexRoute extends Route {
         }
     }
 
-    model({ query }) {
-        return this.store.query('registry-extension', { explore: 1, query });
+    /** The catalog loads in the controller so the page renders skeletons and keeps its header while it does. */
+    model(params) {
+        return { ...params };
+    }
+
+    setupController(controller) {
+        super.setupController(...arguments);
+        const categories = this.modelFor('application');
+        controller.categories = isArray(categories) ? categories : [];
+        controller.load.perform();
     }
 }

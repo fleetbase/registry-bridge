@@ -1,0 +1,41 @@
+{{#if this.extensionPanel.isOpen}}
+    <Layout::Resource::Panel
+        @resource={{this.extension}}
+        @headerComponent={{component "extension-panel/header" onClose=this.close}}
+        @onPressCancel={{this.close}}
+        @onOverlayReady={{fn (mut this.overlay)}}
+        @width="680px"
+        @isResizable={{true}}
+        @headerClass="no-bottom-border"
+        @bodyClass="no-scroll"
+        class="extension-panel"
+        data-test-extension-panel
+    >
+        {{#if this.extensionPanel.isLoading}}
+            <div class="p-4" aria-busy="true" data-test-extension-panel-loading>
+                <Skeleton::Panel @tabs={{4}} @sections={{2}} />
+            </div>
+        {{else if this.extensionPanel.error}}
+            <div class="p-4" data-test-extension-panel-error>
+                <InfoBlock @type="danger" @icon="triangle-exclamation">
+                    <div class="font-semibold">{{t "registry-bridge.detail.error.title"}}</div>
+                    <div class="mt-3 space-x-2">
+                        <Button @size="xs" @text={{t "registry-bridge.common.close"}} @onClick={{this.close}} />
+                    </div>
+                </InfoBlock>
+            </div>
+        {{else if this.extension}}
+            <TabNavigation @tabs={{this.tabs}} @activeTabId={{this.extensionPanel.tab}} @onTabChange={{this.selectTab}} @contentClass="scrollable" @tablistClass="pl-2" as |tab|>
+                {{#if (eq tab.id "overview")}}
+                    <ExtensionPanel::Overview @extension={{this.extension}} />
+                {{else if (eq tab.id "screenshots")}}
+                    <ExtensionPanel::Screenshots @extension={{this.extension}} />
+                {{else if (eq tab.id "details")}}
+                    <ExtensionPanel::Details @extension={{this.extension}} />
+                {{else if (eq tab.id "versions")}}
+                    <ExtensionPanel::Versions @extension={{this.extension}} />
+                {{/if}}
+            </TabNavigation>
+        {{/if}}
+    </Layout::Resource::Panel>
+{{/if}}

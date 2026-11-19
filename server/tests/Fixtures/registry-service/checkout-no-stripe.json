@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "Acme Route Planner cannot be bought right now: its publisher has not finished setting up payouts."
+        ]
+    }
+}

@@ -1,0 +1,81 @@
+<div class="extension-panel-header {{@headerClass}}" data-test-extension-panel-header ...attributes>
+    <div class="flex flex-row items-start gap-3">
+        <Image src={{this.iconUrl}} alt="" @fallbackSrc={{this.defaultIcon}} class="extension-panel-icon" />
+        <div class="flex-1 min-w-0">
+            <div class="flex flex-row flex-wrap items-center gap-2">
+                <h2 class="extension-panel-title" data-test-extension-panel-title>{{this.extension.name}}</h2>
+                <Badge @status={{this.price.status}} @hideStatusDot={{true}} @disableHumanize={{true}} data-test-extension-panel-price>
+                    {{this.price.text}}
+                    {{#if this.price.original}}<s class="ml-1 opacity-70">{{this.price.original}}</s>{{/if}}
+                </Badge>
+                {{#if this.publisher.verified}}
+                    <Badge @status="default" @hideStatusDot={{true}} @disableHumanize={{true}} @helpText={{t "registry-bridge.detail.verified-help"}}>{{t "registry-bridge.card.verified"}}</Badge>
+                {{/if}}
+            </div>
+            {{#if this.extension.subtitle}}
+                <p class="extension-panel-subtitle">{{this.extension.subtitle}}</p>
+            {{/if}}
+            <div class="mt-2 flex flex-row flex-wrap items-center gap-2">
+                {{#if this.publisher.name}}
+                    <Resource::Pill @resource={{this.publisher}} @title={{this.publisher.name}} @subtitle={{t "registry-bridge.detail.publisher"}} @static={{true}} @noPopover={{true}} />
+                {{/if}}
+                {{#if this.extension.category_name}}
+                    <Category::Pill @category={{this.extension.category}} @title={{this.extension.category_name}} @subtitle={{t "registry-bridge.detail.category"}} @static={{true}} @noPopover={{true}} />
+                {{/if}}
+                {{#if this.versionLine}}
+                    <span class="text-xs text-gray-500 dark:text-gray-400" data-test-extension-panel-version>{{this.versionLine}}</span>
+                {{/if}}
+            </div>
+        </div>
+        <Button @icon="xmark" @size="xs" @type="default" @onClick={{this.close}} aria-label={{t "registry-bridge.common.close"}} data-test-extension-panel-close />
+    </div>
+
+    <div class="extension-panel-cta" data-test-cta={{this.cta.kind}}>
+        {{#if this.is.install}}
+            <Button @type="primary" @icon="download" @text={{t "registry-bridge.detail.cta.install"}} @onClick={{this.install}} data-test-cta-button />
+            <p class="extension-panel-cta-note" data-test-cta-note>{{this.installNote}}</p>
+        {{else if this.is.purchase}}
+            <Button
+                @type="success"
+                @icon="credit-card"
+                @text={{this.purchaseText}}
+                @onClick={{this.purchase}}
+                @isLoading={{this.extensionPurchase.isStarting}}
+                data-test-cta-button
+            />
+            <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.purchase-note"}}</p>
+            {{#if this.purchaseError}}
+                <InfoBlock @type="danger" @icon="circle-exclamation" @text={{this.purchaseError}} class="w-full" data-test-cta-purchase-error />
+            {{/if}}
+        {{else if this.is.installed}}
+            <Badge @status="success" @icon="check" @disableHumanize={{true}} data-test-cta-installed>
+                {{t "registry-bridge.detail.cta.installed" version=(if this.cta.version (concat "v" this.cta.version) "")}}
+            </Badge>
+            {{#if this.canUninstall}}
+                <Button @type="danger" @size="xs" @outline={{true}} @icon="trash" @text={{t "registry-bridge.common.uninstall"}} @onClick={{this.uninstall}} data-test-cta-uninstall />
+            {{/if}}
+        {{else if this.is.update}}
+            <Button @type="primary" @icon="arrow-up" @text={{t "registry-bridge.card.update-to" version=this.cta.version}} @onClick={{this.update}} data-test-cta-button />
+            <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.update-note" installedVersion=(or this.cta.installedVersion "")}}</p>
+            {{#if this.canUninstall}}
+                <Button @type="danger" @size="xs" @outline={{true}} @icon="trash" @text={{t "registry-bridge.common.uninstall"}} @onClick={{this.uninstall}} data-test-cta-uninstall />
+            {{/if}}
+        {{else if this.is.unauthorized}}
+            <Button @type="default" @icon="lock" @text={{t "registry-bridge.detail.cta.unauthorized"}} @disabled={{true}} data-test-cta-button />
+            <p class="extension-panel-cta-note" data-test-cta-permission>{{t "registry-bridge.detail.cta.unauthorized-note" permission=this.cta.permission}}</p>
+        {{else if this.is.author}}
+            <Button @type="default" @icon="arrow-up-right-from-square" @text={{t "registry-bridge.detail.cta.open-portal"}} @onClick={{this.openPortal}} @disabled={{not this.registryContext.publisherUrl}} data-test-cta-button />
+            <p class="extension-panel-cta-note">{{t "registry-bridge.detail.cta.author"}}</p>
+        {{else if this.is.registration}}
+            {{#if this.canRegister}}
+                <Button @type="primary" @icon="link" @text={{t "registry-bridge.detail.cta.register"}} @onClick={{this.openRegistration}} data-test-cta-button />
+            {{else}}
+                <Button @type="default" @icon="link" @text={{t "registry-bridge.detail.cta.register"}} @disabled={{true}} data-test-cta-button />
+            {{/if}}
+            <p class="extension-panel-cta-note" data-test-cta-reason>{{if this.canRegister (t "registry-bridge.detail.cta.register-note") (t "registry-bridge.detail.cta.register-ask-admin")}}</p>
+        {{else}}
+            <Button @type="default" @icon="ban" @text={{t "registry-bridge.detail.cta.unavailable"}} @disabled={{true}} data-test-cta-button />
+            <p class="extension-panel-cta-note" data-test-cta-reason>{{or this.cta.reason (t "registry-bridge.detail.cta.not-available")}}</p>
+        {{/if}}
+    </div>
+</div>

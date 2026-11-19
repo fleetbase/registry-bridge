@@ -1,0 +1,17 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/compatibility"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "The console must be a version such as 0.8.1."
+        ],
+        "fields": {
+            "console": [
+                "The console must be a version such as 0.8.1."
+            ]
+        }
+    }
+}

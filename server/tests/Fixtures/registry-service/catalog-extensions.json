@@ -1,0 +1,146 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/catalog/extensions"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "id": "ext_lx52k33erf",
+                "slug": "registry-demo-hello",
+                "name": "Registry Demo Hello",
+                "subtitle": "Fixture extension seeded by registry:seed (hello).",
+                "fa_icon": "puzzle-piece",
+                "icon_url": null,
+                "tags": [
+                    "demo"
+                ],
+                "hosting": "both",
+                "status": "published",
+                "publisher": {
+                    "id": "org_dvetjog2vy",
+                    "slug": "registry-demo",
+                    "name": "Registry Demo",
+                    "is_verified": true
+                },
+                "category": {
+                    "id": "cat_3a9uznxr8s",
+                    "slug": "telematics",
+                    "name": "Telematics",
+                    "icon": "satellite-dish"
+                },
+                "latest_release": {
+                    "id": "rel_fshrg663og",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 882,
+                    "checksum": "sha256:69384a4894fa04287ac37662724b8ffcaa59e3b1e02546356465388bccb05623",
+                    "notes": "Seeded by registry:seed --seed-release.",
+                    "published_at": "2026-10-22T07:09:37.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-22T07:09:37.000000Z"
+                },
+                "latest_version": "1.0.0",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "packages": {
+                    "npm": "@registry-demo/hello-engine",
+                    "composer": "registry-demo/hello-api"
+                },
+                "price": {
+                    "model": "free",
+                    "amount": 0,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 0
+                },
+                "is_paid": false,
+                "installs_count": 0,
+                "published_at": "2026-10-22T07:09:37.000000Z",
+                "updated_at": "2026-10-22T07:09:37.000000Z",
+                "created_at": "2026-10-22T07:09:37.000000Z"
+            },
+            {
+                "id": "ext_gzh4wgc9nr",
+                "slug": "registry-demo-pro",
+                "name": "Registry Demo Pro",
+                "subtitle": "Fixture extension seeded by registry:seed (pro).",
+                "fa_icon": "puzzle-piece",
+                "icon_url": null,
+                "tags": [
+                    "demo"
+                ],
+                "hosting": "both",
+                "status": "published",
+                "publisher": {
+                    "id": "org_dvetjog2vy",
+                    "slug": "registry-demo",
+                    "name": "Registry Demo",
+                    "is_verified": true
+                },
+                "category": {
+                    "id": "cat_3a9uznxr8s",
+                    "slug": "telematics",
+                    "name": "Telematics",
+                    "icon": "satellite-dish"
+                },
+                "latest_release": {
+                    "id": "rel_gjrc6mixp0",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 873,
+                    "checksum": "sha256:93885f12e28ddb3b3940f7f238a3eb80b7614d21860ba7d3b0e88f672dc7a414",
+                    "notes": "Seeded by registry:seed --seed-release.",
+                    "published_at": "2026-10-22T07:09:37.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-22T07:09:37.000000Z"
+                },
+                "latest_version": "1.0.0",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "packages": {
+                    "npm": "@registry-demo/pro-engine",
+                    "composer": "registry-demo/pro-api"
+                },
+                "price": {
+                    "model": "one_time",
+                    "amount": 4900,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 4900
+                },
+                "is_paid": true,
+                "installs_count": 0,
+                "published_at": "2026-10-22T07:09:37.000000Z",
+                "updated_at": "2026-10-22T07:09:37.000000Z",
+                "created_at": "2026-10-22T07:09:37.000000Z"
+            }
+        ],
+        "meta": {
+            "total": 2,
+            "per_page": 24,
+            "current_page": 1,
+            "last_page": 1,
+            "from": 1,
+            "to": 2,
+            "time": 567
+        }
+    }
+}

@@ -1,0 +1,19 @@
+<div class="extension-panel-section space-y-3" data-test-extension-panel-versions>
+    {{#if this.load.isRunning}}
+        <Skeleton::Table @rows={{3}} @columns={{5}} @checkbox={{false}} data-test-versions-loading />
+    {{else if this.error}}
+        <InfoBlock @type="danger" @icon="triangle-exclamation" data-test-versions-error>
+            <div>{{t "registry-bridge.detail.versions.error"}}</div>
+            <div class="mt-2"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{perform this.load}} /></div>
+        </InfoBlock>
+    {{else}}
+        {{#unless this.supported}}
+            <InfoBlock @type="default" @icon="circle-info" @text={{t "registry-bridge.detail.versions.unsupported"}} data-test-versions-unsupported />
+        {{/unless}}
+        {{#if this.rows.length}}
+            <Table @rows={{this.rows}} @columns={{this.columns}} @selectable={{false}} @canSelectAll={{false}} @pagination={{false}} data-test-versions-table />
+        {{else}}
+            <Table::EmptyState @icon="tags" @title={{t "registry-bridge.detail.versions.empty"}} @variant="compact" />
+        {{/if}}
+    {{/if}}
+</div>

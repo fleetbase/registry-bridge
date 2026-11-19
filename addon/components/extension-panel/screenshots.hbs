@@ -1,0 +1,29 @@
+<div class="extension-panel-section" data-test-extension-panel-screenshots>
+    {{#if this.current}}
+        {{! template-lint-disable no-invalid-interactive }}
+        <figure class="extension-panel-viewer" tabindex="0" aria-roledescription="carousel" aria-label={{t "registry-bridge.detail.tabs.screenshots"}} {{on "keydown" this.onKeydown}}>
+            <Image src={{this.current.url}} alt={{or this.current.original_filename ""}} class="extension-panel-viewer-image" data-test-screenshot-current />
+            <figcaption class="flex flex-row items-center justify-between mt-2">
+                <Button @icon="chevron-left" @size="xs" @onClick={{this.previous}} aria-label={{t "registry-bridge.detail.screenshots.previous"}} />
+                <span class="text-xs text-gray-500 dark:text-gray-400" data-test-screenshot-position>{{this.position}}</span>
+                <Button @icon="chevron-right" @size="xs" @onClick={{this.next}} aria-label={{t "registry-bridge.detail.screenshots.next"}} />
+            </figcaption>
+        </figure>
+        <div class="grid grid-cols-4 gap-2 mt-3">
+            {{#each this.thumbnails as |thumb|}}
+                <button
+                    type="button"
+                    class="extension-panel-thumb {{if thumb.isActive 'is-active'}}"
+                    aria-label={{t "registry-bridge.detail.screenshots.show" number=thumb.number}}
+                    aria-pressed={{if thumb.isActive "true" "false"}}
+                    {{on "click" (fn this.show thumb.index)}}
+                    data-test-screenshot-thumb
+                >
+                    <Image src={{thumb.screenshot.url}} alt="" class="flb--extension-screenshot" />
+                </button>
+            {{/each}}
+        </div>
+    {{else}}
+        <Table::EmptyState @icon="image" @title={{t "registry-bridge.detail.screenshots.empty"}} @variant="compact" />
+    {{/if}}
+</div>

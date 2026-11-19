@@ -1,0 +1,8 @@
+<Button
+    @size="xs"
+    @text={{@row.actionText}}
+    @disabled={{@row.actionDisabled}}
+    @permission="registry-bridge install extension"
+    @onClick={{fn @column.onInstall @row}}
+    data-test-release-action={{@row.version}}
+/>

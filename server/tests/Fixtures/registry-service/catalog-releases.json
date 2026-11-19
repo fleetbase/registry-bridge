@@ -1,0 +1,32 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/catalog/extensions/registry-demo-hello/releases"
+    },
+    "status": 200,
+    "body": {
+        "extension": "registry-demo-hello",
+        "latest": "1.0.0",
+        "channels": {
+            "stable": "1.0.0"
+        },
+        "releases": [
+            {
+                "id": "rel_dlx3qr7woe",
+                "version": "1.0.0",
+                "channel": "stable",
+                "status": "published",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "size_bytes": 882,
+                "checksum": "sha256:69384a4894fa04287ac37662724b8ffcaa59e3b1e02546356465388bccb05623",
+                "notes": "Seeded by registry:seed --seed-release.",
+                "published_at": "2026-10-23T08:05:13.000000Z",
+                "yanked_at": null,
+                "created_at": "2026-10-23T08:05:13.000000Z"
+            }
+        ]
+    }
+}
