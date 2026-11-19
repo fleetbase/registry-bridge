@@ -1,0 +1,8 @@
+{{#if this.registryContext.inMaintenance}}
+    <div class="px-4 pt-4" role="status" data-test-registry-maintenance>
+        <InfoBlock @type="warning" @icon="screwdriver-wrench">
+            <strong>{{t "registry-bridge.maintenance.title"}}</strong>
+            <span data-test-registry-maintenance-message>{{this.registryContext.maintenanceMessage}}</span>
+        </InfoBlock>
+    </div>
+{{/if}}

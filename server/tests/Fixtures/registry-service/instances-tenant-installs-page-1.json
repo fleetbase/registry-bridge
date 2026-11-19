@@ -1,0 +1,52 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/tenant-installs"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "company_uuid": "c0000000-0000-4000-8000-000000000002",
+                "organization": "org_ody7qrpeda",
+                "extension": {
+                    "id": "ext_lrzijn541q",
+                    "slug": "fleet-insights",
+                    "name": "Fleet Insights"
+                },
+                "packages": {
+                    "npm": "@acme/fleet-insights-engine",
+                    "composer": "acme/fleet-insights-api"
+                },
+                "release": {
+                    "id": "rel_b30afjzpvf",
+                    "version": "1.1.0"
+                },
+                "installed_at": "2024-07-02T01:00:00.000000Z"
+            },
+            {
+                "company_uuid": "c0000000-0000-4000-8000-000000000003",
+                "organization": "org_maybrvxpfd",
+                "extension": {
+                    "id": "ext_cduwr6pvf2",
+                    "slug": "route-planner",
+                    "name": "Route Planner"
+                },
+                "packages": {
+                    "npm": "@devon/route-planner-engine",
+                    "composer": "devon/route-planner-api"
+                },
+                "release": {
+                    "id": "rel_cojve6vckl",
+                    "version": "0.3.0"
+                },
+                "installed_at": "2026-03-10T00:00:00.000000Z"
+            }
+        ],
+        "meta": {
+            "current_page": 1,
+            "last_page": 2,
+            "total": 3
+        }
+    }
+}

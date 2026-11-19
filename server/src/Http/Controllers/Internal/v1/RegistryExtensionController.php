@@ -94,13 +94,17 @@ class RegistryExtensionController extends Controller
     {
         $config = RegistryConfig::current();
 
+        $maintenance = $config->maintenance();
+
         return response()->json([
             'service_url'        => $config->serviceUrl(),
             'registered'         => $config->isRegistered(),
             'instance_kind'      => $config->instanceKind(),
-            'organization'       => $config->organization(),
+            // On the cloud instance licences belong to each company's own registry organization
+            'organization'       => $config->actsForCompanies() ? null : $config->organization(),
             'publisher_url'      => $config->publisherUrl(),
-            'checkout_available' => ServiceCheckout::available($config),
+            'checkout_available' => ServiceCheckout::available($config) && !$maintenance['enabled'],
+            'maintenance'        => ['enabled' => $maintenance['enabled'], 'message' => $maintenance['enabled'] ? $maintenance['message'] : null],
         ]);
     }
 

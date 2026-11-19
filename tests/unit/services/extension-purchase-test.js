@@ -173,4 +173,17 @@ module('Unit | Service | extension-purchase', function (hooks) {
         assert.strictEqual(await this.service.resume(), null);
         assert.strictEqual(this.modals.current, null);
     });
+
+    test('the cutover freeze refuses a checkout with its message and calls nothing', async function (assert) {
+        const context = this.owner.lookup('service:registry-context');
+        context.inMaintenance = true;
+        context.maintenanceMessage = 'Back at 14:00 UTC.';
+
+        const result = await this.service.purchase({ id: 'ext_1', public_id: 'ext_1' });
+
+        assert.strictEqual(result, null);
+        assert.deepEqual(this.service.lastError, { extension: 'ext_1', message: 'Back at 14:00 UTC.' });
+        assert.strictEqual(this.fetch.calls.length, 0);
+        assert.deepEqual(this.redirects, []);
+    });
 });

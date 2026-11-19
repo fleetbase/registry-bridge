@@ -96,6 +96,8 @@ registry-bridge:
       body: This instance is not registered with the registry service yet, so extensions can be browsed but not installed or bought.
       action: Register this instance
       ask-admin: Ask an admin to register it in Admin → Registry config.
+  maintenance:
+    title: "Extensions are paused while the registry is upgraded."
   card:
     free: Free
     purchased: Purchased

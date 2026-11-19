@@ -3,10 +3,12 @@
 namespace Fleetbase\RegistryBridge\Http\Controllers\Internal\v1;
 
 use Fleetbase\Http\Controllers\Controller;
+use Fleetbase\RegistryBridge\Exceptions\RegistryMaintenanceException;
 use Fleetbase\RegistryBridge\Http\Requests\InstallExtensionRequest;
 use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerException;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerService;
+use Fleetbase\RegistryBridge\Support\RegistryMaintenance;
 
 class ExtensionInstallerController extends Controller
 {
@@ -60,8 +62,17 @@ class ExtensionInstallerController extends Controller
         return response()->json(['job' => $job]);
     }
 
+    /**
+     * Refused with 503 while the cutover freeze is on (`registry:maintenance`); the server CLI is not frozen.
+     */
     private function enqueue(InstallerService $installer, string $action, InstallExtensionRequest $request)
     {
+        try {
+            RegistryMaintenance::guard();
+        } catch (RegistryMaintenanceException $e) {
+            return response()->error($e->getMessage(), 503, ['maintenance' => true]);
+        }
+
         $async = config('registry-bridge.installer.async', true) !== false;
 
         try {

@@ -96,6 +96,8 @@ registry-bridge:
       body: Phiên bản này chưa được đăng ký với dịch vụ kho, nên có thể duyệt tiện ích nhưng chưa thể cài đặt hoặc mua.
       action: Đăng ký phiên bản này
       ask-admin: Hãy nhờ quản trị viên đăng ký tại Quản trị → Cấu hình kho.
+  maintenance:
+    title: "Tiện ích mở rộng tạm dừng trong khi nâng cấp kho đăng ký."
   card:
     free: Miễn phí
     purchased: Đã mua

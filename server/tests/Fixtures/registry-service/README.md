@@ -23,3 +23,20 @@ SVC_DIR=/path/to/registry python3 -I record.py http://127.0.0.1:8000 <buyer toke
 the service returns when an instance registers again (fleetbase/registry `release/v2.0.0` 68331fe), and a new token.
 
 Ids change on every run, so tests that assert on ids need updating with the new values.
+
+## Cloud cutover (Workstream O)
+
+`record_cloud.py` records the cloud instance's responses from `fleetbase/registry` branch `feat/cloud-cutover`
+(on `release/v2.0.0`), recorded on 2026-10-24: a SQLite service with `REGISTRY_CLOUD_PLATFORM_SECRET` and
+`REGISTRY_CLOUD_HOST=https://api.fleetbase.test` set, after `php artisan registry:import --from=tests/Fixtures/import/cloud-registry.sql`
+(the importer's fixture: companies Acme, Beta and Gamma, Beta holding a paid licence for `fleet-insights`). So the
+first signed registration rotates onto the cloud instance the import prepared (`instances-register-cloud-rotated`),
+and one from another host creates a second deployment's instance (`instances-register-cloud`).
+`instances-tenant-installs-page-*` were read with `per_page=2` to have two pages. `checkout-maintenance` is a
+checkout while `registry:maintenance on` was set.
+
+```bash
+python3 -I record_cloud.py http://127.0.0.1:8124 <platform secret> . "php /path/to/registry/artisan"
+```
+
+Instance tokens are replaced with `flbi_cloud000…` placeholders.

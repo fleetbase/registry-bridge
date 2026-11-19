@@ -21,6 +21,10 @@ use Illuminate\Support\Facades\Log;
  * payload is kept indefinitely, so an outage degrades to stale data instead of an empty Explore page. After a
  * few consecutive failures the circuit opens and the registry is not contacted again until the cool-down has
  * passed. Client errors (4xx) never count as failures; they surface as `RegistryServiceException`.
+ *
+ * On the cloud instance every instance request names the company it is for (`X-Registry-Tenant`, the current
+ * session's company unless `forCompany()` names one), so licences, installs and checkouts belong to that company's
+ * organization; cached instance state is kept per company.
  */
 class RegistryClient
 {
@@ -52,6 +56,16 @@ class RegistryClient
 
     public const INSTANCE_REGISTER_PATH = 'v1/instances/register';
 
+    /** The cloud console's API registers itself here, signed with the platform secret. */
+    public const INSTANCE_REGISTER_CLOUD_PATH = 'v1/instances/register/cloud';
+
+    /** Cloud instance only: what each company has installed, for `registry:cloud-sync-installs`. */
+    public const INSTANCE_TENANT_INSTALLS_PATH = 'v1/instances/me/tenant-installs';
+
+    public const TENANT_HEADER = 'X-Registry-Tenant';
+
+    public const TENANT_NAME_HEADER = 'X-Registry-Tenant-Name';
+
     public const INSTANCE_PATH = 'v1/instances/me';
 
     public const INSTANCE_UPDATES_PATH = 'v1/instances/me/updates';
@@ -69,6 +83,17 @@ class RegistryClient
 
     protected ?string $token;
 
+    protected bool $actsForCompanies;
+
+    /** Company this client's instance requests are for; null uses the session's company. */
+    protected ?string $company = null;
+
+    /** @var array<string, string|null> company uuid => name, looked up once per process */
+    protected static array $companyNames = [];
+
+    /** @var (\Closure(string): ?string)|null looks up a company's name; set by the service provider */
+    protected static ?\Closure $companyNameResolver = null;
+
     /**
      * @param string|null         $host   service URL; defaults to the configured one
      * @param string|null         $token  instance token; defaults to the configured one
@@ -76,9 +101,44 @@ class RegistryClient
      */
     public function __construct(?string $host = null, ?string $token = null, ?RegistryConfig $config = null)
     {
-        $config      = $config ?? RegistryConfig::current();
-        $this->host  = static::normalizeHost($host ?: ($config->serviceUrl() ?? RegistryConfig::DEFAULT_SERVICE_URL));
-        $this->token = $token !== null && $token !== '' ? $token : $config->instanceToken();
+        $config                 = $config ?? RegistryConfig::current();
+        $this->host             = static::normalizeHost($host ?: ($config->serviceUrl() ?? RegistryConfig::DEFAULT_SERVICE_URL));
+        $this->token            = $token !== null && $token !== '' ? $token : $config->instanceToken();
+        $this->actsForCompanies = $config->actsForCompanies();
+    }
+
+    /**
+     * A copy whose instance requests are for this company (queued jobs have no session to take it from).
+     */
+    public function forCompany(?string $company): static
+    {
+        $client          = clone $this;
+        $client->company = $company !== null && trim($company) !== '' ? trim($company) : null;
+
+        return $client;
+    }
+
+    /**
+     * The company instance requests are for on the cloud instance: the one named with `forCompany()`, else the
+     * current session's. Null elsewhere.
+     */
+    public function company(): ?string
+    {
+        if (!$this->actsForCompanies) {
+            return null;
+        }
+
+        if ($this->company !== null) {
+            return $this->company;
+        }
+
+        try {
+            $company = app()->bound('session') ? session('company') : null;
+        } catch (\Throwable $e) {
+            $company = null;
+        }
+
+        return is_string($company) && $company !== '' ? $company : null;
     }
 
     /**
@@ -329,6 +389,79 @@ class RegistryClient
     }
 
     /**
+     * Register this API as the cloud instance (`POST /v1/instances/register/cloud`). The body is sent exactly as
+     * signed; see `CloudRegistration`.
+     *
+     * @param array<string, string> $signature the platform signature headers
+     *
+     * @return array{token: string, token_type: string, rotated: bool, instance: array<string, mixed>}
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function registerCloudInstance(string $body, array $signature): array
+    {
+        try {
+            $response = $this->request(false)->withHeaders($signature)->withBody($body, 'application/json')->post(static::INSTANCE_REGISTER_CLOUD_PATH);
+        } catch (\Throwable $e) {
+            throw new RegistryUnavailableException('Unable to reach the extensions registry at ' . $this->host . ': ' . $e->getMessage(), 0, $e);
+        }
+
+        $payload = $this->payloadFromResponse($response);
+        $payload = is_array($payload) ? $payload : [];
+        if (!is_string($payload['token'] ?? null) || $payload['token'] === '') {
+            throw new RegistryServiceException('The registry service did not return an instance token.', 502);
+        }
+
+        return [
+            'token'      => $payload['token'],
+            'token_type' => is_string($payload['token_type'] ?? null) ? $payload['token_type'] : 'Bearer',
+            'rotated'    => ($payload['rotated'] ?? false) === true,
+            'instance'   => is_array($payload['instance'] ?? null) ? $payload['instance'] : [],
+        ];
+    }
+
+    /**
+     * Whether the service accepts the instance token, uncached: true, false when it answers 401 or 403 (revoked,
+     * rotated by another process), null when it cannot be asked (no token, unreachable, a server error).
+     */
+    public function instanceTokenAccepted(): ?bool
+    {
+        if (!$this->hasToken()) {
+            return null;
+        }
+
+        try {
+            $status = $this->request()->get(static::INSTANCE_PATH)->status();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return match (true) {
+            $status >= 200 && $status < 300     => true,
+            in_array($status, [401, 403], true) => false,
+            default                             => null,
+        };
+    }
+
+    /**
+     * Cloud instance only: one page of what every company has installed (`GET /v1/instances/me/tenant-installs`).
+     *
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, mixed>}
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function tenantInstalls(int $page = 1): array
+    {
+        $this->requireToken();
+        $payload = $this->send('get', static::INSTANCE_TENANT_INSTALLS_PATH, ['page' => $page]);
+
+        return [
+            'data' => static::extractList($payload),
+            'meta' => is_array($payload['meta'] ?? null) ? $payload['meta'] : [],
+        ];
+    }
+
+    /**
      * report an install attempt (`POST /v1/instances/me/installs`).
      *
      * @param array<string, mixed> $payload `extension`, `version` or `release`, `status` (installing, installed, failed), optional `error`, `installed_by`
@@ -428,6 +561,7 @@ class RegistryClient
 
         Cache::forget(static::indexKey());
         Cache::forget(static::failuresKey());
+        static::$companyNames = [];
         Cache::forget(static::circuitKey());
     }
 
@@ -464,6 +598,13 @@ class RegistryClient
 
         if ($withToken && $this->token) {
             $request = $request->withToken($this->token);
+
+            if ($company = $this->company()) {
+                $request = $request->withHeaders(array_filter([
+                    static::TENANT_HEADER      => $company,
+                    static::TENANT_NAME_HEADER => ($name = static::companyName($company)) !== null ? rawurlencode($name) : null,
+                ]));
+            }
         }
 
         return $request;
@@ -646,7 +787,43 @@ class RegistryClient
     {
         ksort($query);
 
-        return static::CACHE_PREFIX . ':' . md5($this->host . '|' . ($this->token ?? '') . '|' . $path . '|' . json_encode($query));
+        // Instance state differs per company on the cloud instance; the public catalog does not
+        $company = str_starts_with($path, 'v1/instances/') ? ($this->company() ?? '') : '';
+
+        return static::CACHE_PREFIX . ':' . md5($this->host . '|' . ($this->token ?? '') . '|' . $company . '|' . $path . '|' . json_encode($query));
+    }
+
+    /**
+     * How to look up a company's name (the service provider uses the companies table).
+     *
+     * @param (\Closure(string): ?string)|null $resolver
+     */
+    public static function resolveCompanyNamesUsing(?\Closure $resolver): void
+    {
+        static::$companyNameResolver = $resolver;
+        static::$companyNames        = [];
+    }
+
+    /**
+     * The company's name, sent so the service can name the organization of a company it has not seen yet.
+     */
+    protected static function companyName(string $company): ?string
+    {
+        if (static::$companyNameResolver === null) {
+            return null;
+        }
+
+        if (!array_key_exists($company, static::$companyNames)) {
+            try {
+                $name = (static::$companyNameResolver)($company);
+            } catch (\Throwable $e) {
+                $name = null;
+            }
+
+            static::$companyNames[$company] = is_string($name) && trim($name) !== '' ? trim($name) : null;
+        }
+
+        return static::$companyNames[$company];
     }
 
     /**

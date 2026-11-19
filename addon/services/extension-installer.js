@@ -103,6 +103,12 @@ export default class ExtensionInstallerService extends Service {
             throw new Error(`Unknown installer action "${jobAction}".`);
         }
 
+        // The cutover freeze: the server refuses the job too; say why instead of opening the modal
+        if (this.registryContext.inMaintenance) {
+            this.notifications.warning(this.registryContext.maintenanceMessage ?? this.intl.t('registry-bridge.maintenance.title'));
+            return null;
+        }
+
         const permission = jobAction === 'uninstall' ? 'registry-bridge uninstall extension' : 'registry-bridge install extension';
         const targetVersion = version ?? (jobAction === 'uninstall' ? extension.installed_version : extension.latest_version || extension.current_bundle_version) ?? null;
 
