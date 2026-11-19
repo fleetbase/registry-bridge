@@ -1,0 +1,13 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/me/purchases/checkout"
+    },
+    "status": 503,
+    "body": {
+        "errors": [
+            "Extensions are moving to the new registry until 14:00 UTC."
+        ],
+        "maintenance": true
+    }
+}

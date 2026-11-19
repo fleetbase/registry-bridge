@@ -37,7 +37,18 @@ class InstallerConfig
         public readonly bool $requireChecksums = false,
         public readonly int $processTimeout = 7200,
         public readonly int $logLines = 50,
+        public readonly ?string $extensionsPath = null,
     ) {
+    }
+
+    /**
+     * The extensions manifest folder: the API's `path.extensions` (fleetbase/fleetbase api/extensions), else
+     * <api>/extensions. Installs change the Composer project there when it exists, and the API's own
+     * composer.json only on a core from before the manifest.
+     */
+    public function extensionsDirectory(): string
+    {
+        return rtrim($this->extensionsPath ?? rtrim($this->apiPath, '/') . '/extensions', '/');
     }
 
     /**
@@ -91,6 +102,7 @@ class InstallerConfig
             requireChecksums: (bool) ($config['require_checksums'] ?? false),
             processTimeout: (int) ($config['timeout'] ?? 7200),
             logLines: (int) ($config['log_lines'] ?? 50),
+            extensionsPath: is_string($config['extensions_path'] ?? null) && $config['extensions_path'] !== '' ? $config['extensions_path'] : null,
         );
     }
 }

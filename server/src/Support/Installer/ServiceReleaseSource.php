@@ -18,11 +18,13 @@ use Fleetbase\RegistryBridge\Support\ServiceCatalog;
  * engine's npm scope. Credentials are not part of the release; they come from
  * ServicePackageCredentials per process.
  *
- * When the release carries a prebuilt engine dist (`dist: {sha256, size,
- * built_against}` on catalog releases), it becomes the release's DIST artifact
- * at `<service>/npm/<engine>/-/dist/<version>`, verified by that sha256 and
- * downloaded with the instance token (PackageAuth::downloadHeaders), so the
- * engine installs as a runtime engine without a console build.
+ * When the release carries a prebuilt engine dist (`dist: {url, sha256, size,
+ * built_against}` on catalog and update releases), it becomes the release's
+ * DIST artifact at `dist.url` (`/v1/instances/me/releases/<id>/dist`; a service
+ * that names no url serves it at `<service>/npm/<engine>/-/dist/<version>`),
+ * verified by that sha256 and downloaded with the instance token
+ * (PackageAuth::downloadHeaders, only for URLs on the configured service), so
+ * the engine installs as a runtime engine without a console build.
  *
  * Licences are checked by the instance API when the install starts (see
  * ServiceInstallReporter), not here.
@@ -113,7 +115,7 @@ class ServiceReleaseSource implements ReleaseSource
             composerConstraint: $packages['composer'] !== null ? $version : null,
             enginePackage: $packages['npm'],
             engineConstraint: $packages['npm'] !== null ? $version : null,
-            artifacts: $packages['npm'] !== null ? self::distArtifacts($auth, $packages['npm'], $version, $dist) : [],
+            artifacts: $packages['npm'] !== null ? $this->distArtifacts($auth, $packages['npm'], $version, $dist) : [],
             source: ExtensionRef::REGISTRY_SERVICE,
             engineTarball: $packages['npm'] !== null ? $auth->npmTarballUrl($packages['npm'], $version) : null,
             composerRepository: $repository !== null ? ['name' => PackageAuth::COMPOSER_REPOSITORY_NAME, ...$repository] : null,
@@ -126,10 +128,10 @@ class ServiceReleaseSource implements ReleaseSource
      *
      * @return array<int, Artifact>
      */
-    private static function distArtifacts(PackageAuth $auth, string $enginePackage, string $version, mixed $dist): array
+    private function distArtifacts(PackageAuth $auth, string $enginePackage, string $version, mixed $dist): array
     {
         $sha256 = is_array($dist) ? self::string($dist['sha256'] ?? null) : null;
-        $url    = $auth->npmDistUrl($enginePackage, $version);
+        $url    = (is_array($dist) ? $this->distUrl($dist['url'] ?? null) : null) ?? $auth->npmDistUrl($enginePackage, $version);
         if ($sha256 === null || !preg_match('/^[a-f0-9]{64}$/i', $sha256) || $url === null) {
             return [];
         }
@@ -137,6 +139,23 @@ class ServiceReleaseSource implements ReleaseSource
         $basename = str_contains($enginePackage, '/') ? substr($enginePackage, strrpos($enginePackage, '/') + 1) : $enginePackage;
 
         return [new Artifact(Artifact::DIST, $url, 'sha256-' . strtolower($sha256), $basename . '-' . $version . '-dist')];
+    }
+
+    /**
+     * `dist.url` as the service names it: an http(s) URL, or a path on the configured service.
+     */
+    private function distUrl(mixed $url): ?string
+    {
+        $url = self::string($url);
+        if ($url === null) {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+        $serviceUrl = $this->config->serviceUrl();
+
+        return str_starts_with($url, '/') && $serviceUrl ? rtrim($serviceUrl, '/') . $url : null;
     }
 
     /**

@@ -50,6 +50,7 @@ class RegistrySettings
         InstanceRegistration::SETTING_SERVICE_URL    => 'service_url',
         InstanceRegistration::SETTING_INSTANCE_TOKEN => 'instance_token',
         InstanceRegistration::SETTING_INSTANCE       => 'instance',
+        RegistryMaintenance::SETTING                 => 'maintenance_window',
     ];
 
     /**
@@ -136,9 +137,9 @@ class RegistrySettings
             $value = $stored[$setting] ?? null;
 
             $value = match ($key) {
-                'instance_token' => InstanceRegistration::decryptToken($value, $encrypter),
-                'instance'       => is_array($value) && $value !== [] ? $value : null,
-                default          => is_string($value) && trim($value) !== '' ? $value : null,
+                'instance_token'                 => InstanceRegistration::decryptToken($value, $encrypter),
+                'instance', 'maintenance_window' => is_array($value) && $value !== [] ? $value : null,
+                default                          => is_string($value) && trim($value) !== '' ? $value : null,
             };
 
             $values[$key] = $value ?? ($defaults[$key] ?? null);

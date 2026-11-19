@@ -32,6 +32,19 @@ return [
         // Seconds the stored registry settings stay in the application cache between requests; writing one of
         // them forgets the cache at once. 0 reads the settings table on every request.
         'settings_cache_ttl' => env('REGISTRY_SETTINGS_CACHE_TTL', 30),
+        // Fleetbase Cloud: this API registers itself with the service on boot (`registry:init`, and every five
+        // minutes from the scheduler) as the one cloud instance, with a request signed by the platform secret the
+        // service shares. Both must be set; the instance kind is then `cloud`.
+        'cloud' => [
+            'auto_register'   => Utils::castBoolean(env('REGISTRY_CLOUD_AUTO_REGISTER', false)),
+            'platform_secret' => env('REGISTRY_CLOUD_PLATFORM_SECRET'),
+        ],
+        // Cutover freeze: checkout, install, update and uninstall are refused with this message and the console shows
+        // it as a banner. `php artisan registry:maintenance on` turns it on at runtime; this variable forces it on.
+        'maintenance' => [
+            'enabled' => Utils::castBoolean(env('REGISTRY_MAINTENANCE', false)),
+            'message' => env('REGISTRY_MAINTENANCE_MESSAGE'),
+        ],
     ],
     'extensions' => [
         'preinstalled' => Utils::castBoolean(env('REGISTRY_PREINSTALLED_EXTENSIONS', false)),

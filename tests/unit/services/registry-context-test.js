@@ -109,4 +109,19 @@ module('Unit | Service | registry-context', function (hooks) {
         assert.false(context.usesService);
         assert.strictEqual(context.organizationName, null);
     });
+
+    test('exposes the cutover freeze from the context', async function (assert) {
+        this.owner.register('service:fetch', StubFetchService);
+        const fetch = this.owner.lookup('service:fetch');
+        const context = this.owner.lookup('service:registry-context');
+
+        assert.false(context.inMaintenance);
+        assert.strictEqual(context.maintenanceMessage, null);
+
+        fetch.responses['registry-extensions/context'] = { service_url: 'https://registry.example.test', maintenance: { enabled: true, message: 'Back at 14:00 UTC.' } };
+        await context.load();
+
+        assert.true(context.inMaintenance);
+        assert.strictEqual(context.maintenanceMessage, 'Back at 14:00 UTC.');
+    });
 });

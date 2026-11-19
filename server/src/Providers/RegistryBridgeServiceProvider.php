@@ -71,6 +71,9 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         \Fleetbase\RegistryBridge\Console\Commands\UpdateExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\InstallerJobStatus::class,
         \Fleetbase\RegistryBridge\Console\Commands\RegisterInstance::class,
+        \Fleetbase\RegistryBridge\Console\Commands\RegisterCloudInstance::class,
+        \Fleetbase\RegistryBridge\Console\Commands\SyncCloudInstalls::class,
+        \Fleetbase\RegistryBridge\Console\Commands\ManageMaintenance::class,
         \Fleetbase\RegistryBridge\Console\Commands\AutoUpdateExtensions::class,
         \Fleetbase\RegistryBridge\Console\Commands\CheckCompatibility::class,
     ];
@@ -119,6 +122,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
             return InstallerConfig::fromArray([
                 ...$config,
                 'api_path'          => $config['api_path'] ?? base_path(),
+                // The extensions manifest (fleetbase/fleetbase api/extensions) the API loads; <api_path>/extensions on cores that do not bind it.
+                'extensions_path'   => $this->app->bound('path.extensions') ? $this->app->make('path.extensions') : null,
                 'console_path'      => $consolePath,
                 'work_path'         => $config['work_path'] ?? storage_path('app/registry-installer'),
                 'build_environment' => $config['build_environment'] ?? config('app.env', 'production'),
@@ -261,6 +266,28 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->mergeConfigFromSettings();
         $this->refreshSettingsPerOperation();
         $this->scheduleCommands(fn (Schedule $schedule) => static::scheduleAutoUpdate($schedule));
+        $this->scheduleCloudRegistration();
+
+        // On the cloud instance, the service names a company's organization after the company the first time it acts for it
+        RegistryClient::resolveCompanyNamesUsing(fn (string $company) => \Fleetbase\Models\Company::where('uuid', $company)->value('name'));
+    }
+
+    /**
+     * On Fleetbase Cloud, check the instance token every five minutes and register again when the service no longer
+     * accepts it (a rotation by another deployment, a revoke). One request while it is accepted.
+     *
+     * @return void
+     */
+    public function scheduleCloudRegistration()
+    {
+        $this->scheduleCommands(function ($schedule) {
+            $schedule->command('registry:cloud-register')
+                ->everyFiveMinutes()
+                ->name('registry-cloud-register')
+                ->withoutOverlapping()
+                ->onOneServer()
+                ->when(fn () => RegistryConfig::current()->cloudAutoRegister());
+        });
     }
 
     /**
@@ -276,7 +303,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $schedule->command('registry:auto-update')
             ->cron((string) config('registry-bridge.auto_update.schedule', '17 * * * *'))
             ->name('registry-auto-update')
-            ->withoutOverlapping();
+            ->withoutOverlapping()
+            ->onOneServer();
     }
 
     /**
