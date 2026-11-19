@@ -15,8 +15,8 @@ export function matchesQuery(extension, query) {
 
 /**
  * Installed extensions (canvas C8) on `Layout::Resource::Tabular` with a grid
- * toggle: installed against latest version, status, and Update, About and
- * Uninstall per row.
+ * toggle: installed against latest version, status, the auto-update policy,
+ * and Update, About and Uninstall per row.
  */
 export default class InstalledController extends Controller {
     @service extensionPanel;
@@ -46,11 +46,12 @@ export default class InstalledController extends Controller {
     get columns() {
         const t = (key) => this.intl.t(`registry-bridge.installed.columns.${key}`);
         return [
-            { label: t('extension'), valuePath: 'name', cellComponent: 'cell/extension-identity', width: '30%', sortable: false },
-            { label: t('category'), valuePath: 'category_name', width: '15%', sortable: false },
-            { label: t('installed'), valuePath: 'installed_version', width: '12%', sortable: false },
-            { label: t('latest'), valuePath: 'latest_version', width: '12%', sortable: false },
-            { label: t('status'), valuePath: 'update_available', cellComponent: 'cell/extension-status', variant: 'installed', width: '15%', sortable: false },
+            { label: t('extension'), valuePath: 'name', cellComponent: 'cell/extension-identity', width: '27%', sortable: false },
+            { label: t('category'), valuePath: 'category_name', width: '12%', sortable: false },
+            { label: t('installed'), valuePath: 'installed_version', width: '10%', sortable: false },
+            { label: t('latest'), valuePath: 'latest_version', width: '10%', sortable: false },
+            { label: t('status'), valuePath: 'update_available', cellComponent: 'cell/extension-status', variant: 'installed', width: '13%', sortable: false },
+            { label: t('auto-update'), valuePath: 'auto_update', cellComponent: 'cell/auto-update-policy', width: '12%', sortable: false },
             {
                 label: '',
                 cellComponent: 'table/cell/dropdown',

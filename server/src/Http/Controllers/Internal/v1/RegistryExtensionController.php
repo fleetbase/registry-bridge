@@ -7,7 +7,9 @@ use Fleetbase\Http\Requests\AdminRequest;
 use Fleetbase\Models\Setting;
 use Fleetbase\RegistryBridge\Exceptions\RegistryException;
 use Fleetbase\RegistryBridge\Exceptions\RegistryServiceException;
+use Fleetbase\RegistryBridge\Http\Requests\AutoUpdatePolicyRequest;
 use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
+use Fleetbase\RegistryBridge\Support\AutoUpdate\UpdatePolicy;
 use Fleetbase\RegistryBridge\Support\InstanceRegistration;
 use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
@@ -130,16 +132,39 @@ class RegistryExtensionController extends Controller
      */
     public function installed()
     {
-        $config        = RegistryConfig::current();
-        $localInstalls = RegistryServiceInstall::where('company_uuid', session('company'))->get()->map(fn ($install) => $install->toLocalInstall())->all();
+        $config  = RegistryConfig::current();
+        $records = RegistryServiceInstall::where('company_uuid', session('company'))->get();
 
         try {
-            $extensions = ServiceCatalog::installed(RegistryClient::fromConfig($config), $config, $localInstalls, RegistryServiceInstall::packageNames(session('company')));
+            $extensions = ServiceCatalog::installed(RegistryClient::fromConfig($config), $config, $records->map(fn ($install) => $install->toLocalInstall())->all(), RegistryServiceInstall::packageNames(session('company')));
         } catch (RegistryException $e) {
             return response()->error($e->getMessage(), 503);
         }
 
-        return response()->json(['registryExtensions' => $extensions]);
+        $policies = $records->mapWithKeys(fn (RegistryServiceInstall $install) => [$install->extension_id => ['policy' => $install->auto_update, 'last' => $install->meta['auto_update'] ?? null]])->all();
+
+        return response()->json(['registryExtensions' => UpdatePolicy::decorate($extensions, $policies)]);
+    }
+
+    /**
+     * Set the automatic update policy of an extension installed for the current company: `none`, `patch` or
+     * `minor` (see UpdatePolicy). `registry:auto-update` applies it on its schedule.
+     *
+     * @return \Illuminate\Http\JsonResponse `{extension, auto_update}`
+     */
+    public function autoUpdate(AutoUpdatePolicyRequest $request, string $id)
+    {
+        $install = RegistryServiceInstall::where('company_uuid', session('company'))
+            ->where(fn ($query) => $query->where('extension_id', $id)->orWhere('slug', $id))
+            ->first();
+        if ($install === null) {
+            return response()->error('This extension is not installed from the registry service here.', 404);
+        }
+
+        $install->auto_update = UpdatePolicy::normalize($request->input('policy'));
+        $install->save();
+
+        return response()->json(['extension' => $install->extension_id, 'auto_update' => $install->auto_update]);
     }
 
     /**

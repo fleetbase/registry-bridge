@@ -1,0 +1,122 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/compatibility"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "extension": {
+                    "id": "ext_juezachkuc",
+                    "slug": "registry-demo-hello",
+                    "name": "Registry Demo Hello"
+                },
+                "installed": {
+                    "id": "rel_qpo3u8obdg",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0 <0.8.0",
+                        "api": "^1.6"
+                    },
+                    "size_bytes": 2320936,
+                    "checksum": "sha256:f3ca21041badb7ca70d206320b65e131e8e7764e273b4cf367b5e3c9c91c3264",
+                    "notes": "Inventore illum cumque natus.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "installed_compatible": false,
+                "compatible": {
+                    "id": "rel_vztc3rrge2",
+                    "version": "2.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.8.0",
+                        "api": "^2.0"
+                    },
+                    "size_bytes": 1414954,
+                    "checksum": "sha256:340711b42b219ce8c1f1125d37270e0b837dd3ef3d2f7e4c019f219e6c56475f",
+                    "notes": "Est reprehenderit corporis aut voluptate architecto.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "compatible_release_exists": true,
+                "action": "update",
+                "reason": null,
+                "dist": null
+            },
+            {
+                "extension": {
+                    "id": "ext_tm1jbfnaqw",
+                    "slug": "acme-legacy-sync",
+                    "name": "Acme Legacy Sync"
+                },
+                "installed": {
+                    "id": "rel_auhsts7ttn",
+                    "version": "0.4.1",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": "^0.7",
+                        "api": "^1.6"
+                    },
+                    "size_bytes": 3291440,
+                    "checksum": "sha256:946bb22c85c8c48e0989ea3fb2db48025483e75884505a26f5fcf2d79fcab64f",
+                    "notes": "Quae ut molestiae provident autem fugiat iusto est.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "installed_compatible": false,
+                "compatible": {
+                    "id": "rel_0loodaxmqm",
+                    "version": "0.5.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": "^0.8",
+                        "api": "^2.0"
+                    },
+                    "size_bytes": 1000,
+                    "checksum": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "notes": null,
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:22.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:22.000000Z"
+                },
+                "compatible_release_exists": true,
+                "action": "update",
+                "reason": null,
+                "dist": null
+            }
+        ],
+        "meta": {
+            "target": {
+                "console_version": "0.8.1",
+                "api_version": "2.0.2"
+            },
+            "instance": {
+                "id": "inst_kbhh22eudv",
+                "console_version": "0.7.2",
+                "api_version": "1.6.10"
+            },
+            "channels": [
+                "stable"
+            ],
+            "compatible": true,
+            "installed": 2,
+            "blocking": 0,
+            "blocking_extensions": [],
+            "updates_required": 2
+        }
+    }
+}

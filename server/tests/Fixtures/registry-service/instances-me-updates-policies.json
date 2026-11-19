@@ -1,0 +1,139 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/instances/me/updates"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "extension": {
+                    "id": "ext_juezachkuc",
+                    "slug": "registry-demo-hello",
+                    "name": "Registry Demo Hello"
+                },
+                "installed": {
+                    "id": "rel_qpo3u8obdg",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0 <0.8.0",
+                        "api": "^1.6"
+                    },
+                    "size_bytes": 2320936,
+                    "checksum": "sha256:f3ca21041badb7ca70d206320b65e131e8e7764e273b4cf367b5e3c9c91c3264",
+                    "notes": "Inventore illum cumque natus.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "latest": {
+                    "id": "rel_net1bo42yo",
+                    "version": "1.2.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6"
+                    },
+                    "size_bytes": 3089888,
+                    "checksum": "sha256:0edea7dad28969910bf41b8d342ad4554c0283306f1c9453d14eec0e7895a503",
+                    "notes": "Velit totam ea libero provident quibusdam beatae quaerat quia.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "latest_patch": {
+                    "id": "rel_6uknwzzdca",
+                    "version": "1.0.3",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6"
+                    },
+                    "size_bytes": 124710,
+                    "checksum": "sha256:7097200bbeca30cb22da2c10ed99d17a8bdf4317b4a2c4e698f6a215bf25db31",
+                    "notes": "Magnam quis totam earum voluptatem.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "latest_minor": {
+                    "id": "rel_net1bo42yo",
+                    "version": "1.2.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6"
+                    },
+                    "size_bytes": 3089888,
+                    "checksum": "sha256:0edea7dad28969910bf41b8d342ad4554c0283306f1c9453d14eec0e7895a503",
+                    "notes": "Velit totam ea libero provident quibusdam beatae quaerat quia.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "update_available": true
+            },
+            {
+                "extension": {
+                    "id": "ext_tm1jbfnaqw",
+                    "slug": "acme-legacy-sync",
+                    "name": "Acme Legacy Sync"
+                },
+                "installed": {
+                    "id": "rel_auhsts7ttn",
+                    "version": "0.4.1",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": "^0.7",
+                        "api": "^1.6"
+                    },
+                    "size_bytes": 3291440,
+                    "checksum": "sha256:946bb22c85c8c48e0989ea3fb2db48025483e75884505a26f5fcf2d79fcab64f",
+                    "notes": "Quae ut molestiae provident autem fugiat iusto est.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "latest": {
+                    "id": "rel_auhsts7ttn",
+                    "version": "0.4.1",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": "^0.7",
+                        "api": "^1.6"
+                    },
+                    "size_bytes": 3291440,
+                    "checksum": "sha256:946bb22c85c8c48e0989ea3fb2db48025483e75884505a26f5fcf2d79fcab64f",
+                    "notes": "Quae ut molestiae provident autem fugiat iusto est.",
+                    "dist": null,
+                    "published_at": "2026-11-18T10:04:19.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-11-18T10:04:19.000000Z"
+                },
+                "latest_patch": null,
+                "latest_minor": null,
+                "update_available": false
+            }
+        ],
+        "meta": {
+            "console_version": "0.7.2",
+            "api_version": "1.6.10",
+            "channels": [
+                "stable"
+            ],
+            "updates_available": 1
+        }
+    }
+}

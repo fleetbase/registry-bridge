@@ -48,6 +48,7 @@ Route::prefix($prefix)->middleware(['fleetbase.registry'])->namespace('Fleetbase
                 $router->post('instance/register', 'RegistryExtensionController@registerInstance');
                 $router->delete('instance', 'RegistryExtensionController@unregisterInstance');
                 $router->get('{id}/releases', 'RegistryExtensionController@releases');
+                $router->post('{id}/auto-update', 'RegistryExtensionController@autoUpdate');
                 $router->get('{id}', 'RegistryExtensionController@find');
             });
         });

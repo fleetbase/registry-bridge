@@ -5,6 +5,9 @@ namespace Fleetbase\RegistryBridge\Providers;
 use Fleetbase\Models\Setting;
 use Fleetbase\Providers\CoreServiceProvider;
 use Fleetbase\RegistryBridge\Models\RegistryServiceInstall;
+use Fleetbase\RegistryBridge\Support\AutoUpdate\AutoUpdater;
+use Fleetbase\RegistryBridge\Support\AutoUpdate\Contracts\AutoUpdateInstalls;
+use Fleetbase\RegistryBridge\Support\AutoUpdate\ServiceAutoUpdateInstalls;
 use Fleetbase\RegistryBridge\Support\Installer\ArtifactDownloader;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\EngineCompatChecker;
 use Fleetbase\RegistryBridge\Support\Installer\Contracts\InstallRecorder;
@@ -31,6 +34,7 @@ use Fleetbase\RegistryBridge\Support\RegistryClient;
 use Fleetbase\RegistryBridge\Support\RegistryConfig;
 use Fleetbase\RegistryBridge\Support\RegistrySettings;
 use Illuminate\Cache\NullStore;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Foundation\Application;
@@ -70,6 +74,8 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         \Fleetbase\RegistryBridge\Console\Commands\RegisterCloudInstance::class,
         \Fleetbase\RegistryBridge\Console\Commands\SyncCloudInstalls::class,
         \Fleetbase\RegistryBridge\Console\Commands\ManageMaintenance::class,
+        \Fleetbase\RegistryBridge\Console\Commands\AutoUpdateExtensions::class,
+        \Fleetbase\RegistryBridge\Console\Commands\CheckCompatibility::class,
     ];
 
     /**
@@ -201,6 +207,24 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
             );
         });
 
+        $this->app->bind(RegistryClient::class, fn () => RegistryClient::fromConfig(RegistryConfig::current()));
+        $this->app->bind(AutoUpdateInstalls::class, ServiceAutoUpdateInstalls::class);
+        $this->app->bind(AutoUpdater::class, function (Application $app) {
+            return new AutoUpdater(
+                $app->make(InstallerService::class),
+                $app->make(InstallerJobStore::class),
+                $app->make(AutoUpdateInstalls::class),
+                function () {
+                    $client = RegistryClient::fromConfig(RegistryConfig::current());
+                    $client->forgetInstanceState();
+
+                    return $client->updates()['data'];
+                },
+                null,
+                config('registry-bridge.installer.async', true) === false,
+            );
+        });
+
         $this->app->bind(InstallerService::class, function (Application $app) {
             return new InstallerService(
                 $app->make(InstallerQueue::class),
@@ -241,6 +265,7 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../../config/registry-bridge.php', 'registry-bridge');
         $this->mergeConfigFromSettings();
         $this->refreshSettingsPerOperation();
+        $this->scheduleCommands(fn (Schedule $schedule) => static::scheduleAutoUpdate($schedule));
         $this->scheduleCloudRegistration();
 
         // On the cloud instance, the service names a company's organization after the company the first time it acts for it
@@ -263,6 +288,23 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
                 ->onOneServer()
                 ->when(fn () => RegistryConfig::current()->cloudAutoRegister());
         });
+    }
+
+    /**
+     * `registry:auto-update` on `registry-bridge.auto_update.schedule` (hourly by default). It only acts on
+     * installs whose policy is not `none`, so it does nothing until an operator sets one.
+     */
+    public static function scheduleAutoUpdate(Schedule $schedule): void
+    {
+        if (config('registry-bridge.auto_update.enabled', true) === false) {
+            return;
+        }
+
+        $schedule->command('registry:auto-update')
+            ->cron((string) config('registry-bridge.auto_update.schedule', '17 * * * *'))
+            ->name('registry-auto-update')
+            ->withoutOverlapping()
+            ->onOneServer();
     }
 
     /**

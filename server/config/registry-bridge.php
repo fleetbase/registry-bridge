@@ -50,6 +50,12 @@ return [
         'preinstalled' => Utils::castBoolean(env('REGISTRY_PREINSTALLED_EXTENSIONS', false)),
         'protected_prefixes' => explode(',', env('REGISTRY_PROTECTED_PREFIXES', '@fleetbase,fleetbase,@flb,@fleetbase-extension,@flb-extension'))
     ],
+    'auto_update' => [
+        // Schedule registry:auto-update, which queues updates allowed by each install's policy (none, patch, minor;
+        // set on the Installed page, `none` by default).
+        'enabled' => Utils::castBoolean(env('REGISTRY_AUTO_UPDATE', true)),
+        'schedule' => env('REGISTRY_AUTO_UPDATE_SCHEDULE', '17 * * * *'),
+    ],
     'installer' => [
         // Queue installs and return a job id (the console follows the job). False runs the job inside the request, e.g. where no queue worker runs.
         'async' => Utils::castBoolean(env('REGISTRY_INSTALLER_ASYNC', true)),

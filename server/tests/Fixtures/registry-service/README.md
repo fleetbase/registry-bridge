@@ -24,6 +24,13 @@ the service returns when an instance registers again (fleetbase/registry `releas
 
 Ids change on every run, so tests that assert on ids need updating with the new values.
 
+`instances-me-updates-policies.json` and `instances-me-compatibility-*.json` were recorded on 2026-11-18 from
+fleetbase/registry `feat/compat-query` (into `release/v2.0.0`) through its HTTP test client rather than a running
+service: one instance on console 0.7.2 / API 1.6.10 with `registry-demo-hello` 1.0.0 installed (1.0.3, 1.2.0 and a
+2.0.0 for console 0.8 / API 2.0 published) and `acme-legacy-sync` 0.4.1 (console ^0.7 only). The compatibility
+target is console 0.8.1 / API 2.0.2; `-ok` adds a `acme-legacy-sync` 0.5.0 for it, `-validation` asks for
+`console=latest`.
+
 ## Cloud cutover (Workstream O)
 
 `record_cloud.py` records the cloud instance's responses from `fleetbase/registry` branch `feat/cloud-cutover`

@@ -21,6 +21,7 @@ use Fleetbase\Traits\HasUuid;
  * @property string|null $composer_package
  * @property string|null $version
  * @property string|null $release_id
+ * @property string      $auto_update      `none`, `patch` or `minor` (see UpdatePolicy)
  */
 class RegistryServiceInstall extends Model
 {
@@ -59,6 +60,7 @@ class RegistryServiceInstall extends Model
         'composer_package',
         'version',
         'release_id',
+        'auto_update',
         'service_url',
         'meta',
     ];
@@ -68,6 +70,15 @@ class RegistryServiceInstall extends Model
      */
     protected $casts = [
         'meta' => Json::class,
+    ];
+
+    /**
+     * Default attribute values, matching the column defaults.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'auto_update' => 'none',
     ];
 
     /**

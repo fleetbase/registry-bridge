@@ -70,6 +70,8 @@ class RegistryClient
 
     public const INSTANCE_UPDATES_PATH = 'v1/instances/me/updates';
 
+    public const INSTANCE_COMPATIBILITY_PATH = 'v1/instances/me/compatibility';
+
     public const INSTANCE_INSTALLS_PATH = 'v1/instances/me/installs';
 
     /** Phase 4: hosted Stripe Checkout for the instance's organization, and the hand-off polled after it. */
@@ -359,6 +361,27 @@ class RegistryClient
         return [
             'data' => static::extractList($payload),
             'meta' => is_array($payload) && is_array($payload['meta'] ?? null) ? $payload['meta'] : [],
+        ];
+    }
+
+    /**
+     * Would the extensions installed here work on another core version? (`GET /v1/instances/me/compatibility`).
+     * Never cached: it is asked right before an upgrade.
+     *
+     * @param array<string, mixed> $query `console`, `api`, optional `channel`, `host` (package => version), `policy`
+     *
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, mixed>}
+     *
+     * @throws RegistryUnavailableException|RegistryServiceException
+     */
+    public function compatibility(array $query): array
+    {
+        $this->requireToken();
+        $payload = $this->send('get', static::INSTANCE_COMPATIBILITY_PATH, array_filter($query, fn ($value) => $value !== null && $value !== '' && $value !== []));
+
+        return [
+            'data' => static::extractList($payload),
+            'meta' => is_array($payload['meta'] ?? null) ? $payload['meta'] : [],
         ];
     }
 
