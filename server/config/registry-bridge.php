@@ -68,9 +68,12 @@ return [
         'console_path' => env('REGISTRY_INSTALLER_CONSOLE_PATH'),
         'work_path' => env('REGISTRY_INSTALLER_WORK_PATH'),
         'runtime_engines' => [
-            // Where prebuilt engine releases are unpacked, one folder per package; the console must serve it at base_url. Default: <console>/dist/engines-dist.
+            // Where prebuilt engine releases are unpacked, one folder per package. Default: storage/app/registry-runtime-engines,
+            // which this API serves at ~registry/v1/engines/files (no shared volume with the console). With base_url set
+            // the console serves the folder itself instead, and the default is <console>/dist/engines-dist.
             'path' => env('REGISTRY_RUNTIME_ENGINES_PATH'),
-            'base_url' => env('REGISTRY_RUNTIME_ENGINES_BASE_URL', '/engines-dist/'),
+            // Unset (the default): the API serves the engines. Set (e.g. /engines-dist/) when the console serves the path.
+            'base_url' => env('REGISTRY_RUNTIME_ENGINES_BASE_URL'),
             // The manifest served at GET ~registry/v1/engines/runtime. Default: <path>/runtime-engines.json.
             'manifest' => env('REGISTRY_RUNTIME_ENGINES_MANIFEST'),
         ],
@@ -79,6 +82,8 @@ return [
             'driver' => env('REGISTRY_ENGINE_COMPAT_DRIVER', 'auto'),
             'policy' => env('REGISTRY_ENGINE_COMPAT_POLICY', 'minor'),
             // Default: <console>/dist/host-modules.json and <console>/node_modules/@fleetbase/ember-core/bin/check-engine-compat.js.
+            // The console's host-modules.json, which prebuilt engines are checked against: a path, or a URL where the
+            // console serves it (e.g. http://console:4200/host-modules.json in Docker), fetched and kept for 5 minutes.
             'host_modules' => env('REGISTRY_HOST_MODULES_PATH'),
             'script' => env('REGISTRY_ENGINE_COMPAT_SCRIPT'),
         ],

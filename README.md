@@ -180,7 +180,15 @@ php artisan queue:work --queue=installer --timeout=7200   # the worker that runs
 
 `--sync` runs the job in the current process. Stages: resolve the release, download and verify checksums, snapshot `composer.json`, `composer.lock`, the console's `package.json` and `pnpm-lock.yaml`, the runtime manifest and the engine's `engines-dist` folder, `composer require`, the engine step, clear caches, record the install. Any failure restores the snapshot and reports the stage and the last 50 log lines.
 
-When a release carries a prebuilt engine dist (D3 Outcome A), the engine step checks it against the console's `dist/host-modules.json` with `@fleetbase/ember-core`'s compatibility check, unpacks it into the runtime engines directory (default `<console>/dist/engines-dist`) and adds it to the manifest served at `GET ~registry/v1/engines/runtime`, which the console reads at boot. Without a prebuilt dist it falls back to `pnpm add` and `pnpm build`. Settings live under `registry-bridge.installer` in `server/config/registry-bridge.php`.
+When a release carries a prebuilt engine dist (D3 Outcome A), the engine step checks it against the console's `host-modules.json` with `@fleetbase/ember-core`'s compatibility check, unpacks it into the runtime engines directory and adds it to the manifest served at `GET ~registry/v1/engines/runtime`, which the console reads at boot. No console rebuild and no change to the console's `package.json`: this is the frontend counterpart of the API's `api/extensions` project. Without a prebuilt dist it falls back to `pnpm add` and `pnpm build`, which needs a console checkout beside the API. Settings live under `registry-bridge.installer` in `server/config/registry-bridge.php`.
+
+Who serves the runtime engines:
+
+| Setting (env) | Default | Meaning |
+| --- | --- | --- |
+| `REGISTRY_RUNTIME_ENGINES_BASE_URL` | none | Unset: this API serves the engines at `GET ~registry/v1/engines/files/<name>/<version>/<file>` (public, immutable, CORS `*`) and the manifest's `baseUrl`s point there, so the console needs no access to the folder (Docker, a console on another host, `ember serve`). Set (e.g. `/engines-dist/`) when the console serves the folder itself |
+| `REGISTRY_RUNTIME_ENGINES_PATH` | `storage/app/registry-runtime-engines` (served by the API), else `<console>/dist/engines-dist` | Where releases are unpacked, one folder per package. Keep it on a volume: `storage/app` is one in the Docker setup |
+| `REGISTRY_HOST_MODULES_PATH` | `<console>/dist/host-modules.json` | The console's `host-modules.json`: a path, or a URL where the console serves it (`http://console:4200/host-modules.json` in Docker), fetched and kept for 5 minutes. Production console builds write it; `FLEETBASE_HOST_MODULES=1` makes `ember serve` write it too |
 
 Releases come from the Registry Service (`ServiceReleaseSource`); installs are recorded in `registry_service_installs` and reported to the service (`InstallReporter`); credentials reach Composer and pnpm through `PackageCredentials`, as process environment only.
 

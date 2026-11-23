@@ -16,6 +16,8 @@ $prefix = config('registry-bridge.api.routing.prefix', '~registry');
 
 // Runtime engines manifest: read by the console at boot, before sign-in
 Route::get($prefix . '/v1/engines/runtime', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RuntimeEngineController@index');
+// Runtime engine files, when this API serves them (no REGISTRY_RUNTIME_ENGINES_BASE_URL): public like the manifest
+Route::get($prefix . '/v1/engines/files/{path}', 'Fleetbase\RegistryBridge\Http\Controllers\Internal\v1\RuntimeEngineController@file')->where('path', '.*');
 
 Route::prefix($prefix)->middleware(['fleetbase.registry'])->namespace('Fleetbase\RegistryBridge\Http\Controllers')->group(
     function ($router) {

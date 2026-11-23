@@ -38,6 +38,7 @@ class InstallerConfig
         public readonly int $processTimeout = 7200,
         public readonly int $logLines = 50,
         public readonly ?string $extensionsPath = null,
+        public readonly bool $serveRuntimeEngines = false,
     ) {
     }
 
@@ -63,9 +64,33 @@ class InstallerConfig
      * The console build's module list and pinned versions (written by the
      * console's production build since fleetbase#730).
      */
+    /** How long a host-modules.json fetched from a URL is used before it is fetched again, in seconds. */
+    public const HOST_MODULES_TTL = 300;
+
+    /**
+     * The console's host-modules.json: the configured path, a copy of the configured URL (for an API that cannot
+     * see the console's files, such as in Docker), else <console>/dist/host-modules.json. A URL that cannot be
+     * fetched leaves the last copy in place; with none, the returned file does not exist.
+     */
     public function hostModulesFile(): string
     {
-        return $this->hostModulesPath ?? rtrim($this->consolePath, '/') . '/dist/host-modules.json';
+        $configured = $this->hostModulesPath;
+        if ($configured === null || $configured === '') {
+            return rtrim($this->consolePath, '/') . '/dist/host-modules.json';
+        }
+        if (!preg_match('#^https?://#i', $configured)) {
+            return $configured;
+        }
+
+        $copy = rtrim($this->workPath, '/') . '/host-modules-' . substr(hash('sha256', $configured), 0, 12) . '.json';
+        if (!is_file($copy) || filemtime($copy) < time() - self::HOST_MODULES_TTL) {
+            $body = @file_get_contents($configured, false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => false]]));
+            if (is_string($body) && is_array(json_decode($body, true))) {
+                Files::write($copy, $body);
+            }
+        }
+
+        return $copy;
     }
 
     public function engineDirectory(string $package): string
@@ -84,13 +109,20 @@ class InstallerConfig
     public static function fromArray(array $config): self
     {
         $consolePath = (string) ($config['console_path'] ?? '/fleetbase/console');
+        $baseUrl     = $config['runtime_engines']['base_url'] ?? null;
+        // Without a base URL the API serves the runtime engines itself (~registry/v1/engines/files), so they live in its
+        // own storage: in Docker the API container has no console to unpack into, and storage/app is a volume.
+        $serve       = !is_string($baseUrl) || trim($baseUrl) === '';
+        $defaultPath = $serve && function_exists('app') && app() instanceof \Illuminate\Contracts\Foundation\Application
+            ? app()->storagePath('app/registry-runtime-engines')
+            : rtrim($consolePath, '/') . '/dist/engines-dist';
 
         return new self(
             apiPath: (string) ($config['api_path'] ?? getcwd()),
             consolePath: $consolePath,
-            runtimeEnginesPath: (string) ($config['runtime_engines']['path'] ?? rtrim($consolePath, '/') . '/dist/engines-dist'),
+            runtimeEnginesPath: (string) ($config['runtime_engines']['path'] ?? $defaultPath),
             workPath: (string) ($config['work_path'] ?? sys_get_temp_dir() . '/registry-installer'),
-            runtimeEnginesBaseUrl: (string) ($config['runtime_engines']['base_url'] ?? '/engines-dist/'),
+            runtimeEnginesBaseUrl: $serve ? '/engines-dist/' : (string) $baseUrl,
             runtimeManifestPath: $config['runtime_engines']['manifest'] ?? null,
             hostModulesPath: $config['compat']['host_modules'] ?? null,
             compatPolicy: (string) ($config['compat']['policy'] ?? 'minor'),
@@ -103,6 +135,7 @@ class InstallerConfig
             processTimeout: (int) ($config['timeout'] ?? 7200),
             logLines: (int) ($config['log_lines'] ?? 50),
             extensionsPath: is_string($config['extensions_path'] ?? null) && $config['extensions_path'] !== '' ? $config['extensions_path'] : null,
+            serveRuntimeEngines: $serve,
         );
     }
 }

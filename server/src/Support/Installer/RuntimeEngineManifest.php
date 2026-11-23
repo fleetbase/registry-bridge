@@ -89,13 +89,55 @@ class RuntimeEngineManifest
     }
 
     /**
-     * The response body for GET ~registry/v1/engines/runtime.
+     * The response body for GET ~registry/v1/engines/runtime. With `$filesUrl` (the API serves the engines),
+     * each `baseUrl` becomes `<filesUrl>/<name>/<version>/`, so the console loads the files from the API and a
+     * new version is a new URL.
      *
      * @return array{engines: array<int, array<string, mixed>>}
      */
-    public function toResponse(): array
+    public function toResponse(?string $filesUrl = null): array
     {
-        return ['engines' => $this->all()];
+        $engines = $this->all();
+        if ($filesUrl !== null) {
+            $engines = array_map(function (array $engine) use ($filesUrl) {
+                $engine['baseUrl'] = static::servedBaseUrl($filesUrl, $engine['name'], (string) ($engine['version'] ?? '0'));
+
+                return $engine;
+            }, $engines);
+        }
+
+        return ['engines' => $engines];
+    }
+
+    public static function servedBaseUrl(string $filesUrl, string $name, string $version): string
+    {
+        return rtrim($filesUrl, '/') . '/' . $name . '/' . rawurlencode($version) . '/';
+    }
+
+    /**
+     * The file a served URL path names (`<name>/<version>/<file>`, as `servedBaseUrl()` builds it) inside the
+     * engine's folder under `$root`, or null: an engine that is not installed, another version, a path that
+     * leaves the folder, or no such file.
+     */
+    public function servedFile(string $root, string $path): ?string
+    {
+        $segments  = array_values(array_filter(explode('/', $path), fn ($segment) => $segment !== ''));
+        $nameParts = isset($segments[0]) && str_starts_with($segments[0], '@') ? 2 : 1;
+        if (count($segments) < $nameParts + 2 || in_array('..', $segments, true) || in_array('.', $segments, true)) {
+            return null;
+        }
+
+        $name    = implode('/', array_slice($segments, 0, $nameParts));
+        $version = rawurldecode($segments[$nameParts]);
+        $engine  = PackageName::isNpm($name) ? $this->get($name) : null;
+        if ($engine === null || (string) ($engine['version'] ?? '0') !== $version) {
+            return null;
+        }
+
+        $folder = realpath(rtrim($root, '/') . '/' . $name);
+        $file   = $folder === false ? false : realpath($folder . '/' . implode('/', array_slice($segments, $nameParts + 1)));
+
+        return $file !== false && str_starts_with($file, $folder . DIRECTORY_SEPARATOR) && is_file($file) ? $file : null;
     }
 
     /**

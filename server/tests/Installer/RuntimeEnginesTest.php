@@ -5,6 +5,7 @@ use Fleetbase\RegistryBridge\Support\Installer\ArtifactDownloader;
 use Fleetbase\RegistryBridge\Support\Installer\Checksum;
 use Fleetbase\RegistryBridge\Support\Installer\EngineRelease;
 use Fleetbase\RegistryBridge\Support\Installer\Files;
+use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerException;
 use Fleetbase\RegistryBridge\Support\Installer\NodeEngineCompat;
 use Fleetbase\RegistryBridge\Support\Installer\OutputProgress;
@@ -154,3 +155,45 @@ test('output progress still maps composer, pnpm and build lines', function () {
     expect(OutputProgress::pnpmBuildOutputProgress('Built project successfully. Stored in "dist/".'))->toBe(100);
     expect(OutputProgress::composerOutputFriendly("Problem 1\n - x"))->toBe('Unable to install due to dependency compatibility issues.');
 });
+
+test('served by the API, each engine points at its files under the API with its version in the URL', function () {
+    $root     = $this->sandbox->root . '/runtime';
+    $manifest = new RuntimeEngineManifest($root . '/runtime-engines.json');
+    $manifest->put(['name' => '@fleetbase/pallet-engine', 'version' => '0.0.2', 'runtime' => ['routes' => 'routes.js']]);
+    $manifest->put(['name' => 'plain-engine', 'version' => '1.0.0+build.1', 'runtime' => ['routes' => 'routes.js']]);
+    Files::write($root . '/@fleetbase/pallet-engine/routes.js', 'define("x", [], function () {});');
+    Files::write($root . '/@fleetbase/pallet-engine/assets/engine.css', 'body{}');
+    Files::write($root . '/plain-engine/routes.js', '//');
+    Files::write($root . '/secret.txt', 'outside any engine');
+
+    $served = $manifest->toResponse('http://api.test/~registry/v1/engines/files/');
+    expect(array_column($served['engines'], 'baseUrl', 'name'))->toBe([
+        '@fleetbase/pallet-engine' => 'http://api.test/~registry/v1/engines/files/@fleetbase/pallet-engine/0.0.2/',
+        'plain-engine'             => 'http://api.test/~registry/v1/engines/files/plain-engine/1.0.0%2Bbuild.1/',
+    ]);
+    expect($manifest->toResponse()['engines'][0]['baseUrl'])->toBe('/engines-dist/@fleetbase/pallet-engine/', 'the stored entry is unchanged');
+
+    expect($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.2/routes.js'))->toBe(realpath($root . '/@fleetbase/pallet-engine/routes.js'))
+        ->and($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.2/assets/engine.css'))->toBe(realpath($root . '/@fleetbase/pallet-engine/assets/engine.css'))
+        ->and($manifest->servedFile($root, 'plain-engine/1.0.0%2Bbuild.1/routes.js'))->toBe(realpath($root . '/plain-engine/routes.js'))
+        ->and($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.1/routes.js'))->toBeNull('another version')
+        ->and($manifest->servedFile($root, '@acme/missing-engine/1.0.0/routes.js'))->toBeNull('not installed')
+        ->and($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.2/../../secret.txt'))->toBeNull('leaves the folder')
+        ->and($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.2/assets'))->toBeNull('a directory')
+        ->and($manifest->servedFile($root, '@fleetbase/pallet-engine/0.0.2'))->toBeNull('no file');
+});
+
+test('without a runtime engines base URL the API serves the engines; with one the console does', function () {
+    $served = InstallerConfig::fromArray(['console_path' => '/c', 'runtime_engines' => ['path' => '/data/runtime']]);
+    expect($served->serveRuntimeEngines)->toBeTrue()
+        ->and($served->runtimeEnginesPath)->toBe('/data/runtime');
+
+    $console = InstallerConfig::fromArray(['console_path' => '/c', 'runtime_engines' => ['base_url' => '/engines-dist/']]);
+    expect($console->serveRuntimeEngines)->toBeFalse()
+        ->and($console->runtimeEnginesPath)->toBe('/c/dist/engines-dist')
+        ->and($console->runtimeEnginesBaseUrl)->toBe('/engines-dist/');
+
+    expect(InstallerConfig::fromArray(['console_path' => '/c'])->hostModulesFile())->toBe('/c/dist/host-modules.json')
+        ->and(InstallerConfig::fromArray(['compat' => ['host_modules' => '/h.json']])->hostModulesFile())->toBe('/h.json');
+});
+
