@@ -448,11 +448,27 @@ test('a socket outage does not fail the install', function () {
 });
 
 test('the default cache commands never flush the cache store', function () {
-    $commands = array_merge(...\Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS);
+    $commands = array_merge(...Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS);
 
     // cache:clear (also run by optimize:clear) is FLUSHDB on Redis: job records, queues and sessions go with it.
     expect($commands)->not->toContain('cache:clear')
         ->and($commands)->not->toContain('optimize:clear')
         ->and($commands)->toContain('config:clear')
         ->and($commands)->toContain('queue:restart');
+});
+
+test('with reload_octane the installer reloads the Octane workers after an install, and a failed reload does not fail it', function () {
+    $sandbox                  = $this->sandbox;
+    $sandbox->configOverrides = ['reload_octane' => true];
+    $sandbox->release('1.0.0');
+
+    $result = $sandbox->installer()->run($sandbox->job());
+    expect($result['status'])->toBe('completed')
+        ->and(array_slice($sandbox->runner->commands(), -2))->toBe(['php artisan queue:restart', 'php artisan octane:reload']);
+
+    // No Octane server beside this worker: octane:reload exits 1, the update still completes.
+    $sandbox->runner->on(['php', 'artisan', 'octane:reload'], 1);
+    $sandbox->release('1.0.1');
+    $update = $sandbox->installer()->run($sandbox->job('update', ['version' => '1.0.1']));
+    expect($update['status'])->toBe('completed');
 });

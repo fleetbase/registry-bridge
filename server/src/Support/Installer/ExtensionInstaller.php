@@ -397,6 +397,24 @@ class ExtensionInstaller
         foreach ($this->config->cacheCommands as $command) {
             $this->exec($ctx, [$this->config->phpBinary, 'artisan', ...$command], $this->config->apiPath);
         }
+        $this->reloadOctane($ctx);
+    }
+
+    /**
+     * Restart the Octane workers serving this API, so they load the packages just installed or removed (new
+     * service providers and routes), when the installer runs beside them (`reload_octane`). Never fails the job:
+     * where no Octane server runs here the workers pick the change up when they next restart.
+     */
+    private function reloadOctane(InstallContext $ctx): void
+    {
+        if (!$this->config->reloadOctane) {
+            return;
+        }
+        try {
+            $this->exec($ctx, [$this->config->phpBinary, 'artisan', 'octane:reload'], $this->config->apiPath);
+        } catch (\Throwable $e) {
+            $ctx->log->add('Octane was not reloaded (' . $e->getMessage() . '); its workers load the change when they next restart.');
+        }
     }
 
     /**
@@ -497,6 +515,9 @@ class ExtensionInstaller
             } catch (\Throwable $e) {
                 $errors[] = $e->getMessage();
             }
+        }
+        if ($snapshot->flagged('composer')) {
+            $this->reloadOctane($ctx);
         }
 
         $this->emit($ctx, 'rollback', 100);

@@ -98,6 +98,10 @@ return [
         // Artisan commands run after an install, uninstall or rollback, without `php artisan`. Not optimize:clear
         // or cache:clear: on Redis they flush the whole database (job records, queues, sessions).
         'cache_commands' => Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS,
+        // Run `octane:reload` after an install, update or uninstall, so the API's Octane workers load the change. For
+        // an installer worker in the same container as Octane (the Docker image's REGISTRY_INSTALLER_WORKER); a
+        // failed reload is logged, never fails the job.
+        'reload_octane' => Utils::castBoolean(env('REGISTRY_INSTALLER_RELOAD_OCTANE', false)),
         'require_checksums' => Utils::castBoolean(env('REGISTRY_INSTALLER_REQUIRE_CHECKSUMS', false)),
         'timeout' => (int) env('REGISTRY_INSTALLER_TIMEOUT', 7200),
         'lock_seconds' => (int) env('REGISTRY_INSTALLER_LOCK_SECONDS', 10800),

@@ -39,6 +39,7 @@ class InstallerConfig
         public readonly int $logLines = 50,
         public readonly ?string $extensionsPath = null,
         public readonly bool $serveRuntimeEngines = false,
+        public readonly bool $reloadOctane = false,
     ) {
     }
 
@@ -136,6 +137,7 @@ class InstallerConfig
             logLines: (int) ($config['log_lines'] ?? 50),
             extensionsPath: is_string($config['extensions_path'] ?? null) && $config['extensions_path'] !== '' ? $config['extensions_path'] : null,
             serveRuntimeEngines: $serve,
+            reloadOctane: (bool) ($config['reload_octane'] ?? false),
         );
     }
 }
