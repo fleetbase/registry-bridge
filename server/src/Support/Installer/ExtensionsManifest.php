@@ -117,6 +117,48 @@ class ExtensionsManifest
     }
 
     /**
+     * Let Composer fetch over plain http in this project (`config.secure-http: false`). Only for a registry on a
+     * local or private address (see allowsPlainHttp()); Composer refuses http repositories otherwise.
+     */
+    public function allowPlainHttp(): void
+    {
+        $json = $this->read();
+        if (($json['config']['secure-http'] ?? true) === false) {
+            return;
+        }
+        $json['config']                = (array) ($json['config'] ?? []);
+        $json['config']['secure-http'] = false;
+        $this->write($json);
+    }
+
+    /**
+     * Whether a plain-http repository URL is on a local or private network: loopback, Docker's host alias,
+     * .localhost/.local/.test/.internal names, private and link-local IPv4 ranges, or unique-local IPv6. A
+     * public http URL is never allowed, so Composer's https rule still protects real installs.
+     */
+    public static function allowsPlainHttp(string $url): bool
+    {
+        if (strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'http') {
+            return false;
+        }
+        $host = strtolower(trim((string) parse_url($url, PHP_URL_HOST), '[]'));
+        if ($host === '') {
+            return false;
+        }
+        if (in_array($host, ['localhost', 'host.docker.internal', 'gateway.docker.internal'], true) || preg_match('/\.(localhost|local|test|internal)$/', $host)) {
+            return true;
+        }
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return str_starts_with($host, '127.') || !filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        }
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            return $host === '::1' || str_starts_with($host, 'fc') || str_starts_with($host, 'fd') || str_starts_with($host, 'fe80:');
+        }
+
+        return false;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function read(): array

@@ -34,12 +34,18 @@ export default class ModalsExtensionInstallerComponent extends Component {
         return this.isUninstall ? 'uninstall' : 'install';
     }
 
+    /** Whether this job rebuilds the console (`meta.install_mode` / `meta.uninstall_mode` is `build`). */
+    get rebuildsConsole() {
+        return get(this.options, `extension.meta.${this.isUninstall ? 'uninstall_mode' : 'install_mode'}`) === 'build';
+    }
+
     get steps() {
         return (get(this.options, 'steps') ?? []).map((step, index) => ({
             ...step,
             number: index + 1,
             icon: STEP_ICONS[step.status],
-            label: this.intl.t(`registry-bridge.${this.stepsKey}.steps.${step.key}`),
+            // The last step rebuilds the console only in build mode; otherwise it clears caches, records and reloads.
+            label: this.intl.t(`registry-bridge.${this.stepsKey}.steps.${step.key === 'build' && !this.rebuildsConsole ? 'finish' : step.key}`),
             detail: this.stepDetail(step.key),
         }));
     }

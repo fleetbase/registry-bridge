@@ -198,6 +198,7 @@ registry-bridge:
       server: Install server package
       engine: Install console engine
       build: Rebuild console and reload
+      finish: Finish and reload
     progress:
       title: "Installing {name}…"
       button: Installing…
@@ -232,6 +233,7 @@ registry-bridge:
       server: Remove server package
       engine: Remove console engine
       build: Rebuild console and reload
+      finish: Finish and reload
     progress:
       title: "Uninstalling {name}…"
       button: Uninstalling…

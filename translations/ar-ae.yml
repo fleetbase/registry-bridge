@@ -198,6 +198,7 @@ registry-bridge:
       server: تثبيت حزمة الخادم
       engine: تثبيت محرك وحدة التحكم
       build: إعادة بناء وحدة التحكم وتحميلها
+      finish: الإنهاء وإعادة التحميل
     progress:
       title: "جارٍ تثبيت {name}…"
       button: جارٍ التثبيت…
@@ -232,6 +233,7 @@ registry-bridge:
       server: إزالة حزمة الخادم
       engine: إزالة محرك وحدة التحكم
       build: إعادة بناء وحدة التحكم وتحميلها
+      finish: الإنهاء وإعادة التحميل
     progress:
       title: "جارٍ إلغاء تثبيت {name}…"
       button: جارٍ إلغاء التثبيت…

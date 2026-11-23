@@ -198,6 +198,7 @@ registry-bridge:
       server: Cài gói máy chủ
       engine: Cài engine bảng điều khiển
       build: Dựng lại và tải lại bảng điều khiển
+      finish: Hoàn tất và tải lại
     progress:
       title: "Đang cài đặt {name}…"
       button: Đang cài đặt…
@@ -232,6 +233,7 @@ registry-bridge:
       server: Gỡ gói máy chủ
       engine: Gỡ engine bảng điều khiển
       build: Dựng lại và tải lại bảng điều khiển
+      finish: Hoàn tất và tải lại
     progress:
       title: "Đang gỡ cài đặt {name}…"
       button: Đang gỡ cài đặt…

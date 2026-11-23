@@ -148,3 +148,21 @@ test('the manifest folder defaults to <api>/extensions and can be set', function
         ->and(InstallerConfig::fromArray(['api_path' => '/fleetbase/api', 'extensions_path' => '/data/extensions/'])->extensionsDirectory())->toBe('/data/extensions')
         ->and(InstallerConfig::fromArray(['api_path' => '/fleetbase/api', 'extensions_path' => ''])->extensionsDirectory())->toBe('/fleetbase/api/extensions');
 });
+
+test('plain http is allowed only for a registry on a local or private address', function () {
+    foreach (['http://host.docker.internal:8100/composer', 'http://localhost:8100', 'http://127.0.0.1:8100', 'http://registry.test/composer', 'http://registry.internal', 'http://10.0.0.5:8100', 'http://192.168.1.20', 'http://172.18.0.4:8100', 'http://[::1]:8100', 'http://[fd12::1]/composer'] as $url) {
+        expect(ExtensionsManifest::allowsPlainHttp($url))->toBeTrue($url);
+    }
+    foreach (['https://registry.fleetbase.io/composer', 'http://registry.fleetbase.io/composer', 'http://8.8.8.8', 'http://example.com', 'http://', 'ftp://localhost'] as $url) {
+        expect(ExtensionsManifest::allowsPlainHttp($url))->toBeFalse($url);
+    }
+});
+
+test('allowPlainHttp turns off secure-http in the extensions project and keeps the rest of config', function () {
+    Files::write($this->dir . '/composer.json', json_encode(['require' => ['fleetbase/core-platform' => '*'], 'config' => ['sort-packages' => true]]));
+    $manifest = new ExtensionsManifest($this->dir);
+    $manifest->allowPlainHttp();
+    $manifest->allowPlainHttp();
+
+    expect($manifest->read()['config'])->toBe(['sort-packages' => true, 'secure-http' => false]);
+});

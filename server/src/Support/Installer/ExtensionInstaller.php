@@ -685,6 +685,15 @@ class ExtensionInstaller
             unset($repository['name']);
             $manifest->setRepository($name, $repository);
             $ctx->log->add(sprintf('Repository %s set to %s in %s', $name, $repository['url'], $manifest->file()));
+            $url = (string) ($repository['url'] ?? '');
+            if (str_starts_with(strtolower($url), 'http://')) {
+                if (!ExtensionsManifest::allowsPlainHttp($url)) {
+                    throw new InstallerException(sprintf('The registry service is at %s, over plain http, and Composer only downloads over https from a public address. Use the https URL of the registry service (REGISTRY_SERVICE_URL).', $url));
+                }
+                // A local or private registry (development, an internal network): let Composer use plain http in this project only.
+                $manifest->allowPlainHttp();
+                $ctx->log->add(sprintf('Allowed plain http in %s for the registry on a local or private address', $manifest->file()));
+            }
         }
         $manifest->require($package, $release->composerConstraint);
         $ctx->log->add(sprintf('Required %s in %s', (string) $release->composerRequirement(), $manifest->file()));
