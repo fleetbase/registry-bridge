@@ -1,58 +1,5 @@
 <EmberWormhole @to="sidebar-menu-items">
-    <Layout::Sidebar::Item
-        @route="console.extensions.installed"
-        @icon="inbox"
-        @permission="registry-bridge list extension-install"
-        @visible={{can "registry-bridge see extension-install"}}
-        @rightSideStatus={{if this.installedCount "default"}}
-        @rightSideStatusText={{this.installedCount}}
-        @hideRightSideStatusDot={{true}}
-        @disableRightSideStatusHumanize={{true}}
-        data-test-sidebar-installed
-    >{{t "registry-bridge.sidebar.installed"}}</Layout::Sidebar::Item>
-    <Layout::Sidebar::Item
-        @route="console.extensions.purchased"
-        @icon="bag-shopping"
-        @permission="registry-bridge list extension-purchase"
-        @visible={{can "registry-bridge see extension-purchase"}}
-        @rightSideStatus={{if this.purchasedCount "default"}}
-        @rightSideStatusText={{this.purchasedCount}}
-        @hideRightSideStatusDot={{true}}
-        @disableRightSideStatusHumanize={{true}}
-        data-test-sidebar-purchased
-    >{{t "registry-bridge.sidebar.purchased"}}</Layout::Sidebar::Item>
-    <Layout::Sidebar::Panel @open={{true}} @title={{t "registry-bridge.sidebar.explore"}} @visible={{can "registry-bridge see extension"}}>
-        <Layout::Sidebar::Item @route="console.extensions.explore.index" @icon="shapes" @permission="registry-bridge list extension">{{t "registry-bridge.sidebar.explore-all"}}</Layout::Sidebar::Item>
-        {{#each this.sidebarCategories as |category|}}
-            <Layout::Sidebar::Item
-                @route="console.extensions.explore.category"
-                @model={{category.model}}
-                @icon={{or category.icon "folder"}}
-                @permission="registry-bridge list extension"
-                @rightSideStatus={{if category.count "default"}}
-                @rightSideStatusText={{category.count}}
-                @hideRightSideStatusDot={{true}}
-                @disableRightSideStatusHumanize={{true}}
-                data-test-sidebar-category={{category.slug}}
-            >{{category.name}}</Layout::Sidebar::Item>
-        {{/each}}
-    </Layout::Sidebar::Panel>
-    {{!-- The registry context arrives after the first render. EmberWormhole moves its top-level nodes out of
-        place, so a block that appears later must sit inside an element of its own: a top-level {{#if}} here
-        crashes the render ("removeChild ... not a child of this node") when it flips. --}}
-    <div data-test-sidebar-developers>
-        {{#if this.registryContext.publisherUrl}}
-            <Layout::Sidebar::Panel @open={{true}} @title={{t "registry-bridge.sidebar.developers"}}>
-                <Layout::Sidebar::Item
-                    @url={{this.registryContext.publisherUrl}}
-                    @target="_blank"
-                    @icon="arrow-up-right-from-square"
-                    data-test-sidebar-publisher-portal
-                >{{t "registry-bridge.sidebar.publisher-portal"}}</Layout::Sidebar::Item>
-            </Layout::Sidebar::Panel>
-        {{/if}}
-    </div>
-    <Spacer @height="200px" />
+    <Layout::Sidebar::Navigator @items={{this.navigationItems}} @searchPlaceholder={{t "registry-bridge.sidebar.search-placeholder"}}/>
 </EmberWormhole>
 
 <Layout::Section::Container>

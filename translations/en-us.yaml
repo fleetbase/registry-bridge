@@ -40,8 +40,8 @@ registry-bridge:
     purchased: Purchased
     explore: Explore
     explore-all: Explore all
-    developers: Developers
     publisher-portal: Publisher portal
+    search-placeholder: Search Extensions...
   explore:
     title: Explore extensions
     count: "{count, plural, one {# extension} other {# extensions}}"

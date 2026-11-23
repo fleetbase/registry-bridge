@@ -40,8 +40,8 @@ registry-bridge:
     purchased: المشتراة
     explore: استكشاف
     explore-all: استكشاف الكل
-    developers: المطورون
     publisher-portal: بوابة الناشرين
+    search-placeholder: ابحث في الإضافات...
   explore:
     title: استكشاف الإضافات
     count: "{count, plural, zero {لا توجد إضافات} one {إضافة واحدة} two {إضافتان} few {# إضافات} many {# إضافة} other {# إضافة}}"

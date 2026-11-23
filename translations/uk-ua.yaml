@@ -40,8 +40,8 @@ registry-bridge:
     purchased: Придбані
     explore: Огляд
     explore-all: Усі розширення
-    developers: Розробникам
     publisher-portal: Портал видавця
+    search-placeholder: Пошук розширень...
   explore:
     title: Огляд розширень
     count: "{count, plural, one {# розширення} few {# розширення} many {# розширень} other {# розширення}}"

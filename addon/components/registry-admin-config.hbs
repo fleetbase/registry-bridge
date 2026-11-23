@@ -32,7 +32,7 @@
                                 id={{id}}
                                 @type="text"
                                 @value={{this.registrationCode}}
-                                class="w-full form-input font-mono uppercase"
+                                class="min-w-0 flex-1 form-input font-mono uppercase"
                                 placeholder="XXXX-XXXX-XXXX-XXXX"
                                 autocomplete="off"
                                 spellcheck="false"
@@ -42,12 +42,13 @@
                                 @type="primary"
                                 @size="sm"
                                 @icon="rotate"
+                                @wrapperClass="flex-shrink-0 whitespace-nowrap"
                                 @text={{t "registry-bridge.admin.config.registration.register-again"}}
                                 @onClick={{perform this.registerInstance}}
                                 @disabled={{not this.canRegister}}
                                 @isLoading={{this.registerInstance.isRunning}}
                             />
-                            <Button @size="sm" @text={{t "registry-bridge.admin.config.registration.cancel"}} @onClick={{this.cancelReregister}} @disabled={{this.isBusy}} />
+                            <Button @size="sm" @wrapperClass="flex-shrink-0 whitespace-nowrap" @text={{t "registry-bridge.admin.config.registration.cancel"}} @onClick={{this.cancelReregister}} @disabled={{this.isBusy}} />
                         </div>
                     </div>
                 {{else}}
@@ -76,7 +77,7 @@
                     id={{id}}
                     @type="text"
                     @value={{this.registrationCode}}
-                    class="w-full form-input font-mono uppercase"
+                    class="min-w-0 flex-1 form-input font-mono uppercase"
                     placeholder="XXXX-XXXX-XXXX-XXXX"
                     autocomplete="off"
                     spellcheck="false"
@@ -86,6 +87,7 @@
                     @type="primary"
                     @size="sm"
                     @icon="link"
+                    @wrapperClass="flex-shrink-0 whitespace-nowrap"
                     @text={{t "registry-bridge.admin.config.registration.register"}}
                     @onClick={{perform this.registerInstance}}
                     @disabled={{not this.canRegister}}

@@ -40,8 +40,8 @@ registry-bridge:
     purchased: Đã mua
     explore: Khám phá
     explore-all: Khám phá tất cả
-    developers: Nhà phát triển
     publisher-portal: Cổng nhà phát hành
+    search-placeholder: Tìm kiếm tiện ích mở rộng...
   explore:
     title: Khám phá tiện ích
     count: "{count, plural, other {# tiện ích}}"
