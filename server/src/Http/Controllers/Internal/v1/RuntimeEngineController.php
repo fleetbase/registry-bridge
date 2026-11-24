@@ -42,9 +42,21 @@ class RuntimeEngineController extends Controller
      */
     public function index(RuntimeEngineManifest $manifest, InstallerConfig $config): JsonResponse
     {
-        $filesUrl = $config->serveRuntimeEngines ? url(config('registry-bridge.api.routing.prefix', '~registry') . '/v1/engines/files') : null;
+        $filesUrl = $config->serveRuntimeEngines ? static::filesUrl() : null;
 
         return new JsonResponse($manifest->toResponse($filesUrl), 200, ['Cache-Control' => 'no-cache']);
+    }
+
+    /**
+     * The public URL of `files` below. APP_URL first: behind the Docker httpd proxy the request's Host header has no
+     * port (`localhost` for `localhost:8000`), so `url()` alone would point the console at the wrong origin.
+     */
+    public static function filesUrl(): string
+    {
+        $path = trim((string) config('registry-bridge.api.routing.prefix', '~registry'), '/') . '/v1/engines/files';
+        $root = rtrim((string) config('app.url'), '/');
+
+        return $root !== '' ? $root . '/' . $path : url($path);
     }
 
     /**
