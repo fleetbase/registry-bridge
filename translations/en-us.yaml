@@ -1,13 +1,8 @@
 registry-bridge:
   extension-name: Registry Bridge
   common:
-    install: Install
-    uninstall: Uninstall
-    about: About
     retry: Retry
     close: Close
-    cancel: Cancel
-    this-organization: this organization
   installer:
     starting: Getting started…
     queued-next: Waiting to start…
@@ -60,17 +55,8 @@ registry-bridge:
       generic: "This didn't finish. Try again in a moment."
       rollback-incomplete: "We couldn't finish, and not every change could be undone. Ask your administrator to look at the details."
       next: If it keeps failing, share the details with your administrator or Fleetbase support.
-  sidebar:
-    installed: Installed
-    purchased: Purchased
-    explore: Explore
-    explore-all: Explore all
-    publisher-portal: Publisher portal
-    search-placeholder: Search Extensions...
   explore:
     title: Explore extensions
-    count: "{count, plural, one {# extension} other {# extensions}}"
-    search-placeholder: Search extensions, tags, publishers
     category-title: "{categoryName}"
     loading: Loading extensions
     this-registry: The extensions registry
@@ -94,21 +80,10 @@ registry-bridge:
       self_hosted: Self-hosted
       cloud: Fleetbase Cloud
       both: Cloud and self-hosted
-    layout:
-      label: Layout
-      grid: Grid
-      table: Table
-    columns:
-      extension: Extension
-      category: Category
-      publisher: Publisher
-      status: Price and status
-      updated: Updated
     empty:
       title: No extensions are published to this registry yet
       body: "This console is connected to {host}. Extensions appear here once a publisher submits one and the registry team approves it."
       check-config: Check registry config
-      publish: Publish an extension
     no-results:
       title: "No extensions match “{query}”"
       filtered-title: No extensions match these filters
@@ -137,126 +112,7 @@ registry-bridge:
     verified: Verified publisher
     view-details: View details
     install: Install
-    no-description: No description yet.
     unavailable: Not available here
-  detail:
-    tabs:
-      overview: Overview
-      screenshots: Screenshots
-      details: Details
-      versions: Versions
-    publisher: Publisher
-    category: Category
-    updated: "updated {date}"
-    verified-help: "The publisher's identity and payout account were verified by Fleetbase."
-    installs: Installs
-    last-release: Last release
-    support: Support
-    pricing-one-time: "{price} one-time · {currency}"
-    error:
-      title: Could not load this extension
-    cta:
-      install: Install
-      install-note: "Installs without a console rebuild (about {minutes} minutes). The console reloads when done."
-      install-note-rebuild: "Installs and rebuilds the console, which can take 15 to 40 minutes or longer. The console reloads when done."
-      purchase: "Purchase for {price}"
-      purchase-note: One-time payment via Stripe, then install. Facilitator fee included in the price.
-      installed: "Installed {version}"
-      update-note: "Installed v{installedVersion}. Updating rebuilds the console."
-      unauthorized: Needs permission
-      unauthorized-note: "You need “{permission}”. Ask an organisation admin."
-      author: You publish this extension. Manage the listing, releases and pricing on the publisher portal.
-      open-portal: Open in publisher portal
-      register: Register this instance
-      register-note: Installs go through the registry service. Register this instance once in Admin → Registry config.
-      register-ask-admin: Installs go through the registry service. Ask an admin to register this instance in Admin → Registry config.
-      unavailable: Unavailable
-      not-available: This extension cannot be installed on this instance yet.
-    screenshots:
-      previous: Previous screenshot
-      next: Next screenshot
-      show: "Show screenshot {number}"
-      empty: No screenshots yet
-    hosting:
-      both: Cloud and self-hosted
-      cloud: Fleetbase Cloud only
-      self-hosted: Self-hosted only
-    fields:
-      version: Version
-      installed-version: Installed
-      updated: Updated
-      publisher: Publisher
-      packages: Packages
-      website: Website
-      repository: Repository
-      support: Support
-      privacy: Privacy policy
-      terms: Terms
-      languages: Languages
-      copyright: Copyright
-      hosting: Hosting
-      pricing: Pricing
-    versions:
-      columns:
-        version: Version
-        channel: Channel
-        date: Date
-        size: Size
-        notes: Notes
-      install: Install this version
-      switch: Switch to this version
-      latest: Latest
-      yanked: Yanked
-      error: Could not load the release history.
-      unsupported: Release history is available for extensions from the Registry Service. This listing only reports its current version.
-      empty: No published releases yet
-  install:
-    confirm:
-      title: "Install {name} {version}?"
-      body: "This adds the extension for {company} and reloads the console when it's done. Others will see it the next time they open Fleetbase."
-      time: "Usually takes a minute or two. This tab reloads when it's done; other tabs aren't affected."
-      time-rebuild: "This extension also needs the console to be rebuilt, which can take 15 to 40 minutes. This tab reloads when it's done; other tabs aren't affected."
-      accept: Install now
-    steps:
-      label: Install steps
-    progress:
-      title: "Installing {name}…"
-      button: Installing…
-      keep-open: "You can keep working in other tabs. Closing this window won't stop the installation."
-    success:
-      badge: Installed
-      title: "{name} {version} is installed"
-      reload-in: "Reloading the console in {seconds} s so the new section appears."
-      reload-cancelled: The console was not reloaded. Reload it to see the change.
-      reload-now: Reload now
-      stay: Wait, stay here
-    failed:
-      badge: Failed
-      title: "{name} could not be installed"
-      retry: Retry install
-      cli: "Or install it from the server with the CLI:"
-  update:
-    confirm:
-      title: "Update {name} to {version}?"
-      body: "This updates the extension for {company} from v{installedVersion} and reloads the console when it's done."
-      accept: Update now
-  uninstall:
-    confirm:
-      title: "Uninstall {name}?"
-      destructive: Destructive.
-      body: "This removes the extension and permanently deletes its settings and data for {company}. You can reinstall later, but nothing is recovered."
-      type-to-confirm: "Type {name} to confirm"
-      time: "Takes about a minute. This tab reloads when it's done."
-      time-rebuild: "This also rebuilds the console, which can take 15 to 40 minutes. This tab reloads when it's done."
-      accept: Uninstall
-    progress:
-      title: "Uninstalling {name}…"
-      button: Uninstalling…
-    success:
-      title: "{name} is uninstalled"
-    failed:
-      title: "{name} could not be uninstalled"
-      retry: Retry uninstall
   purchase:
     title: "Purchase {name}"
     your-organization: your registry organization
@@ -285,18 +141,6 @@ registry-bridge:
       title: Checkout cancelled
       body: You left the Stripe checkout before paying. Nothing was charged and nothing was licensed.
   installed:
-    title: Installed extensions
-    actions: Actions
-    update: Update
-    updates-available: "{count, plural, one {# update available} other {# updates available}}"
-    error: Could not load the installed extensions.
-    columns:
-      extension: Extension
-      category: Category
-      installed: Installed
-      latest: Latest
-      status: Status
-      auto-update: "Auto-update"
     auto-update:
       label: "Auto-update policy"
       none: "Off"
@@ -309,43 +153,9 @@ registry-bridge:
       up-to-date: Up to date
       update-available: Update available
       core: Core service
-    empty:
-      title: Nothing installed yet
-      body: Extensions add telematics, routing, warehouse and customer features to this console. Install one from Explore; most installs take about two minutes, and an extension without a prebuilt engine rebuilds the console, which takes much longer.
-      filtered: No installed extensions match this search
-      explore: Explore extensions
-      purchased: See purchased
   purchased:
-    title: Purchased extensions
-    ready: "{count, plural, one {# ready to install} other {# ready to install}}"
-    blocked: "{count, plural, one {# licence refunded or revoked: updates blocked} other {# licences refunded or revoked: updates blocked}}"
-    blocked-help: "A refunded or revoked extension stays installed and keeps working where it is, but it can no longer be installed again or updated. Its receipt stays listed here."
-    error: Could not load the purchased extensions.
-    activations: "{used} of {max} instances"
-    receipt: Stripe receipt
-    columns:
-      extension: Extension
-      price: Price
-      licence: Licence
-      activations: Activations
-      install-status: Install status
-      receipt: Receipt
     status:
       installed: "Installed v{version}"
-    licence:
-      active: Active
-      refunded: Refunded
-      revoked: Revoked
-      inactive: Inactive
-      reason:
-        refunded: The payment was refunded. Installs and updates stop; instances already running it keep their seat.
-        disputed: The payment is disputed with the card issuer. Installs and updates stop until the registry reinstates the licence.
-        staff: Revoked by the registry. Installs and updates stop; instances already running it keep their seat.
-        other: This licence no longer allows installs or updates.
-    empty:
-      title: No purchased extensions
-      body: "Paid extensions bought for {organization} appear here with their receipts and install status. Free extensions go straight to Installed."
-      browse: Browse paid extensions
   admin:
     config:
       service:

@@ -1,13 +1,8 @@
 registry-bridge:
   extension-name: Cầu nối kho tiện ích
   common:
-    install: Cài đặt
-    uninstall: Gỡ cài đặt
-    about: Giới thiệu
     retry: Thử lại
     close: Đóng
-    cancel: Hủy
-    this-organization: tổ chức này
   installer:
     starting: Đang bắt đầu…
     queued-next: Đang chờ bắt đầu…
@@ -60,17 +55,8 @@ registry-bridge:
       generic: Thao tác chưa hoàn tất. Hãy thử lại sau giây lát.
       rollback-incomplete: Không thể hoàn tất và không phải mọi thay đổi đều được hoàn tác. Hãy nhờ quản trị viên xem chi tiết.
       next: Nếu lỗi vẫn tiếp diễn, hãy gửi chi tiết cho quản trị viên hoặc bộ phận hỗ trợ Fleetbase.
-  sidebar:
-    installed: Đã cài đặt
-    purchased: Đã mua
-    explore: Khám phá
-    explore-all: Khám phá tất cả
-    publisher-portal: Cổng nhà phát hành
-    search-placeholder: Tìm kiếm tiện ích mở rộng...
   explore:
     title: Khám phá tiện ích
-    count: "{count, plural, other {# tiện ích}}"
-    search-placeholder: Tìm tiện ích, thẻ, nhà phát hành
     category-title: "{categoryName}"
     loading: Đang tải tiện ích
     this-registry: Kho tiện ích
@@ -94,21 +80,10 @@ registry-bridge:
       self_hosted: Tự lưu trữ
       cloud: Fleetbase Cloud
       both: Đám mây và tự lưu trữ
-    layout:
-      label: Bố cục
-      grid: Lưới
-      table: Bảng
-    columns:
-      extension: Tiện ích
-      category: Danh mục
-      publisher: Nhà phát hành
-      status: Giá và trạng thái
-      updated: Cập nhật
     empty:
       title: Chưa có tiện ích nào được phát hành trên kho này
       body: "Bảng điều khiển này đang kết nối với {host}. Tiện ích sẽ xuất hiện ở đây khi nhà phát hành gửi lên và đội ngũ kho phê duyệt."
       check-config: Kiểm tra cấu hình kho
-      publish: Phát hành tiện ích
     no-results:
       title: "Không có tiện ích nào khớp với “{query}”"
       filtered-title: Không có tiện ích nào khớp với các bộ lọc này
@@ -137,126 +112,7 @@ registry-bridge:
     verified: Nhà phát hành đã xác minh
     view-details: Xem chi tiết
     install: Cài đặt
-    no-description: Chưa có mô tả.
     unavailable: Không khả dụng tại đây
-  detail:
-    tabs:
-      overview: Tổng quan
-      screenshots: Ảnh chụp màn hình
-      details: Chi tiết
-      versions: Phiên bản
-    publisher: Nhà phát hành
-    category: Danh mục
-    updated: "cập nhật {date}"
-    verified-help: Fleetbase đã xác minh danh tính và tài khoản nhận thanh toán của nhà phát hành.
-    installs: Lượt cài đặt
-    last-release: Bản phát hành gần nhất
-    support: Hỗ trợ
-    pricing-one-time: "{price} một lần · {currency}"
-    error:
-      title: Không thể tải tiện ích này
-    cta:
-      install: Cài đặt
-      install-note: "Cài đặt mà không cần dựng lại bảng điều khiển (khoảng {minutes} phút). Bảng điều khiển sẽ tải lại khi xong."
-      install-note-rebuild: "Cài đặt và dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút hoặc lâu hơn. Bảng điều khiển sẽ tải lại khi xong."
-      purchase: "Mua với giá {price}"
-      purchase-note: Thanh toán một lần qua Stripe, sau đó cài đặt. Phí trung gian đã bao gồm trong giá.
-      installed: "Đã cài đặt {version}"
-      update-note: "Đã cài v{installedVersion}. Cập nhật sẽ dựng lại bảng điều khiển."
-      unauthorized: Cần quyền
-      unauthorized-note: "Bạn cần quyền “{permission}”. Hãy liên hệ quản trị viên tổ chức."
-      author: Bạn là nhà phát hành tiện ích này. Quản lý trang giới thiệu, bản phát hành và giá trên cổng nhà phát hành.
-      open-portal: Mở trong cổng nhà phát hành
-      register: Đăng ký phiên bản này
-      register-note: Việc cài đặt đi qua dịch vụ kho. Hãy đăng ký phiên bản này một lần tại Quản trị → Cấu hình kho.
-      register-ask-admin: Việc cài đặt đi qua dịch vụ kho. Hãy nhờ quản trị viên đăng ký phiên bản này tại Quản trị → Cấu hình kho.
-      unavailable: Không khả dụng
-      not-available: Hiện chưa thể cài đặt tiện ích này trên phiên bản này.
-    screenshots:
-      previous: Ảnh trước
-      next: Ảnh tiếp theo
-      show: "Xem ảnh {number}"
-      empty: Chưa có ảnh chụp màn hình
-    hosting:
-      both: Đám mây và tự lưu trữ
-      cloud: Chỉ Fleetbase Cloud
-      self-hosted: Chỉ tự lưu trữ
-    fields:
-      version: Phiên bản
-      installed-version: Đã cài
-      updated: Cập nhật
-      publisher: Nhà phát hành
-      packages: Gói
-      website: Trang web
-      repository: Kho mã nguồn
-      support: Hỗ trợ
-      privacy: Chính sách quyền riêng tư
-      terms: Điều khoản
-      languages: Ngôn ngữ
-      copyright: Bản quyền
-      hosting: Hình thức lưu trữ
-      pricing: Giá
-    versions:
-      columns:
-        version: Phiên bản
-        channel: Kênh
-        date: Ngày
-        size: Dung lượng
-        notes: Ghi chú
-      install: Cài phiên bản này
-      switch: Chuyển sang phiên bản này
-      latest: Mới nhất
-      yanked: Đã thu hồi
-      error: Không thể tải lịch sử phát hành.
-      unsupported: Lịch sử phát hành chỉ có cho tiện ích từ dịch vụ kho. Mục này chỉ cho biết phiên bản hiện tại.
-      empty: Chưa có bản phát hành nào
-  install:
-    confirm:
-      title: "Cài đặt {name} {version}?"
-      body: "Thao tác này thêm tiện ích cho {company} và tải lại bảng điều khiển khi hoàn tất. Người khác sẽ thấy tiện ích vào lần mở Fleetbase tiếp theo."
-      time: Thường mất một đến hai phút. Tab này sẽ tải lại khi hoàn tất; các tab khác không bị ảnh hưởng.
-      time-rebuild: Tiện ích này còn cần dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút. Tab này sẽ tải lại khi hoàn tất; các tab khác không bị ảnh hưởng.
-      accept: Cài đặt ngay
-    steps:
-      label: Các bước cài đặt
-    progress:
-      title: "Đang cài đặt {name}…"
-      button: Đang cài đặt…
-      keep-open: Bạn có thể tiếp tục làm việc ở các tab khác. Đóng cửa sổ này sẽ không dừng quá trình cài đặt.
-    success:
-      badge: Đã cài đặt
-      title: "Đã cài đặt {name} {version}"
-      reload-in: "Bảng điều khiển sẽ tải lại sau {seconds} giây để hiển thị mục mới."
-      reload-cancelled: Bảng điều khiển chưa được tải lại. Hãy tải lại để thấy thay đổi.
-      reload-now: Tải lại ngay
-      stay: Chờ đã, ở lại đây
-    failed:
-      badge: Thất bại
-      title: "Không thể cài đặt {name}"
-      retry: Thử cài lại
-      cli: "Hoặc cài đặt từ máy chủ bằng CLI:"
-  update:
-    confirm:
-      title: "Cập nhật {name} lên {version}?"
-      body: "Thao tác này cập nhật tiện ích cho {company} từ v{installedVersion} và tải lại bảng điều khiển khi hoàn tất."
-      accept: Cập nhật ngay
-  uninstall:
-    confirm:
-      title: "Gỡ cài đặt {name}?"
-      destructive: Không thể hoàn tác.
-      body: "Thao tác này sẽ gỡ tiện ích và xóa vĩnh viễn cài đặt cùng dữ liệu của nó cho {company}. Bạn có thể cài lại sau, nhưng sẽ không khôi phục được gì."
-      type-to-confirm: "Nhập {name} để xác nhận"
-      time: Mất khoảng một phút. Tab này sẽ tải lại khi hoàn tất.
-      time-rebuild: Thao tác này cũng dựng lại bảng điều khiển, có thể mất từ 15 đến 40 phút. Tab này sẽ tải lại khi hoàn tất.
-      accept: Gỡ cài đặt
-    progress:
-      title: "Đang gỡ cài đặt {name}…"
-      button: Đang gỡ cài đặt…
-    success:
-      title: "Đã gỡ cài đặt {name}"
-    failed:
-      title: "Không thể gỡ cài đặt {name}"
-      retry: Thử gỡ lại
   purchase:
     title: "Mua {name}"
     your-organization: tổ chức của bạn trên registry
@@ -285,18 +141,6 @@ registry-bridge:
       title: Đã hủy thanh toán
       body: Bạn đã rời trang thanh toán Stripe trước khi trả tiền. Không có khoản phí nào bị trừ và không có giấy phép nào được cấp.
   installed:
-    title: Tiện ích đã cài đặt
-    actions: Thao tác
-    update: Cập nhật
-    updates-available: "{count, plural, other {Có # bản cập nhật}}"
-    error: Không thể tải danh sách tiện ích đã cài đặt.
-    columns:
-      extension: Tiện ích
-      category: Danh mục
-      installed: Đã cài
-      latest: Mới nhất
-      status: Trạng thái
-      auto-update: "Tự động cập nhật"
     auto-update:
       label: "Chính sách tự động cập nhật"
       none: "Tắt"
@@ -309,43 +153,9 @@ registry-bridge:
       up-to-date: Đã cập nhật
       update-available: Có bản cập nhật
       core: Dịch vụ lõi
-    empty:
-      title: Chưa cài đặt tiện ích nào
-      body: Tiện ích bổ sung các tính năng viễn thông, định tuyến, kho bãi và khách hàng cho bảng điều khiển này. Hãy cài đặt từ mục Khám phá; hầu hết lượt cài mất khoảng hai phút, còn tiện ích không có engine dựng sẵn sẽ dựng lại bảng điều khiển và mất lâu hơn nhiều.
-      filtered: Không có tiện ích đã cài nào khớp với tìm kiếm này
-      explore: Khám phá tiện ích
-      purchased: Xem tiện ích đã mua
   purchased:
-    title: Tiện ích đã mua
-    ready: "{count, plural, other {# sẵn sàng cài đặt}}"
-    blocked: "{count, plural, other {# giấy phép đã hoàn tiền hoặc bị thu hồi: chặn cập nhật}}"
-    blocked-help: "Tiện ích đã hoàn tiền hoặc bị thu hồi vẫn được cài đặt và hoạt động ở nơi đã cài, nhưng không thể cài lại hoặc cập nhật. Biên lai vẫn được liệt kê ở đây."
-    error: Không thể tải danh sách tiện ích đã mua.
-    activations: "{used} / {max} phiên bản"
-    receipt: Biên lai Stripe
-    columns:
-      extension: Tiện ích
-      price: Giá
-      licence: Giấy phép
-      activations: Lượt kích hoạt
-      install-status: Trạng thái cài đặt
-      receipt: Biên lai
     status:
       installed: "Đã cài v{version}"
-    licence:
-      active: Đang hiệu lực
-      refunded: Đã hoàn tiền
-      revoked: Đã thu hồi
-      inactive: Không hiệu lực
-      reason:
-        refunded: Khoản thanh toán đã được hoàn tiền. Việc cài đặt và cập nhật dừng lại; các phiên bản đang chạy tiện ích vẫn giữ chỗ.
-        disputed: Khoản thanh toán đang bị khiếu nại với ngân hàng phát hành thẻ. Việc cài đặt và cập nhật dừng lại cho đến khi registry khôi phục giấy phép.
-        staff: Registry đã thu hồi giấy phép. Việc cài đặt và cập nhật dừng lại; các phiên bản đang chạy tiện ích vẫn giữ chỗ.
-        other: Giấy phép này không còn cho phép cài đặt hoặc cập nhật.
-    empty:
-      title: Chưa mua tiện ích nào
-      body: "Các tiện ích trả phí đã mua cho {organization} sẽ hiển thị ở đây cùng biên lai và trạng thái cài đặt. Tiện ích miễn phí sẽ vào thẳng mục Đã cài đặt."
-      browse: Duyệt tiện ích trả phí
   admin:
     config:
       service:

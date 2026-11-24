@@ -1,13 +1,8 @@
 registry-bridge:
   extension-name: جسر السجل
   common:
-    install: تثبيت
-    uninstall: إلغاء التثبيت
-    about: حول
     retry: إعادة المحاولة
     close: إغلاق
-    cancel: إلغاء
-    this-organization: هذه المؤسسة
   installer:
     starting: جارٍ البدء…
     queued-next: في انتظار البدء…
@@ -60,17 +55,8 @@ registry-bridge:
       generic: لم تكتمل العملية. حاول مرة أخرى بعد قليل.
       rollback-incomplete: تعذّر الإنهاء، ولم يكن بالإمكان التراجع عن كل التغييرات. اطلب من المسؤول مراجعة التفاصيل.
       next: إذا استمر الفشل، شارك التفاصيل مع المسؤول أو مع دعم Fleetbase.
-  sidebar:
-    installed: المثبتة
-    purchased: المشتراة
-    explore: استكشاف
-    explore-all: استكشاف الكل
-    publisher-portal: بوابة الناشرين
-    search-placeholder: ابحث في الإضافات...
   explore:
     title: استكشاف الإضافات
-    count: "{count, plural, zero {لا توجد إضافات} one {إضافة واحدة} two {إضافتان} few {# إضافات} many {# إضافة} other {# إضافة}}"
-    search-placeholder: ابحث في الإضافات والوسوم والناشرين
     category-title: "{categoryName}"
     loading: جارٍ تحميل الإضافات
     this-registry: سجل الإضافات
@@ -94,21 +80,10 @@ registry-bridge:
       self_hosted: استضافة ذاتية
       cloud: Fleetbase Cloud
       both: السحابة والاستضافة الذاتية
-    layout:
-      label: طريقة العرض
-      grid: شبكة
-      table: جدول
-    columns:
-      extension: الإضافة
-      category: الفئة
-      publisher: الناشر
-      status: السعر والحالة
-      updated: آخر تحديث
     empty:
       title: لم تُنشر أي إضافات في هذا السجل بعد
       body: "وحدة التحكم هذه متصلة بـ {host}. تظهر الإضافات هنا بعد أن يرسلها ناشر ويوافق عليها فريق السجل."
       check-config: التحقق من إعدادات السجل
-      publish: نشر إضافة
     no-results:
       title: "لا توجد إضافات تطابق “{query}”"
       filtered-title: لا توجد إضافات تطابق عوامل التصفية هذه
@@ -137,126 +112,7 @@ registry-bridge:
     verified: ناشر موثّق
     view-details: عرض التفاصيل
     install: تثبيت
-    no-description: لا يوجد وصف بعد.
     unavailable: غير متاحة هنا
-  detail:
-    tabs:
-      overview: نظرة عامة
-      screenshots: لقطات الشاشة
-      details: التفاصيل
-      versions: الإصدارات
-    publisher: الناشر
-    category: الفئة
-    updated: "حُدّثت {date}"
-    verified-help: تحققت Fleetbase من هوية الناشر وحساب الدفع الخاص به.
-    installs: عمليات التثبيت
-    last-release: آخر إصدار
-    support: الدعم
-    pricing-one-time: "{price} لمرة واحدة · {currency}"
-    error:
-      title: تعذّر تحميل هذه الإضافة
-    cta:
-      install: تثبيت
-      install-note: "يثبّت الإضافة دون إعادة بناء وحدة التحكم (حوالي {minutes} دقائق). تُعاد تحميل وحدة التحكم عند الانتهاء."
-      install-note-rebuild: "يثبّت الإضافة ويعيد بناء وحدة التحكم، وقد يستغرق ذلك من 15 إلى 40 دقيقة أو أكثر. تُعاد تحميل وحدة التحكم عند الانتهاء."
-      purchase: "شراء مقابل {price}"
-      purchase-note: دفعة واحدة عبر Stripe، ثم التثبيت. رسوم الوساطة مشمولة في السعر.
-      installed: "مثبتة {version}"
-      update-note: "مثبت الإصدار v{installedVersion}. يؤدي التحديث إلى إعادة بناء وحدة التحكم."
-      unauthorized: تحتاج إلى صلاحية
-      unauthorized-note: "تحتاج إلى “{permission}”. اطلب ذلك من مسؤول المؤسسة."
-      author: أنت ناشر هذه الإضافة. أدِر القائمة والإصدارات والتسعير من بوابة الناشرين.
-      open-portal: فتح في بوابة الناشرين
-      register: تسجيل هذا المثيل
-      register-note: تتم عمليات التثبيت عبر خدمة السجل. سجّل هذا المثيل مرة واحدة من الإدارة ← إعدادات السجل.
-      register-ask-admin: تتم عمليات التثبيت عبر خدمة السجل. اطلب من المسؤول تسجيل هذا المثيل من الإدارة ← إعدادات السجل.
-      unavailable: غير متاحة
-      not-available: لا يمكن تثبيت هذه الإضافة على هذا المثيل بعد.
-    screenshots:
-      previous: لقطة الشاشة السابقة
-      next: لقطة الشاشة التالية
-      show: "عرض لقطة الشاشة {number}"
-      empty: لا توجد لقطات شاشة بعد
-    hosting:
-      both: السحابة والاستضافة الذاتية
-      cloud: Fleetbase Cloud فقط
-      self-hosted: الاستضافة الذاتية فقط
-    fields:
-      version: الإصدار
-      installed-version: المثبت
-      updated: آخر تحديث
-      publisher: الناشر
-      packages: الحزم
-      website: الموقع الإلكتروني
-      repository: المستودع
-      support: الدعم
-      privacy: سياسة الخصوصية
-      terms: الشروط
-      languages: اللغات
-      copyright: حقوق النشر
-      hosting: الاستضافة
-      pricing: التسعير
-    versions:
-      columns:
-        version: الإصدار
-        channel: القناة
-        date: التاريخ
-        size: الحجم
-        notes: الملاحظات
-      install: تثبيت هذا الإصدار
-      switch: التبديل إلى هذا الإصدار
-      latest: الأحدث
-      yanked: مسحوب
-      error: تعذّر تحميل سجل الإصدارات.
-      unsupported: سجل الإصدارات متاح للإضافات من خدمة السجل. هذه القائمة تعرض إصدارها الحالي فقط.
-      empty: لا توجد إصدارات منشورة بعد
-  install:
-    confirm:
-      title: "تثبيت {name} {version}؟"
-      body: "يضيف هذا الإضافة لـ {company} ويعيد تحميل وحدة التحكم عند الانتهاء. سيراها الآخرون في المرة التالية التي يفتحون فيها Fleetbase."
-      time: يستغرق عادةً دقيقة أو دقيقتين. يُعاد تحميل علامة التبويب هذه عند الانتهاء، ولا تتأثر علامات التبويب الأخرى.
-      time-rebuild: تحتاج هذه الإضافة أيضًا إلى إعادة بناء وحدة التحكم، وقد يستغرق ذلك من 15 إلى 40 دقيقة. يُعاد تحميل علامة التبويب هذه عند الانتهاء، ولا تتأثر علامات التبويب الأخرى.
-      accept: التثبيت الآن
-    steps:
-      label: خطوات التثبيت
-    progress:
-      title: "جارٍ تثبيت {name}…"
-      button: جارٍ التثبيت…
-      keep-open: يمكنك متابعة العمل في علامات تبويب أخرى. إغلاق هذه النافذة لن يوقف التثبيت.
-    success:
-      badge: مثبتة
-      title: "تم تثبيت {name} {version}"
-      reload-in: "إعادة تحميل وحدة التحكم خلال {seconds} ث لإظهار القسم الجديد."
-      reload-cancelled: لم تُعد تحميل وحدة التحكم. أعد تحميلها لرؤية التغيير.
-      reload-now: إعادة التحميل الآن
-      stay: انتظر، ابقَ هنا
-    failed:
-      badge: فشل
-      title: "تعذّر تثبيت {name}"
-      retry: إعادة محاولة التثبيت
-      cli: "أو ثبّتها من الخادم باستخدام سطر الأوامر:"
-  update:
-    confirm:
-      title: "تحديث {name} إلى {version}؟"
-      body: "يحدّث هذا الإضافة لـ {company} من الإصدار v{installedVersion} ويعيد تحميل وحدة التحكم عند الانتهاء."
-      accept: التحديث الآن
-  uninstall:
-    confirm:
-      title: "إلغاء تثبيت {name}؟"
-      destructive: إجراء لا رجعة فيه.
-      body: "يزيل هذا الإضافة ويحذف إعداداتها وبياناتها نهائياً لـ {company}. يمكنك إعادة التثبيت لاحقاً، لكن لن يُستعاد شيء."
-      type-to-confirm: "اكتب {name} للتأكيد"
-      time: يستغرق نحو دقيقة. يُعاد تحميل علامة التبويب هذه عند الانتهاء.
-      time-rebuild: يعيد هذا أيضًا بناء وحدة التحكم، وقد يستغرق ذلك من 15 إلى 40 دقيقة. يُعاد تحميل علامة التبويب هذه عند الانتهاء.
-      accept: إلغاء التثبيت
-    progress:
-      title: "جارٍ إلغاء تثبيت {name}…"
-      button: جارٍ إلغاء التثبيت…
-    success:
-      title: "تم إلغاء تثبيت {name}"
-    failed:
-      title: "تعذّر إلغاء تثبيت {name}"
-      retry: إعادة محاولة إلغاء التثبيت
   purchase:
     title: "شراء {name}"
     your-organization: مؤسستك في السجل
@@ -285,18 +141,6 @@ registry-bridge:
       title: أُلغيت عملية الدفع
       body: غادرت صفحة الدفع في Stripe قبل الدفع. لم يتم تحصيل أي مبلغ ولم يُمنح أي ترخيص.
   installed:
-    title: الإضافات المثبتة
-    actions: الإجراءات
-    update: تحديث
-    updates-available: "{count, plural, zero {لا توجد تحديثات} one {تحديث واحد متاح} two {تحديثان متاحان} few {# تحديثات متاحة} many {# تحديثاً متاحاً} other {# تحديث متاح}}"
-    error: تعذّر تحميل الإضافات المثبتة.
-    columns:
-      extension: الإضافة
-      category: الفئة
-      installed: المثبت
-      latest: الأحدث
-      status: الحالة
-      auto-update: "التحديث التلقائي"
     auto-update:
       label: "سياسة التحديث التلقائي"
       none: "متوقف"
@@ -309,43 +153,9 @@ registry-bridge:
       up-to-date: محدّثة
       update-available: يتوفر تحديث
       core: خدمة أساسية
-    empty:
-      title: لم يُثبّت شيء بعد
-      body: تضيف الإضافات ميزات التتبع والتوجيه والمستودعات والعملاء إلى وحدة التحكم هذه. ثبّت واحدة من الاستكشاف؛ تستغرق معظم عمليات التثبيت حوالي دقيقتين، أما الإضافة التي لا تتضمن محركاً مُعدّاً مسبقاً فتعيد بناء وحدة التحكم وتستغرق وقتاً أطول بكثير.
-      filtered: لا توجد إضافات مثبتة تطابق هذا البحث
-      explore: استكشاف الإضافات
-      purchased: عرض المشتراة
   purchased:
-    title: الإضافات المشتراة
-    ready: "{count, plural, zero {لا شيء جاهز للتثبيت} one {واحدة جاهزة للتثبيت} two {اثنتان جاهزتان للتثبيت} few {# جاهزة للتثبيت} many {# جاهزة للتثبيت} other {# جاهزة للتثبيت}}"
-    blocked: "{count, plural, one {ترخيص واحد مسترد أو ملغى: التحديثات محظورة} other {# تراخيص مستردة أو ملغاة: التحديثات محظورة}}"
-    blocked-help: "تبقى الإضافة المستردة أو الملغاة مثبتة وتعمل حيث هي، لكن لا يمكن تثبيتها مجددًا أو تحديثها. يبقى إيصالها مدرجًا هنا."
-    error: تعذّر تحميل الإضافات المشتراة.
-    activations: "{used} من {max} مثيلات"
-    receipt: إيصال Stripe
-    columns:
-      extension: الإضافة
-      price: السعر
-      licence: الترخيص
-      activations: التفعيلات
-      install-status: حالة التثبيت
-      receipt: الإيصال
     status:
       installed: "مثبت الإصدار v{version}"
-    licence:
-      active: نشط
-      refunded: مسترد
-      revoked: ملغى
-      inactive: غير نشط
-      reason:
-        refunded: تم استرداد المبلغ. يتوقف التثبيت والتحديثات؛ وتحتفظ المثيلات التي تشغّلها بمقعدها.
-        disputed: الدفعة محل نزاع لدى مُصدر البطاقة. يتوقف التثبيت والتحديثات حتى يعيد السجل تفعيل الترخيص.
-        staff: ألغاه السجل. يتوقف التثبيت والتحديثات؛ وتحتفظ المثيلات التي تشغّلها بمقعدها.
-        other: لم يعد هذا الترخيص يسمح بالتثبيت أو التحديثات.
-    empty:
-      title: لا توجد إضافات مشتراة
-      body: "تظهر هنا الإضافات المدفوعة المشتراة لـ {organization} مع إيصالاتها وحالة تثبيتها. تنتقل الإضافات المجانية مباشرة إلى المثبتة."
-      browse: تصفّح الإضافات المدفوعة
   admin:
     config:
       service:
