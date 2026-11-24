@@ -87,6 +87,28 @@ test('stored settings override the config file and missing ones fall back to it'
     ]);
 });
 
+test('settings apply on an app with no key when no instance token is stored', function () {
+    // Like Laravel's EncryptionServiceProvider without APP_KEY: resolving the encrypter throws
+    $this->container->bind('encrypter', fn () => throw new RuntimeException('No application encryption key has been specified.'));
+    StoredRegistrySettings::$stored = [InstanceRegistration::SETTING_SERVICE_URL => 'https://registry.example.test'];
+
+    $config = RegistryConfig::current();
+
+    expect($config->serviceUrl())->toBe('https://registry.example.test')
+        ->and($config->instanceToken())->toBeNull();
+});
+
+test('a stored instance token reads as absent when the app has no key', function () {
+    StoredRegistrySettings::$stored = storedRegistration('flbi_keyless', 'inst_keyless');
+    $this->container->bind('encrypter', fn () => throw new RuntimeException('No application encryption key has been specified.'));
+
+    $config = RegistryConfig::current();
+
+    expect($config->instanceToken())->toBeNull()
+        ->and($config->serviceUrl())->toBe('https://registry.example.test')
+        ->and($config->instance()['id'])->toBe('inst_keyless');
+});
+
 test('the settings are read once per request and keep the rest of the registry config', function () {
     StoredRegistrySettings::$stored = storedRegistration('flbi_first', 'inst_first');
 

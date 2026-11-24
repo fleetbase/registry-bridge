@@ -147,11 +147,12 @@ class InstanceRegistration
     }
 
     /**
-     * Decrypt a stored token; null when it is missing or cannot be decrypted (for example after an app key change).
+     * Decrypt a stored token; null when it is missing or cannot be decrypted (for example after an app key change, or with no
+     * encrypter because the app has no key).
      */
-    public static function decryptToken(mixed $stored, StringEncrypter $encrypter): ?string
+    public static function decryptToken(mixed $stored, ?StringEncrypter $encrypter): ?string
     {
-        if (!is_string($stored) || $stored === '') {
+        if ($encrypter === null || !is_string($stored) || $stored === '') {
             return null;
         }
 
