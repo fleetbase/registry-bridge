@@ -16,7 +16,6 @@ export const TABS = ['overview', 'whats-new', 'support'];
  */
 export default class ExtensionController extends Controller {
     @service extensionPanel;
-    @service extensionInstaller;
     @service installJobs;
     @service store;
     @service universe;
@@ -26,6 +25,7 @@ export default class ExtensionController extends Controller {
     @tracked more = [];
     @tracked error = null;
     @tracked tab = 'overview';
+    @tracked confirmingRemove = false;
 
     get isLoading() {
         return this.load.isRunning;
@@ -152,15 +152,52 @@ export default class ExtensionController extends Controller {
     @action retry() {
         const failure = this.failure;
         this.installJobs.dismiss(this.extension);
-        return this.installJobs.start(failure?.action === 'update' ? 'update' : 'install', this.extension);
+        return this.installJobs.start(['update', 'uninstall'].includes(failure?.action) ? failure.action : 'install', this.extension);
     }
 
     @action dismissFailure() {
         this.installJobs.dismiss(this.extension);
     }
 
+    /** A running uninstall: the header shows "Removing…" instead of the buttons. */
+    get removal() {
+        return this.installJobs.removalFor(this.extension);
+    }
+
+    get removeFailure() {
+        return this.failure?.action === 'uninstall' ? this.failure : null;
+    }
+
+    /** What stops and what stays, as in the library's popover. */
+    get removeEffect() {
+        const name = this.extension?.name;
+        const app = this.location?.path?.[0] ?? null;
+        const key = this.extension?.payment_required === true ? 'paid' : app ? 'in-app' : 'default';
+        return this.intl.t(`registry-bridge.store.library.remove.effect.${key}`, { name, app: app ?? '' });
+    }
+
+    @action toggleRemove() {
+        this.confirmingRemove = !this.confirmingRemove;
+    }
+
+    @action cancelRemove() {
+        this.confirmingRemove = false;
+    }
+
+    @action onRemoveKeydown(event) {
+        if (event.key === 'Escape') {
+            this.confirmingRemove = false;
+        }
+    }
+
+    @action focusFirst(element) {
+        element.querySelector('button')?.focus();
+    }
+
     @action remove() {
-        return this.extensionInstaller.uninstall(this.extension, { onCompleted: () => this.load.perform(this.extension?.public_id ?? this.extension?.id) });
+        this.confirmingRemove = false;
+        this.installJobs.dismiss(this.extension);
+        return this.installJobs.start('uninstall', this.extension);
     }
 
     @action reload() {

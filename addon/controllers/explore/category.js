@@ -2,11 +2,11 @@ import ExploreIndexController from './index';
 import { tracked } from '@glimmer/tracking';
 
 /**
- * One category of Explore (canvas C3): the same catalog, facets and layout,
+ * One category (design B + D): the rail with every category and the filters,
  * scoped to the category in the URL.
  */
 export default class ExploreCategoryController extends ExploreIndexController {
-    queryParams = ['query', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page', 'layout'];
+    queryParams = ['query', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page'];
     @tracked slug = null;
     @tracked categoryRecord = null;
 

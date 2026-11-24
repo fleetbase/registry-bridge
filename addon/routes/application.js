@@ -31,6 +31,7 @@ export default class ApplicationRoute extends Route {
         super.activate(...arguments);
         this.sidebar.disable?.();
         this.hostRouter.on('routeDidChange', this, this.keepSidebarOff);
+        this.keepSidebarOff();
     }
 
     deactivate() {
@@ -41,7 +42,12 @@ export default class ApplicationRoute extends Route {
 
     keepSidebarOff() {
         if ((this.hostRouter.currentRouteName ?? '').startsWith('console.extensions')) {
-            next(() => this.sidebar.disable?.());
+            next(() => {
+                this.sidebar.disable?.();
+                // Hidden before its first layout (a fresh load), the sidebar keeps its space: its negative margin is
+                // sized from a width measured as 0. Hiding again once rendered measures it.
+                this.sidebar.context?.hide?.(true);
+            });
         }
     }
 
@@ -49,9 +55,8 @@ export default class ApplicationRoute extends Route {
         return this.fetch.get('categories', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'category' }).catch(() => []);
     }
 
-    setupController(controller, model) {
+    setupController() {
         super.setupController(...arguments);
-        controller.rememberCategoryCounts(model);
         this.registryContext.load();
         this.registryContext.loadCounts();
         this.registryContext.watchCounts(this.hostRouter);

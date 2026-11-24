@@ -2,7 +2,7 @@ import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import { task, timeout, all } from 'ember-concurrency';
+import { task, all } from 'ember-concurrency';
 import { isVerified } from '../../utils/store-model';
 
 export const FACET_PARAMS = ['pricing', 'hosting', 'hide_installed', 'compatible'];
@@ -12,9 +12,10 @@ export const PAGE_SIZE = 24;
 export const SHELF_SIZE = 8;
 
 /**
- * Explore (canvas C1): the service catalog on `Layout::Resource::CardsGrid`
- * or a table, with facets (category, pricing, hosting, hide installed), sort,
- * search and paging in query params. The category page extends this.
+ * Discover (design A): the featured banner, category tiles and shelves when
+ * nothing is searched or filtered; otherwise the results with sort, "Works
+ * with my Fleetbase" and removable filter chips. Search, filters, sort and
+ * page live in query params. The category page extends this.
  */
 export default class ExploreIndexController extends Controller {
     @service store;
@@ -22,10 +23,9 @@ export default class ExploreIndexController extends Controller {
     @service hostRouter;
     @service currentUser;
     @service registryContext;
-    @service filters;
     @service storeView;
 
-    queryParams = ['query', 'category', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page', 'layout'];
+    queryParams = ['query', 'category', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page'];
     @tracked compatible = null;
     @tracked featured = [];
     @tracked showAllCategories = false;
@@ -37,7 +37,6 @@ export default class ExploreIndexController extends Controller {
     @tracked hide_installed = null;
     @tracked sort = null;
     @tracked page = 1;
-    @tracked layout = 'grid';
 
     @tracked extensions = [];
     @tracked categories = [];
@@ -50,10 +49,6 @@ export default class ExploreIndexController extends Controller {
 
     get title() {
         return this.intl.t('registry-bridge.explore.title');
-    }
-
-    get isTable() {
-        return this.layout === 'table';
     }
 
     get isLoading() {
@@ -123,20 +118,6 @@ export default class ExploreIndexController extends Controller {
         return (this.categories ?? []).map((category) => ({ value: category.id, label: category.name }));
     }
 
-    /** Facet definitions for `FiltersPicker`. */
-    get facetColumns() {
-        const t = (key) => this.intl.t(`registry-bridge.explore.filters.${key}`);
-        const columns = [];
-        if (this.queryParams.includes('category')) {
-            columns.push({ label: t('category'), filterable: true, filterParam: 'category', filterComponent: 'filter/select', filterOptions: this.categoryOptions });
-        }
-        columns.push({ label: t('pricing'), filterable: true, filterParam: 'pricing', filterComponent: 'filter/select', filterOptions: this.pricingOptions });
-        columns.push({ label: t('hosting'), filterable: true, filterParam: 'hosting', filterComponent: 'filter/select', filterOptions: this.hostingOptions });
-        columns.push({ label: t('hide-installed'), filterable: true, filterParam: 'hide_installed', filterComponent: 'filter/checkbox' });
-
-        return columns;
-    }
-
     /** Active facets as removable chips. */
     get activeFacets() {
         const t = (key) => this.intl.t(`registry-bridge.explore.filters.${key}`);
@@ -159,18 +140,6 @@ export default class ExploreIndexController extends Controller {
         }
 
         return facets;
-    }
-
-    get tableColumns() {
-        const t = (key) => this.intl.t(`registry-bridge.explore.columns.${key}`);
-        return [
-            { label: t('extension'), valuePath: 'name', cellComponent: 'cell/extension-identity', width: '30%' },
-            { label: t('category'), valuePath: 'category_name', width: '15%' },
-            { label: t('publisher'), valuePath: 'publisher_name', width: '15%' },
-            { label: t('status'), valuePath: 'status', cellComponent: 'cell/extension-status', width: '20%' },
-            { label: t('updated'), valuePath: 'updatedAgo', width: '10%' },
-            { label: '', valuePath: 'id', cellComponent: 'cell/extension-action', width: '10%' },
-        ];
     }
 
     /**
@@ -237,13 +206,6 @@ export default class ExploreIndexController extends Controller {
         this.shelves = discoverShelves({ popular: popularList, updated, free }, this.intl);
     }
 
-    @task({ restartable: true }) *search(event) {
-        yield timeout(300);
-        const query = event?.target?.value ?? '';
-        this.query = query.trim() === '' ? null : query;
-        this.page = 1;
-    }
-
     @action setView(view) {
         this.storeView.set(view);
     }
@@ -258,10 +220,6 @@ export default class ExploreIndexController extends Controller {
         this.page = 1;
     }
 
-    @action setLayout(layout) {
-        this.layout = layout === 'table' ? 'table' : 'grid';
-    }
-
     @action setSort(sort) {
         this.sort = SORTS.includes(sort) && sort !== 'popular' ? sort : null;
         this.page = 1;
@@ -269,15 +227,6 @@ export default class ExploreIndexController extends Controller {
 
     @action setPage(page) {
         this.page = page;
-    }
-
-    @action applyFacets() {
-        this.filters.apply(this);
-    }
-
-    @action resetFacets() {
-        this.filters.reset(this);
-        this.page = 1;
     }
 
     @action clearFacet(param) {
@@ -300,12 +249,6 @@ export default class ExploreIndexController extends Controller {
 
     @action openRegistryConfig() {
         return this.hostRouter.transitionTo('console.admin.virtual', 'extension-registry', { queryParams: { view: 'registry-config' } });
-    }
-
-    @action openPublisherPortal() {
-        if (this.registryContext.publisherUrl) {
-            window.open(this.registryContext.publisherUrl, '_blank', 'noopener');
-        }
     }
 }
 

@@ -3,96 +3,60 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import isModel from '@fleetbase/ember-core/utils/is-model';
 
+/** The old detail panel's URL parameter; links that still carry it open the extension page instead. */
 export const PANEL_PARAM = 'extension_id';
 
-function setUrlParam(name, value) {
-    const url = new URL(window.location.href);
-    if (value) {
-        url.searchParams.set(name, value);
-    } else {
-        url.searchParams.delete(name);
-    }
-    if (url.href !== window.location.href) {
-        window.history.replaceState({ path: url.href }, '', url.href);
-    }
-}
+const PAGE_ROUTE = 'console.extensions.extension';
 
 /**
- * The extension detail panel (canvas C4): one `Layout::Resource::Panel`
- * rendered by the application template over Explore, Installed and
- * Purchased. The open extension is kept in `?extension_id=` so the panel can
- * be linked to and reopens after a checkout redirect.
+ * Loads one extension and opens its page (the `extension` route). It replaced
+ * the slide-over detail panel; the name stays so the purchase flow and old
+ * links keep working.
  */
 export default class ExtensionPanelService extends Service {
     @service fetch;
-    @service notifications;
+    @service hostRouter;
+    /** The extension last opened or loaded, for reload() after a purchase. */
     @tracked extension = null;
-    @tracked tab = 'overview';
-    @tracked isLoading = false;
-    @tracked error = null;
 
-    get isOpen() {
-        return this.extension !== null || this.isLoading || this.error !== null;
-    }
-
-    @action open(extension, { tab = 'overview' } = {}) {
-        this.extension = extension;
-        this.tab = tab;
-        this.error = null;
-        setUrlParam(PANEL_PARAM, extension?.public_id ?? extension?.id);
-    }
-
-    @action close() {
-        this.extension = null;
-        this.error = null;
-        this.isLoading = false;
-        setUrlParam(PANEL_PARAM, null);
-    }
-
-    @action selectTab(tab) {
-        this.tab = tab;
-    }
-
-    /**
-     * Open the panel for an id from the URL, loading the record first.
-     */
-    @action async openById(id, options = {}) {
+    /** Open an extension's page. */
+    @action open(extension) {
+        const id = extension?.public_id ?? extension?.id ?? extension?.slug;
         if (!id) {
             return null;
         }
-        if (this.extension && (this.extension.public_id === id || this.extension.id === id)) {
-            return this.extension;
-        }
+        this.extension = extension;
+        return this.hostRouter.transitionTo(PAGE_ROUTE, id);
+    }
 
-        this.isLoading = true;
-        this.error = null;
+    /** Load an extension by public id or slug, then open its page. */
+    @action async openById(id) {
+        if (!id) {
+            return null;
+        }
         try {
             const extension = await this.load(id);
-            this.open(extension, options);
+            if (extension) {
+                this.open(extension);
+            }
             return extension;
-        } catch (error) {
-            this.error = error;
+        } catch {
             return null;
-        } finally {
-            this.isLoading = false;
         }
     }
 
-    /**
-     * Reload the open extension (after a purchase or install) and keep the panel on it.
-     */
+    /** Reload the last extension (after a purchase completes), keeping the old record if that fails. */
     @action async reload() {
         const id = this.extension?.public_id ?? this.extension?.id;
         if (!id) {
             return null;
         }
         try {
-            const extension = await this.load(id);
-            this.extension = extension;
-            return extension;
+            this.extension = await this.load(id);
         } catch {
-            return this.extension;
+            // keep the record we have
         }
+        return this.extension;
     }
 
     async load(id) {

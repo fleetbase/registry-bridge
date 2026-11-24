@@ -13,19 +13,14 @@ module('Unit | Controller | installed', function (hooks) {
         assert.false(matchesQuery(extension, 'warehouse'));
     });
 
-    test('loads rows, filters them and counts updates', async function (assert) {
+    test('loads the installed extensions and finds the updates for the banner', async function (assert) {
         const controller = this.owner.lookup('controller:installed');
-        controller.model = { load: async () => [{ name: 'A', update_available: true }, { name: 'B' }] };
+        controller.model = { load: async () => [{ name: 'A' }, { name: 'B', update_available: true }] };
 
         await controller.load.perform();
-        assert.strictEqual(controller.rows.length, 2);
+        assert.strictEqual(controller.extensions.length, 2);
         assert.strictEqual(controller.updatesAvailable, 1);
-
-        controller.query = 'b';
-        assert.deepEqual(
-            controller.rows.map((row) => row.name),
-            ['B']
-        );
+        assert.strictEqual(controller.firstUpdate.name, 'B');
     });
 
     test('a failed load keeps the error for the page', async function (assert) {

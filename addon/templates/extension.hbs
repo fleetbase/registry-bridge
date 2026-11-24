@@ -39,11 +39,44 @@
                             {{#if this.extension.category_name}}<span>· {{this.extension.category_name}}</span>{{/if}}
                             {{#each this.addsTo as |app|}}<span>· {{t "registry-bridge.store.page.adds-to" app=app}}</span>{{/each}}
                         </p>
-                        <div class="rb-extension-actions">
-                            <Registry::InstallButton @extension={{this.extension}} @size="lg" />
-                            <Registry::Verdict @extension={{this.extension}} @onlyPositive={{true}} />
-                            {{#if this.canRemove}}
-                                <button type="button" class="rb-link rb-link-danger" {{on "click" this.remove}} data-test-extension-remove>{{t "registry-bridge.store.page.remove"}}</button>
+                        <div class="rb-extension-actions" {{on "keydown" this.onRemoveKeydown}}>
+                            {{#if this.removal}}
+                                <span class="rb-removing-pill" role="status" data-test-extension-removing>
+                                    <span class="rb-job-pill-spinner" aria-hidden="true"></span>
+                                    {{t "registry-bridge.store.library.removing"}}
+                                </span>
+                            {{else}}
+                                <Registry::InstallButton @extension={{this.extension}} @size="lg" />
+                                <Registry::Verdict @extension={{this.extension}} @onlyPositive={{true}} />
+                                {{#if this.canRemove}}
+                                    <button
+                                        type="button"
+                                        class="rb-link rb-link-danger"
+                                        aria-expanded={{if this.confirmingRemove "true" "false"}}
+                                        aria-controls="rb-page-remove"
+                                        {{on "click" this.toggleRemove}}
+                                        data-test-extension-remove
+                                    >{{t "registry-bridge.store.page.remove"}}</button>
+                                {{/if}}
+                            {{/if}}
+                            {{#if this.confirmingRemove}}
+                                <div
+                                    id="rb-page-remove"
+                                    class="rb-popover rb-popover-left"
+                                    role="dialog"
+                                    aria-label={{t "registry-bridge.store.library.remove.title" name=this.extension.name}}
+                                    {{did-insert this.focusFirst}}
+                                    data-test-extension-remove-popover
+                                >
+                                    <strong class="rb-popover-title">{{t "registry-bridge.store.library.remove.title" name=this.extension.name}}</strong>
+                                    <p class="rb-popover-body">{{this.removeEffect}}</p>
+                                    <div class="rb-popover-actions">
+                                        <button type="button" class="rb-btn rb-btn-ghost" {{on "click" this.cancelRemove}}>{{t "registry-bridge.store.library.remove.keep"}}</button>
+                                        <button type="button" class="rb-btn rb-btn-danger" {{on "click" this.remove}} data-test-extension-remove-confirm>{{t
+                                                "registry-bridge.store.library.remove.confirm"
+                                            }}</button>
+                                    </div>
+                                </div>
                             {{/if}}
                         </div>
                         {{#if this.locationPath}}

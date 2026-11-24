@@ -70,7 +70,7 @@ export default class ExtensionPurchaseService extends Service {
     @service intl;
     @service urlSearchParams;
     @service extensionPanel;
-    @service extensionInstaller;
+    @service installJobs;
     @service registryContext;
     @tracked lastError = null;
     @tracked isStarting = false;
@@ -233,7 +233,7 @@ export default class ExtensionPurchaseService extends Service {
         await modal.done();
 
         if (phase === 'success' && extension) {
-            return this.extensionInstaller.install(extension, { onCompleted: () => this.extensionPanel.reload() });
+            return this.installJobs.start('install', extension);
         }
         if ((phase === 'failed' || phase === 'cancelled') && extension) {
             return this.purchase(extension);

@@ -1525,10 +1525,33 @@ body[data-theme='dark'] .rb-featured {
         padding: 10px 16px;
     }
 
+    /* One scrolling row of tabs, then search with the view toggle beside it */
+    .rb-store-tabs {
+        flex: 0 0 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .rb-store-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
     .rb-store-search {
-        flex: 1 1 100%;
+        flex: 1 1 auto;
+        min-width: 0;
         margin-left: 0;
         order: 3;
+    }
+
+    .rb-store-nav .rb-view-toggle {
+        order: 4;
+    }
+
+    .rb-job-pill {
+        order: 5;
+        flex: 1 1 100%;
+        justify-content: center;
     }
 
     .rb-page {
@@ -1541,6 +1564,34 @@ body[data-theme='dark'] .rb-featured {
 
     .rb-featured-media {
         display: none;
+    }
+
+    .rb-category-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rb-category-tile {
+        height: 52px;
+        padding: 8px 10px;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .rb-category-icon {
+        width: 26px;
+        height: 26px;
+    }
+
+    .rb-extension-name {
+        font-size: 22px;
+    }
+
+    .rb-extension-side {
+        max-width: none;
+    }
+
+    .rb-lib-actions {
+        min-width: 0;
     }
 }
 
@@ -1611,6 +1662,7 @@ body[data-theme='dark'] .rb-featured {
 }
 
 .rb-extension-actions {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -2268,4 +2320,24 @@ body[data-theme='dark'] .rb-banner {
     .rb-lib-receipt {
         display: none;
     }
+}
+
+/* The extension page's remove confirmation opens under the actions, from the left */
+.rb-popover.rb-popover-left {
+    right: auto;
+    left: 0;
+    top: calc(100% + 8px);
+}
+
+.rb-removing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 19px;
+    background: var(--rb-bad-bg);
+    color: var(--rb-bad);
+    font-weight: 600;
+    white-space: nowrap;
 }
