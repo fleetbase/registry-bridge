@@ -1,0 +1,16 @@
+<div class="rb-active-filters" aria-label={{t "registry-bridge.explore.filters.active"}} data-test-active-filters ...attributes>
+    {{#each @catalog.activeFacets as |facet|}}
+        <span class="rb-filter-chip" data-test-active-filter={{facet.param}}>
+            <span>{{facet.label}}{{#if facet.value}}: <strong>{{facet.value}}</strong>{{/if}}</span>
+            <button
+                type="button"
+                class="rb-filter-chip-clear"
+                aria-label={{t "registry-bridge.explore.filters.remove" filter=facet.label}}
+                {{on "click" (fn @catalog.clearFacet facet.param)}}
+            >
+                <FaIcon @icon="xmark" @size="xs" />
+            </button>
+        </span>
+    {{/each}}
+    <button type="button" class="rb-link" {{on "click" @catalog.clearAll}}>{{t "registry-bridge.explore.no-results.clear"}}</button>
+</div>

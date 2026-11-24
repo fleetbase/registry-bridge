@@ -2,11 +2,14 @@ import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import { task, timeout } from 'ember-concurrency';
+import { task, timeout, all } from 'ember-concurrency';
+import { isVerified } from '../../utils/store-model';
 
-export const FACET_PARAMS = ['pricing', 'hosting', 'hide_installed'];
+export const FACET_PARAMS = ['pricing', 'hosting', 'hide_installed', 'compatible'];
 export const SORTS = ['popular', 'newest', 'updated', 'name'];
 export const PAGE_SIZE = 24;
+/** How many extensions each Discover shelf shows. */
+export const SHELF_SIZE = 8;
 
 /**
  * Explore (canvas C1): the service catalog on `Layout::Resource::CardsGrid`
@@ -20,8 +23,12 @@ export default class ExploreIndexController extends Controller {
     @service currentUser;
     @service registryContext;
     @service filters;
+    @service storeView;
 
-    queryParams = ['query', 'category', 'pricing', 'hosting', 'hide_installed', 'sort', 'page', 'layout'];
+    queryParams = ['query', 'category', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page', 'layout'];
+    @tracked compatible = null;
+    @tracked featured = [];
+    @tracked shelves = [];
     @tracked query = null;
     @tracked category = null;
     @tracked pricing = null;
@@ -85,6 +92,7 @@ export default class ExploreIndexController extends Controller {
             pricing: this.pricing,
             hosting: this.hosting,
             hide_installed: this.hide_installed ? 1 : null,
+            compatible: this.compatible ? 1 : null,
             sort: this.sort,
             page: this.page,
             limit: PAGE_SIZE,
@@ -145,6 +153,9 @@ export default class ExploreIndexController extends Controller {
         if (this.hide_installed) {
             facets.push({ param: 'hide_installed', label: t('hide-installed'), value: null });
         }
+        if (this.compatible) {
+            facets.push({ param: 'compatible', label: this.intl.t('registry-bridge.store.filters.compatible'), value: null });
+        }
 
         return facets;
     }
@@ -161,20 +172,70 @@ export default class ExploreIndexController extends Controller {
         ];
     }
 
+    /** Cards or list, remembered per browser (store-view). */
+    get view() {
+        return this.storeView.view;
+    }
+
+    /**
+     * Discover (the storefront: featured, categories, shelves) when nothing is
+     * searched, filtered, sorted or paged; otherwise the results of that query.
+     */
+    get isDiscover() {
+        return !this.hasFilters && !this.sort && Number(this.page || 1) === 1;
+    }
+
     @task({ restartable: true }) *load() {
         this.error = null;
         try {
-            this.extensions = yield this.store.query('registry-extension', this.requestParams);
+            if (this.isDiscover) {
+                yield this.loadDiscover.perform();
+            } else {
+                this.extensions = yield this.store.query('registry-extension', this.requestParams);
+            }
         } catch (error) {
             this.error = error;
             this.extensions = [];
         }
     }
 
+    /**
+     * The Discover shelves, in parallel: popular, recently updated, free, and
+     * featured. "For <app>" leads when listings say which app they add to.
+     */
+    @task({ restartable: true }) *loadDiscover() {
+        const query = (params) => this.store.query('registry-extension', { explore: 1, limit: SHELF_SIZE, ...params }).then((records) => records.slice());
+        const [popular, updated, free, featured] = yield all([
+            this.store.query('registry-extension', { explore: 1, limit: PAGE_SIZE }),
+            query({ sort: 'updated' }),
+            query({ pricing: 'free' }),
+            query({ featured: 1, sort: 'featured', limit: 3 }).catch(() => []),
+        ]);
+
+        const popularList = popular.slice();
+        this.extensions = popular;
+        this.featured = discoverFeatured(featured, popularList);
+        this.shelves = discoverShelves({ popular: popularList, updated, free }, this.intl);
+    }
+
     @task({ restartable: true }) *search(event) {
         yield timeout(300);
         const query = event?.target?.value ?? '';
         this.query = query.trim() === '' ? null : query;
+        this.page = 1;
+    }
+
+    @action setView(view) {
+        this.storeView.set(view);
+    }
+
+    @action toggleCompatible() {
+        this.compatible = this.compatible ? null : 1;
+        this.page = 1;
+    }
+
+    @action setPricing(pricing) {
+        this.pricing = ['free', 'paid'].includes(pricing) ? pricing : null;
         this.page = 1;
     }
 
@@ -227,4 +288,46 @@ export default class ExploreIndexController extends Controller {
             window.open(this.registryContext.publisherUrl, '_blank', 'noopener');
         }
     }
+}
+
+/**
+ * The featured banner: what staff featured, else the most-installed listing
+ * from a verified publisher, else the most-installed one. At most three.
+ */
+export function discoverFeatured(featured = [], popular = []) {
+    const picked = (featured ?? []).filter((extension) => extension?.is_featured === true);
+    if (picked.length) {
+        return picked.slice(0, 3);
+    }
+    const fallback = popular.find((extension) => isVerified(extension)) ?? popular[0];
+    return fallback ? [fallback] : [];
+}
+
+/**
+ * The Discover shelves. The first is "For <app>" when at least three popular
+ * listings add to the same app (`adds_to`), else "Popular"; then "New and
+ * updated" and "Free essentials". Empty shelves are left out. Each carries the
+ * query for its See all link.
+ */
+export function discoverShelves({ popular = [], updated = [], free = [] } = {}, intl) {
+    const t = (key, options) => intl.t(`registry-bridge.store.discover.shelves.${key}`, options);
+    const byApp = new Map();
+    for (const extension of popular) {
+        for (const target of Array.isArray(extension?.adds_to) ? extension.adds_to : []) {
+            if (target?.name) {
+                byApp.set(target.name, [...(byApp.get(target.name) ?? []), extension]);
+            }
+        }
+    }
+    const [app, forApp] = [...byApp.entries()].sort((a, b) => b[1].length - a[1].length)[0] ?? [];
+
+    const shelves = [
+        forApp && forApp.length >= 3
+            ? { id: 'for-app', title: t('for-app', { app }), subtitle: t('for-app-subtitle'), items: forApp.slice(0, SHELF_SIZE), seeAll: null }
+            : { id: 'popular', title: t('popular'), subtitle: null, items: popular.slice(0, SHELF_SIZE), seeAll: { sort: 'popular' } },
+        { id: 'updated', title: t('updated'), subtitle: null, items: updated.slice(0, SHELF_SIZE), seeAll: { sort: 'updated' } },
+        { id: 'free', title: t('free'), subtitle: null, items: free.slice(0, SHELF_SIZE), seeAll: { pricing: 'free' } },
+    ];
+
+    return shelves.filter((shelf) => shelf.items.length > 0);
 }

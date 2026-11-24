@@ -441,3 +441,41 @@ registry-bridge:
         ready: يعمل لديك
         needs_update: يحتاج إلى تحديث
         unavailable: غير متاح
+    nav:
+      label: الإضافات
+      discover: اكتشف
+      installed: المثبّتة
+      purchased: المشتراة
+      updates: التحديثات
+      search: ابحث في الإضافات
+    discover:
+      featured: مميّز
+      learn-more: اعرف المزيد
+      categories: الفئات
+      see-all: عرض الكل
+      shelves:
+        popular: الأكثر شيوعاً
+        updated: جديد ومحدَّث
+        free: أساسيات مجانية
+        for-app: لـ {app}
+        for-app-subtitle: يعمل مع تطبيق تستخدمه
+    results:
+      for: نتائج “{query}”
+      all: كل الإضافات
+      count: "{count, plural, =0 {لا توجد إضافات} one {إضافة واحدة} other {# إضافات}}"
+      none-in-category: لا يوجد ما يطابق في هذه الفئة
+    filters:
+      compatible: يعمل مع Fleetbase لديك
+      compatible-long: ما يعمل مع Fleetbase لديك فقط
+      sort: الترتيب
+    rail:
+      all: كل الإضافات
+      show: عرض
+      price: السعر
+      any: الكل
+    breadcrumb: مسار التنقل
+    updates:
+      title: التحديثات
+      none: كل شيء محدَّث.
+    error: حدث خطأ أثناء تحميل الإضافات.
+    retry: حاول مرة أخرى

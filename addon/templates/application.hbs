@@ -1,8 +1,5 @@
-<EmberWormhole @to="sidebar-menu-items">
-    <Layout::Sidebar::Navigator @items={{this.navigationItems}} @searchPlaceholder={{t "registry-bridge.sidebar.search-placeholder"}}/>
-</EmberWormhole>
-
-<Layout::Section::Container>
+<Layout::Section::Container class="rb-store">
+    <Registry::StoreNav />
     <RegistryMaintenanceBanner />
     {{outlet}}
 </Layout::Section::Container>

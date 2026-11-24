@@ -6,7 +6,7 @@ import { tracked } from '@glimmer/tracking';
  * scoped to the category in the URL.
  */
 export default class ExploreCategoryController extends ExploreIndexController {
-    queryParams = ['query', 'pricing', 'hosting', 'hide_installed', 'sort', 'page', 'layout'];
+    queryParams = ['query', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page', 'layout'];
     @tracked slug = null;
     @tracked categoryRecord = null;
 
@@ -20,6 +20,21 @@ export default class ExploreCategoryController extends ExploreIndexController {
     }
 
     get hasFilters() {
-        return Boolean(this.query) || ['pricing', 'hosting', 'hide_installed'].some((param) => Boolean(this[param]));
+        return Boolean(this.query) || ['pricing', 'hosting', 'hide_installed', 'compatible'].some((param) => Boolean(this[param]));
+    }
+
+    /** A category page always lists its extensions. */
+    get isDiscover() {
+        return false;
+    }
+
+    /** The rail: every category, the current one marked. */
+    get railCategories() {
+        return (this.categories ?? []).map((category) => ({
+            name: category.name,
+            slug: category.slug,
+            icon: category.icon || 'shapes',
+            current: category.slug === this.slug || category.id === this.slug,
+        }));
     }
 }

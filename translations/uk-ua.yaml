@@ -441,3 +441,41 @@ registry-bridge:
         ready: Працює у вас
         needs_update: Потрібне оновлення
         unavailable: Недоступно
+    nav:
+      label: Розширення
+      discover: Огляд
+      installed: Встановлені
+      purchased: Придбані
+      updates: Оновлення
+      search: Пошук розширень
+    discover:
+      featured: Рекомендоване
+      learn-more: Докладніше
+      categories: Категорії
+      see-all: Усі
+      shelves:
+        popular: Популярні
+        updated: Нові та оновлені
+        free: Безкоштовні основи
+        for-app: Для {app}
+        for-app-subtitle: Працює з застосунком, яким ви користуєтесь
+    results:
+      for: Результати для «{query}»
+      all: Усі розширення
+      count: "{count, plural, =0 {Немає розширень} one {# розширення} few {# розширення} many {# розширень} other {# розширень}}"
+      none-in-category: У цій категорії нічого не знайдено
+    filters:
+      compatible: Працює з моїм Fleetbase
+      compatible-long: Лише те, що працює з моїм Fleetbase
+      sort: Сортування
+    rail:
+      all: Усі розширення
+      show: Показати
+      price: Ціна
+      any: Будь-яка
+    breadcrumb: Навігація
+    updates:
+      title: Оновлення
+      none: Усе оновлено.
+    error: Не вдалося завантажити розширення.
+    retry: Спробувати ще раз

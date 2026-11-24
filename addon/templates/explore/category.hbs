@@ -1,1 +1,86 @@
-<ExploreCatalog @catalog={{this}} />
+<div class="rb-page rb-category-page" data-test-category-page={{this.slug}}>
+    <aside class="rb-rail" aria-label={{t "registry-bridge.store.discover.categories"}}>
+        <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}}>
+            <span class="rb-rail-label">{{t "registry-bridge.store.discover.categories"}}</span>
+            <LinkTo @route="explore.index" @query={{hash sort="popular"}} class="rb-rail-link">
+                <FaIcon @icon="grip" @fixedWidth={{true}} />
+                {{t "registry-bridge.store.rail.all"}}
+            </LinkTo>
+            {{#each this.railCategories as |category|}}
+                <LinkTo @route="explore.category" @model={{category.slug}} class="rb-rail-link {{if category.current 'is-current'}}" data-test-rail-category={{category.slug}}>
+                    <FaIcon @icon={{category.icon}} @fixedWidth={{true}} />
+                    {{category.name}}
+                </LinkTo>
+            {{/each}}
+        </nav>
+        <div class="rb-rail-section">
+            <span class="rb-rail-label">{{t "registry-bridge.store.rail.show"}}</span>
+            <label class="rb-switch">
+                <input type="checkbox" checked={{if this.compatible true false}} {{on "change" this.toggleCompatible}} data-test-filter-compatible />
+                <span class="rb-switch-track" aria-hidden="true"></span>
+                {{t "registry-bridge.store.filters.compatible-long"}}
+            </label>
+        </div>
+        <fieldset class="rb-rail-section">
+            <legend class="rb-rail-label">{{t "registry-bridge.store.rail.price"}}</legend>
+            <label class="rb-radio"><input type="radio" name="rb-price" checked={{not this.pricing}} {{on "change" (fn this.setPricing null)}} />{{t
+                    "registry-bridge.store.rail.any"
+                }}</label>
+            <label class="rb-radio"><input type="radio" name="rb-price" checked={{eq this.pricing "free"}} {{on "change" (fn this.setPricing "free")}} />{{t
+                    "registry-bridge.explore.pricing.free"
+                }}</label>
+            <label class="rb-radio"><input type="radio" name="rb-price" checked={{eq this.pricing "paid"}} {{on "change" (fn this.setPricing "paid")}} />{{t
+                    "registry-bridge.explore.pricing.paid"
+                }}</label>
+        </fieldset>
+    </aside>
+
+    <div class="rb-category-main">
+        <nav class="rb-breadcrumb" aria-label={{t "registry-bridge.store.breadcrumb"}}>
+            <LinkTo @route="explore.index" class="rb-link">{{t "registry-bridge.store.nav.discover"}}</LinkTo>
+            <span aria-hidden="true">›</span>
+            <span aria-current="page">{{or this.categoryRecord.name this.slug}}</span>
+        </nav>
+        <header class="rb-category-head">
+            <span class="rb-category-icon is-lg" aria-hidden="true"><FaIcon @icon={{or this.categoryRecord.icon "shapes"}} /></span>
+            <div>
+                <h1 class="rb-page-title">{{or this.categoryRecord.name this.slug}}</h1>
+                {{#if this.categoryRecord.description}}
+                    <p class="rb-muted">{{this.categoryRecord.description}}</p>
+                {{/if}}
+            </div>
+        </header>
+        <div class="rb-results-head">
+            <span class="rb-muted">{{t "registry-bridge.store.results.count" count=this.total}}</span>
+            <Registry::ResultsToolbar @catalog={{this}} @showCompatible={{false}} />
+        </div>
+        {{#if this.activeFacets.length}}
+            <Registry::ActiveFilters @catalog={{this}} />
+        {{/if}}
+
+        {{#if this.isLoading}}
+            <div class="rb-loading" aria-busy="true" aria-label={{t "registry-bridge.explore.loading"}}>
+                <Skeleton::Table @rows={{8}} @columns={{4}} @checkbox={{false}} />
+            </div>
+        {{else if this.error}}
+            <InfoBlock @type="danger" @icon="triangle-exclamation">
+                <div class="font-semibold">{{t "registry-bridge.explore.error.title"}}</div>
+                <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{this.retry}} /></div>
+            </InfoBlock>
+        {{else if this.extensions.length}}
+            <Registry::ExtensionCollection @extensions={{this.extensions}} @view={{this.view}} />
+            {{#if (gt this.extensions.meta.last_page 1)}}
+                <Pagination @meta={{this.extensions.meta}} @onPageChange={{this.setPage}} class="rb-pagination" />
+            {{/if}}
+        {{else}}
+            <Table::EmptyState
+                @icon="magnifying-glass"
+                @title={{t "registry-bridge.store.results.none-in-category"}}
+                @description={{t "registry-bridge.explore.no-results.body"}}
+                @primaryText={{if this.hasFilters (t "registry-bridge.explore.no-results.clear")}}
+                @primaryIcon="xmark"
+                @primaryAction={{if this.hasFilters this.clearAll}}
+            />
+        {{/if}}
+    </div>
+</div>

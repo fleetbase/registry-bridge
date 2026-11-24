@@ -12,12 +12,24 @@ export default class ApplicationRoute extends Route {
     @service extensionPanel;
     @service extensionPurchase;
     @service urlSearchParams;
+    @service sidebar;
 
     beforeModel() {
         if (this.abilities.cannot('registry-bridge see extension')) {
             this.notifications.warning(this.intl.t('common.unauthorized-access'));
             return this.hostRouter.transitionTo('console');
         }
+    }
+
+    /** The module has its own tab bar (Registry::StoreNav), so the console sidebar is off while it is open. */
+    activate() {
+        super.activate(...arguments);
+        this.sidebar.disable?.();
+    }
+
+    deactivate() {
+        super.deactivate(...arguments);
+        this.sidebar.enable?.();
     }
 
     model() {

@@ -16,6 +16,7 @@ export default class ExploreIndexRoute extends Route {
         pricing: refresh,
         hosting: refresh,
         hide_installed: refresh,
+        compatible: refresh,
         sort: refresh,
         page: refresh,
     };

@@ -441,3 +441,41 @@ registry-bridge:
         ready: Hoạt động với bạn
         needs_update: Cần cập nhật
         unavailable: Không khả dụng
+    nav:
+      label: Tiện ích
+      discover: Khám phá
+      installed: Đã cài
+      purchased: Đã mua
+      updates: Cập nhật
+      search: Tìm tiện ích
+    discover:
+      featured: Nổi bật
+      learn-more: Tìm hiểu thêm
+      categories: Danh mục
+      see-all: Xem tất cả
+      shelves:
+        popular: Phổ biến
+        updated: Mới và cập nhật
+        free: Thiết yếu miễn phí
+        for-app: Cho {app}
+        for-app-subtitle: Gắn vào ứng dụng bạn đang dùng
+    results:
+      for: Kết quả cho “{query}”
+      all: Tất cả tiện ích
+      count: "{count, plural, =0 {Không có tiện ích} other {# tiện ích}}"
+      none-in-category: Không có gì phù hợp trong danh mục này
+    filters:
+      compatible: Hoạt động với Fleetbase của tôi
+      compatible-long: Chỉ những gì hoạt động với Fleetbase của tôi
+      sort: Sắp xếp
+    rail:
+      all: Tất cả tiện ích
+      show: Hiển thị
+      price: Giá
+      any: Bất kỳ
+    breadcrumb: Đường dẫn
+    updates:
+      title: Cập nhật
+      none: Mọi thứ đã được cập nhật.
+    error: Đã xảy ra lỗi khi tải tiện ích.
+    retry: Thử lại

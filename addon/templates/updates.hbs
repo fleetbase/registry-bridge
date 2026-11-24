@@ -1,0 +1,18 @@
+<div class="rb-page" data-test-updates-page>
+    <h1 class="rb-page-title">{{t "registry-bridge.store.updates.title"}}</h1>
+    {{#if this.isLoading}}
+        <div class="rb-list rb-skeleton" aria-busy="true"><Spinner /></div>
+    {{else if this.error}}
+        <div class="rb-empty">
+            <p>{{t "registry-bridge.store.error"}}</p>
+            <Button @text={{t "registry-bridge.store.retry"}} @onClick={{this.retry}} />
+        </div>
+    {{else if this.rows.length}}
+        <Registry::ExtensionCollection @extensions={{this.rows}} @view="list" />
+    {{else}}
+        <div class="rb-empty" data-test-updates-empty>
+            <FaIcon @icon="circle-check" @size="2x" class="rb-empty-icon" />
+            <p>{{t "registry-bridge.store.updates.none"}}</p>
+        </div>
+    {{/if}}
+</div>

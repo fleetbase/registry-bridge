@@ -1,1 +1,98 @@
-<ExploreCatalog @catalog={{this}} />
+<div class="rb-page" data-test-discover={{if this.isDiscover "home" "results"}}>
+    {{#if this.needsRegistration}}
+        <InfoBlock @type="warning" @icon="link" class="rb-notice" data-test-explore-registration>
+            <span>{{t "registry-bridge.explore.registration.body"}}</span>
+            {{#if this.canConfigureRegistry}}
+                <Button @type="link" @size="xs" @text={{t "registry-bridge.explore.registration.action"}} @onClick={{this.openRegistryConfig}} class="ml-1" />
+            {{else}}
+                <span>{{t "registry-bridge.explore.registration.ask-admin"}}</span>
+            {{/if}}
+        </InfoBlock>
+    {{/if}}
+
+    {{#if this.isLoading}}
+        <div class="rb-loading" aria-busy="true" aria-label={{t "registry-bridge.explore.loading"}} data-test-explore-loading>
+            <Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @lines={{2}} @footerActions={{1}} />
+        </div>
+    {{else if this.error}}
+        <InfoBlock @type="danger" @icon="triangle-exclamation" data-test-explore-error>
+            <div class="font-semibold">{{t "registry-bridge.explore.error.title"}}</div>
+            <div class="mt-1 text-sm">{{t "registry-bridge.explore.error.body" host=this.registryHost}}</div>
+            <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{this.retry}} data-test-explore-retry /></div>
+        </InfoBlock>
+    {{else if this.isEmptyCatalog}}
+        <Table::EmptyState
+            @icon="shapes"
+            @title={{t "registry-bridge.explore.empty.title"}}
+            @description={{t "registry-bridge.explore.empty.body" host=this.registryHost}}
+            @primaryText={{if this.canConfigureRegistry (t "registry-bridge.explore.empty.check-config")}}
+            @primaryIcon="gear"
+            @primaryAction={{if this.canConfigureRegistry this.openRegistryConfig}}
+            data-test-explore-empty
+        />
+    {{else if this.isDiscover}}
+        <Registry::Featured @items={{this.featured}} />
+
+        {{#if this.categories.length}}
+            <section class="rb-section" aria-labelledby="rb-categories-title">
+                <div class="rb-section-head">
+                    <h2 id="rb-categories-title" class="rb-section-title">{{t "registry-bridge.store.discover.categories"}}</h2>
+                </div>
+                <div class="rb-category-grid">
+                    {{#each this.categories as |category|}}
+                        <LinkTo @route="explore.category" @model={{category.slug}} class="rb-category-tile" data-test-category-tile={{category.slug}}>
+                            <span class="rb-category-icon" aria-hidden="true"><FaIcon @icon={{or category.icon "shapes"}} /></span>
+                            <span>{{category.name}}</span>
+                        </LinkTo>
+                    {{/each}}
+                </div>
+            </section>
+        {{/if}}
+
+        {{#each this.shelves as |shelf|}}
+            <section class="rb-section" aria-label={{shelf.title}} data-test-shelf={{shelf.id}}>
+                <div class="rb-section-head">
+                    <h2 class="rb-section-title">{{shelf.title}}</h2>
+                    {{#if shelf.subtitle}}<span class="rb-section-sub">{{shelf.subtitle}}</span>{{/if}}
+                    {{#if shelf.seeAll}}
+                        <LinkTo @route="explore.index" @query={{shelf.seeAll}} class="rb-link rb-see-all">{{t "registry-bridge.store.discover.see-all"}}</LinkTo>
+                    {{/if}}
+                </div>
+                <Registry::ExtensionCollection @extensions={{shelf.items}} @view={{this.view}} />
+            </section>
+        {{/each}}
+    {{else}}
+        <div class="rb-results-head">
+            <div>
+                <h1 class="rb-page-title">
+                    {{#if this.query}}
+                        {{t "registry-bridge.store.results.for" query=this.query}}
+                    {{else}}
+                        {{t "registry-bridge.store.results.all"}}
+                    {{/if}}
+                </h1>
+                <span class="rb-muted">{{t "registry-bridge.store.results.count" count=this.total}}</span>
+            </div>
+            <Registry::ResultsToolbar @catalog={{this}} />
+        </div>
+        {{#if this.activeFacets.length}}
+            <Registry::ActiveFilters @catalog={{this}} />
+        {{/if}}
+        {{#if this.isNoResults}}
+            <Table::EmptyState
+                @icon="magnifying-glass"
+                @title={{if this.query (t "registry-bridge.explore.no-results.title" query=this.query) (t "registry-bridge.explore.no-results.filtered-title")}}
+                @description={{t "registry-bridge.explore.no-results.body"}}
+                @primaryText={{t "registry-bridge.explore.no-results.clear"}}
+                @primaryIcon="xmark"
+                @primaryAction={{this.clearAll}}
+                data-test-explore-no-results
+            />
+        {{else}}
+            <Registry::ExtensionCollection @extensions={{this.extensions}} @view={{this.view}} />
+            {{#if (gt this.extensions.meta.last_page 1)}}
+                <Pagination @meta={{this.extensions.meta}} @onPageChange={{this.setPage}} class="rb-pagination" />
+            {{/if}}
+        {{/if}}
+    {{/if}}
+</div>

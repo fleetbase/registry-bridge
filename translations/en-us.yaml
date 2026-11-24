@@ -441,3 +441,41 @@ registry-bridge:
         ready: Works with yours
         needs_update: Needs an update
         unavailable: Not available
+    nav:
+      label: Extensions
+      discover: Discover
+      installed: Installed
+      purchased: Purchased
+      updates: Updates
+      search: Search extensions
+    discover:
+      featured: Featured
+      learn-more: Learn more
+      categories: Categories
+      see-all: See all
+      shelves:
+        popular: Popular
+        updated: New and updated
+        free: Free essentials
+        for-app: For {app}
+        for-app-subtitle: Plugs into an app you use
+    results:
+      for: Results for “{query}”
+      all: All extensions
+      count: "{count, plural, =0 {No extensions} one {1 extension} other {# extensions}}"
+      none-in-category: Nothing in this category matches
+    filters:
+      compatible: Works with my Fleetbase
+      compatible-long: Only what works with my Fleetbase
+      sort: Sort
+    rail:
+      all: All extensions
+      show: Show
+      price: Price
+      any: Any
+    breadcrumb: Breadcrumb
+    updates:
+      title: Updates
+      none: Everything is up to date.
+    error: Something went wrong loading your extensions.
+    retry: Try again
