@@ -1,14 +1,18 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { action, get } from '@ember/object';
+import compatibilityVerdict from '../../utils/compatibility';
 
 const STEP_ICONS = { done: 'check', active: 'spinner', failed: 'xmark', pending: null };
 
 /**
- * Install, update and uninstall in one modal (canvas C5): confirm, progress
- * with the three named steps, success with the reload countdown, failure with
- * the failed stage, the server message and Retry. Driven by the
- * `extension-installer` service through the modal options.
+ * Install, update and uninstall in one modal (canvas C5): confirm with the
+ * plain compatibility verdict, progress with a few plain steps ("Getting
+ * things ready", "Downloading", "Installing", "Finishing up"), one progress
+ * bar and a friendly status line, success with the reload countdown, failure
+ * with one friendly sentence and Retry. The technical stages, their
+ * durations, the server message and the log stay behind "Show details".
+ * Driven by the `extension-installer` service through the modal options.
  */
 export default class ModalsExtensionInstallerComponent extends Component {
     @service modalsManager;
@@ -34,31 +38,37 @@ export default class ModalsExtensionInstallerComponent extends Component {
         return this.isUninstall ? 'uninstall' : 'install';
     }
 
-    /** Whether this job rebuilds the console (`meta.install_mode` / `meta.uninstall_mode` is `build`). */
-    get rebuildsConsole() {
-        return get(this.options, `extension.meta.${this.isUninstall ? 'uninstall_mode' : 'install_mode'}`) === 'build';
-    }
-
     get steps() {
         return (get(this.options, 'steps') ?? []).map((step, index) => ({
             ...step,
             number: index + 1,
             icon: STEP_ICONS[step.status],
-            // The last step rebuilds the console only in build mode; otherwise it clears caches, records and reloads.
-            label: this.intl.t(`registry-bridge.${this.stepsKey}.steps.${step.key === 'build' && !this.rebuildsConsole ? 'finish' : step.key}`),
-            detail: this.stepDetail(step.key),
+            // "Installing" reads "Updating" for an update.
+            label: this.intl.t(`registry-bridge.installer.phases.${step.key === 'install' && this.jobAction === 'update' ? 'update' : step.key}`),
         }));
     }
 
-    stepDetail(key) {
-        const packages = get(this.options, 'extension.meta.package_names') ?? {};
-        if (key === 'server') {
-            return packages.composer ?? null;
-        }
-        if (key === 'engine') {
-            return packages.npm ?? null;
-        }
-        return null;
+    /** The plain "can I install this?" verdict on the confirm step (install and update). */
+    get compatibility() {
+        return this.isUninstall ? null : compatibilityVerdict(this.intl, get(this.options, 'extension'));
+    }
+
+    /** Whether the technical details (stages, durations, log) are offered: administrators and whoever may install. */
+    get canSeeDetails() {
+        return get(this.options, 'canSeeDetails') !== false;
+    }
+
+    /** The technical stages with their status and duration (`details` from the job runner). */
+    get details() {
+        return (get(this.options, 'details') ?? []).map((stage) => ({
+            ...stage,
+            icon: STEP_ICONS[stage.status] ?? 'check',
+            duration: typeof stage.seconds === 'number' ? this.intl.t('registry-bridge.installer.details.seconds', { seconds: stage.seconds.toFixed(1) }) : null,
+        }));
+    }
+
+    get hasDetails() {
+        return this.canSeeDetails && (this.details.length > 0 || (get(this.options, 'installerError.log.length') ?? 0) > 0 || !!get(this.options, 'installerError.message'));
     }
 
     /**

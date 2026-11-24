@@ -1,6 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { action } from '@ember/object';
-import { INSTALLER_NAMESPACE, installerChannel, installerStepGroups, runInstallerJob } from '../utils/installer-job';
+import { INSTALLER_NAMESPACE, installerChannel, installerPhases, runInstallerJob } from '../utils/installer-job';
 
 export const INSTALLER_ACTIONS = ['install', 'update', 'uninstall'];
 
@@ -57,9 +57,11 @@ export function installerButtons(intl, jobAction, phase) {
 
 /**
  * Install, update and uninstall an extension through the queued installer
- * job, in one modal that confirms, shows the named steps while the job runs,
- * then counts down to the console reload or shows the failed stage with
- * Retry. Nothing closes on its own.
+ * job, in one modal that confirms, shows a few plain steps and one progress
+ * bar while the job runs (pushed over the socket, polled as a fallback), then
+ * counts down to the console reload or explains the failure with Retry. The
+ * technical stages and log are behind "Show details" for administrators and
+ * whoever may install. Nothing closes on its own.
  */
 export default class ExtensionInstallerService extends Service {
     @service modalsManager;
@@ -122,7 +124,9 @@ export default class ExtensionInstallerService extends Service {
             installedVersion: extension.installed_version ?? null,
             companyName: this.currentUser.company?.name ?? this.currentUser.user?.company_name ?? null,
             phase: 'confirm',
-            steps: installerStepGroups(jobAction, {}),
+            steps: installerPhases(jobAction, {}),
+            details: [],
+            canSeeDetails: this.currentUser.isAdmin === true || this.abilities.can(permission),
             confirmName: '',
             progress: 0,
             stepDescription: null,
@@ -170,6 +174,7 @@ export default class ExtensionInstallerService extends Service {
                 fetch: this.fetch,
                 socket: this.socket,
                 action: jobAction,
+                name: extension.name,
                 channel: installerChannel(jobAction, this.currentUser.companyId, extension.id),
                 request: () => this.request(jobAction, extension, version),
                 reload: () => this.reload(),

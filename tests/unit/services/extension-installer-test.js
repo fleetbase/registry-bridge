@@ -56,7 +56,7 @@ module('Unit | Service | extension-installer', function (hooks) {
         assert.strictEqual(this.modals.options.version, '0.9.1');
         assert.deepEqual(
             this.modals.options.steps.map((step) => step.key),
-            ['server', 'engine', 'build']
+            ['prepare', 'download', 'install', 'finish']
         );
 
         const running = this.modals.confirm();

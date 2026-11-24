@@ -9,15 +9,14 @@ registry-bridge:
     cancel: Cancel
     this-organization: this organization
   installer:
-    starting: Starting…
-    queued-next: Queued, next in line…
-    queued-behind: "Queued behind {count, plural, one {# job} other {# jobs}}…"
-    completed: Done.
-    failed: The job failed.
+    starting: Getting started…
+    queued-next: Waiting to start…
+    queued-behind: "Waiting for {count, plural, one {# other installation} other {# other installations}} to finish…"
+    completed: All done.
+    failed: Something went wrong.
     failed-at: "Failed while: {step}"
     rolled-back: All changes were rolled back; the instance is as it was before.
     rebuild-required: The console was rebuilt during the job; rebuild it again to drop the extension from the console.
-    show-log: Show log
     retry: Retry
     reloading: "Done. Reloading the console in {seconds}s…"
     installed: "{extensionName} is now installed."
@@ -35,6 +34,32 @@ registry-bridge:
       cache-clear: Clearing caches…
       record: Finishing up…
       rollback: Rolling back changes…
+    phases:
+      prepare: Getting things ready
+      download: Downloading
+      install: Installing
+      update: Updating
+      remove: Removing
+      finish: Finishing up
+    status:
+      prepare: Checking everything is in place…
+      download: "Downloading {name}…"
+      install: "Installing {name}…"
+      update: "Updating {name}…"
+      remove: "Removing {name}…"
+      finish: Almost done, finishing up…
+      build: Rebuilding the console. This step can take a while…
+      rollback: Something went wrong. Putting everything back the way it was…
+    details:
+      show: Show details
+      seconds: "{seconds} s"
+    failure:
+      install: "The installation didn't finish. Nothing was changed, so you can safely try again."
+      update: "The update didn't finish. Nothing was changed, so you can safely try again."
+      uninstall: "The uninstall didn't finish. Nothing was changed, so you can safely try again."
+      generic: "This didn't finish. Try again in a moment."
+      rollback-incomplete: "We couldn't finish, and not every change could be undone. Ask your administrator to look at the details."
+      next: If it keeps failing, share the details with your administrator or Fleetbase support.
   sidebar:
     installed: Installed
     purchased: Purchased
@@ -124,7 +149,6 @@ registry-bridge:
     category: Category
     updated: "updated {date}"
     verified-help: "The publisher's identity and payout account were verified by Fleetbase."
-    compat: "Compatible with Fleetbase console {console} and core-api {api}"
     installs: Installs
     last-release: Last release
     support: Support
@@ -189,20 +213,16 @@ registry-bridge:
   install:
     confirm:
       title: "Install {name} {version}?"
-      body: "This installs the server package and the console engine for {company}, then reloads the console. Other people signed in will see the new extension after their next page load."
-      time: "Usually takes about {minutes} minutes. Unsaved work in other tabs is not affected; this tab will reload."
-      time-rebuild: "This extension needs a console rebuild, which can take 15 to 40 minutes or longer on a small server. Unsaved work in other tabs is not affected; this tab will reload."
+      body: "This adds the extension for {company} and reloads the console when it's done. Others will see it the next time they open Fleetbase."
+      time: "Usually takes a minute or two. This tab reloads when it's done; other tabs aren't affected."
+      time-rebuild: "This extension also needs the console to be rebuilt, which can take 15 to 40 minutes. This tab reloads when it's done; other tabs aren't affected."
       accept: Install now
     steps:
       label: Install steps
-      server: Install server package
-      engine: Install console engine
-      build: Rebuild console and reload
-      finish: Finish and reload
     progress:
       title: "Installing {name}…"
       button: Installing…
-      keep-open: Keep this tab open. You can keep working in other tabs; progress is streamed from the server, so reloading this page will not cancel the install.
+      keep-open: "You can keep working in other tabs. Closing this window won't stop the installation."
     success:
       badge: Installed
       title: "{name} {version} is installed"
@@ -218,7 +238,7 @@ registry-bridge:
   update:
     confirm:
       title: "Update {name} to {version}?"
-      body: "This updates the server package and the console engine for {company} from v{installedVersion}, then reloads the console."
+      body: "This updates the extension for {company} from v{installedVersion} and reloads the console when it's done."
       accept: Update now
   uninstall:
     confirm:
@@ -226,14 +246,9 @@ registry-bridge:
       destructive: Destructive.
       body: "This removes the extension and permanently deletes its settings and data for {company}. You can reinstall later, but nothing is recovered."
       type-to-confirm: "Type {name} to confirm"
-      time: "Uninstalling reloads the console (about {minutes} minute)."
-      time-rebuild: "Uninstalling also rebuilds the console, which can take 15 to 40 minutes or longer, then reloads it."
+      time: "Takes about a minute. This tab reloads when it's done."
+      time-rebuild: "This also rebuilds the console, which can take 15 to 40 minutes. This tab reloads when it's done."
       accept: Uninstall
-    steps:
-      server: Remove server package
-      engine: Remove console engine
-      build: Rebuild console and reload
-      finish: Finish and reload
     progress:
       title: "Uninstalling {name}…"
       button: Uninstalling…
@@ -371,3 +386,24 @@ registry-bridge:
         title: Unregister this instance?
         body: "This instance forgets its registry token and can no longer install, update or buy extensions. Installed extensions keep working. To revoke the token itself, remove the instance from your registry organization. Registering this console again later keeps the same instance on the service."
         accept: Unregister
+  compatibility:
+    details: Technical details
+    requires: "Needs console {console} and core API {api}"
+    current: "This instance runs console {console} and core API {api}"
+    verdicts:
+      ready: Ready to install
+      needs_update: Needs a Fleetbase update first
+      unavailable: Not available for your setup
+    reasons:
+      ok: "Works with the version of Fleetbase you're running."
+      core_too_old: This extension needs a newer version of Fleetbase. Ask your administrator to update Fleetbase, then install it.
+      console_too_old: This extension needs a newer version of the Fleetbase console. Ask your administrator to update Fleetbase, then install it.
+      core_too_new: "This extension hasn't been updated for your version of Fleetbase yet."
+      console_too_new: "This extension hasn't been updated for your version of the Fleetbase console yet."
+      hosting-cloud: This extension is only available on Fleetbase Cloud.
+      hosting-self-hosted: This extension is only available on self-hosted Fleetbase.
+      no_release: "There's no version of this extension to install yet."
+      not_registered: Connect this Fleetbase to the extension registry to install extensions.
+      default-ready: Works with your Fleetbase.
+      default-needs_update: Fleetbase needs an update before this extension can be installed.
+      default-unavailable: "This extension can't be installed on this Fleetbase."

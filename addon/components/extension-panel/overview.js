@@ -1,8 +1,9 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
+import compatibilityVerdict from '../../utils/compatibility';
 
 /**
- * Overview tab: description, promotional text, compatibility, install count,
+ * Overview tab: description, promotional text, the compatibility verdict, install count,
  * last release, support and tags.
  */
 export default class ExtensionPanelOverviewComponent extends Component {
@@ -12,15 +13,12 @@ export default class ExtensionPanelOverviewComponent extends Component {
         return this.args.extension ?? {};
     }
 
-    get compat() {
-        const compat = this.extension.meta?.compat ?? {};
-        const consoleRange = compat.console ?? compat.fleetbase ?? compat['@fleetbase/console'] ?? null;
-        const apiRange = compat.api ?? compat['core-api'] ?? compat['fleetbase/core-api'] ?? null;
-        if (!consoleRange && !apiRange) {
-            return null;
-        }
-
-        return this.intl.t('registry-bridge.detail.compat', { console: consoleRange ?? '*', api: apiRange ?? '*' });
+    /**
+     * "Can I install this?" in plain words (Ready to install / Needs a Fleetbase update first / Not available
+     * for your setup) with the version ranges behind a details toggle.
+     */
+    get compatibility() {
+        return compatibilityVerdict(this.intl, this.extension);
     }
 
     get lastRelease() {

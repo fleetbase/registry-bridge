@@ -1,7 +1,8 @@
 import { module, test } from 'qunit';
 import InstallerJobTracker, {
     installerChannel,
-    installerStepGroups,
+    installerPhases,
+    technicalStages,
     describeInstallerJob,
     describeInstallerFailure,
     runInstallerJob,
@@ -75,17 +76,20 @@ module('Unit | Utility | installer-job', function () {
     test('job states map to a progress bar title and percentage', function (assert) {
         const { intl } = setup();
 
-        assert.deepEqual(describeInstallerJob(intl, { status: 'queued', position: 0 }), { stepDescription: 'registry-bridge.installer.queued-next', progress: 5 });
-        assert.deepEqual(describeInstallerJob(intl, { status: 'queued', position: 2 }), { stepDescription: 'registry-bridge.installer.queued-behind {"count":2}', progress: 5 });
-        assert.deepEqual(describeInstallerJob(intl, { status: 'running', step: 'server.install', progress: 75 }), {
-            stepDescription: 'registry-bridge.installer.steps.server-install',
-            progress: 75,
+        assert.deepEqual(describeInstallerJob(intl, { status: 'queued', position: 0 }), { stepDescription: 'registry-bridge.installer.queued-next', progress: 3 });
+        assert.deepEqual(describeInstallerJob(intl, { status: 'queued', position: 2 }), { stepDescription: 'registry-bridge.installer.queued-behind {"count":2}', progress: 3 });
+        assert.deepEqual(describeInstallerJob(intl, { status: 'running', phase: 'install', percent: 42, step: 'server.install' }, { action: 'install', name: 'Pallet' }), {
+            stepDescription: 'registry-bridge.installer.status.install {"name":"Pallet"}',
+            progress: 42,
         });
-        assert.deepEqual(describeInstallerJob(intl, { status: 'running', step: 'console.build', progress: 0 }), {
-            stepDescription: 'registry-bridge.installer.steps.console-build',
-            progress: 5,
-        });
-        assert.deepEqual(describeInstallerJob(intl, { status: 'running', step: 'something.new' }), { stepDescription: 'registry-bridge.installer.starting', progress: 5 });
+        assert.strictEqual(
+            describeInstallerJob(intl, { status: 'running', phase: 'install', percent: 42 }, { action: 'update', name: 'Pallet' }).stepDescription,
+            'registry-bridge.installer.status.update {"name":"Pallet"}'
+        );
+        assert.strictEqual(describeInstallerJob(intl, { status: 'running', step: 'console.build', stage: 'build', percent: 50 }).stepDescription, 'registry-bridge.installer.status.build');
+        assert.strictEqual(describeInstallerJob(intl, { status: 'running', step: 'rollback', percent: 60 }).stepDescription, 'registry-bridge.installer.status.rollback');
+        assert.strictEqual(describeInstallerJob(intl, { status: 'running', step: 'server.install', progress: 50 }).progress, 62, 'older records without percent: estimated from the phase');
+        assert.deepEqual(describeInstallerJob(intl, { status: 'running' }), { stepDescription: 'registry-bridge.installer.starting', progress: 3 });
         assert.strictEqual(describeInstallerJob(intl, { status: 'completed' }).progress, 100);
     });
 
@@ -101,12 +105,19 @@ module('Unit | Utility | installer-job', function () {
         });
 
         assert.deepEqual(failure, {
+            summary: 'registry-bridge.installer.failure.install',
             step: 'registry-bridge.installer.steps.engine-install',
             message: 'The prebuilt engine is not compatible with this console',
             log: ['$ composer require acme/widgets', '!! engine failed'],
             rolledBack: true,
+            rollbackIncomplete: false,
             rebuildRequired: false,
         });
+        assert.strictEqual(
+            describeInstallerFailure(intl, { status: 'failed', result: { rollback: { performed: true, errors: ['composer install failed'] } } }).summary,
+            'registry-bridge.installer.failure.rollback-incomplete'
+        );
+        assert.strictEqual(describeInstallerFailure(intl, { status: 'failed', message: 'socket only' }).summary, 'registry-bridge.installer.failure.generic');
         assert.strictEqual(describeInstallerFailure(intl, { failed_stage: 'interrupted' }).step, 'interrupted');
     });
 
@@ -187,7 +198,13 @@ module('Unit | Utility | installer-job', function () {
 
         ctx.records = [new Error('offline')];
         ctx.emit({ job: 'j1', status: 'failed', step: 'server.install', stage: 'composer', message: 'composer exited with code 2', log: ['Problem 1'] });
+        // The record is read a few more times before the event alone is trusted.
+        for (let i = 0; i < 4; i++) {
+            await settle();
+            await ctx.fireTimers();
+        }
         const job = await done;
+        assert.strictEqual(ctx.polls, 4, 'one read on the final event and three retries');
 
         assert.strictEqual(job.status, 'failed');
         assert.strictEqual(job.failed_stage, 'composer');
@@ -203,6 +220,10 @@ module('Unit | Utility | installer-job', function () {
 
         ctx.records = [{ id: 'j1', status: 'running', step: 'install.record' }];
         ctx.emit({ job: 'j1', status: 'completed', step: 'install.complete' });
+        for (let i = 0; i < 4; i++) {
+            await settle();
+            await ctx.fireTimers();
+        }
 
         assert.strictEqual((await done).status, 'completed');
     });
@@ -249,8 +270,8 @@ module('Unit | Utility | installer-job', function () {
         await settle();
         assert.strictEqual(ctx.modal.options.stepDescription, 'registry-bridge.installer.queued-behind {"count":1}');
 
-        ctx.emit({ job: 'j1', step: 'engine.install', progress: 80, status: 'running' });
-        assert.deepEqual([ctx.modal.options.stepDescription, ctx.modal.options.progress], ['registry-bridge.installer.steps.engine-install', 80]);
+        ctx.emit({ job: 'j1', step: 'engine.install', stage: 'engine', phase: 'install', percent: 80, progress: 80, status: 'running', seq: 1 });
+        assert.deepEqual([ctx.modal.options.stepDescription, ctx.modal.options.progress], ['registry-bridge.installer.status.install {"name":""}', 80]);
 
         ctx.records = [{ id: 'j1', status: 'completed' }];
         ctx.emit({ job: 'j1', status: 'completed', step: 'install.complete' });
@@ -297,10 +318,12 @@ module('Unit | Utility | installer-job', function () {
         assert.strictEqual(ctx.modal.options.acceptButtonText, 'registry-bridge.installer.retry');
         assert.strictEqual(ctx.modal.options.progress, 0);
         assert.deepEqual(ctx.modal.options.installerError, {
+            summary: 'registry-bridge.installer.failure.install',
             step: 'registry-bridge.installer.steps.server-install',
             message: 'composer exited with code 2',
             log: ['Problem 1'],
             rolledBack: true,
+            rollbackIncomplete: false,
             rebuildRequired: false,
         });
         await ctx.fireTimers();
@@ -324,23 +347,69 @@ module('Unit | Utility | installer-job', function () {
         assert.strictEqual(ctx.polls, 0);
     });
 
-    test('installer steps group into the three named steps of the modal', function (assert) {
-        const statuses = (action, job) => installerStepGroups(action, job).map((group) => `${group.key}:${group.status}`);
+    test('installer stages map onto the plain steps of the modal', function (assert) {
+        const statuses = (action, job) => installerPhases(action, job).map((group) => `${group.key}:${group.status}`);
 
-        assert.deepEqual(statuses('install', {}), ['server:pending', 'engine:pending', 'build:pending']);
-        assert.deepEqual(statuses('install', { status: 'queued' }), ['server:pending', 'engine:pending', 'build:pending']);
-        assert.deepEqual(statuses('install', { status: 'running' }), ['server:active', 'engine:pending', 'build:pending'], 'a started job is on the first step');
-        assert.deepEqual(statuses('install', { status: 'running', step: 'release.download' }), ['server:active', 'engine:pending', 'build:pending']);
-        assert.deepEqual(statuses('update', { status: 'running', step: 'engine.install' }), ['server:done', 'engine:active', 'build:pending']);
-        assert.deepEqual(statuses('install', { status: 'running', step: 'cache.clear' }), ['server:done', 'engine:done', 'build:active']);
-        assert.deepEqual(statuses('uninstall', { status: 'running', step: 'engine.uninstall' }), ['server:done', 'engine:active', 'build:pending']);
-        assert.deepEqual(statuses('install', { status: 'completed' }), ['server:done', 'engine:done', 'build:done']);
-        assert.deepEqual(statuses('install', { status: 'failed', step: 'engine.install' }), ['server:done', 'engine:failed', 'build:pending']);
+        assert.deepEqual(statuses('install', {}), ['prepare:pending', 'download:pending', 'install:pending', 'finish:pending']);
+        assert.deepEqual(statuses('install', { status: 'queued' }), ['prepare:pending', 'download:pending', 'install:pending', 'finish:pending']);
+        assert.deepEqual(statuses('install', { status: 'running' }), ['prepare:active', 'download:pending', 'install:pending', 'finish:pending'], 'a started job is on the first step');
+        assert.deepEqual(statuses('install', { status: 'running', step: 'release.download' }), ['prepare:done', 'download:active', 'install:pending', 'finish:pending']);
+        assert.deepEqual(statuses('update', { status: 'running', phase: 'install', step: 'engine.install' }), ['prepare:done', 'download:done', 'install:active', 'finish:pending']);
+        assert.deepEqual(statuses('install', { status: 'running', step: 'cache.clear' }), ['prepare:done', 'download:done', 'install:done', 'finish:active']);
+        assert.deepEqual(statuses('uninstall', { status: 'running', step: 'engine.uninstall' }), ['prepare:done', 'remove:active', 'finish:pending']);
+        assert.deepEqual(statuses('install', { status: 'completed' }), ['prepare:done', 'download:done', 'install:done', 'finish:done']);
+        assert.deepEqual(statuses('install', { status: 'failed', step: 'engine.install', failed_stage: 'engine' }), ['prepare:done', 'download:done', 'install:failed', 'finish:pending']);
         assert.deepEqual(
-            statuses('install', { status: 'failed', step: 'rollback', result: { step: 'console.build' } }),
-            ['server:done', 'engine:done', 'build:failed'],
+            statuses('install', { status: 'failed', step: 'rollback', result: { step: 'console.build', failed_phase: 'install' } }),
+            ['prepare:done', 'download:done', 'install:failed', 'finish:pending'],
             'a rollback reports the step that failed'
         );
+    });
+
+    test('the technical stages carry their status and duration for the details view', function (assert) {
+        const { intl } = setup();
+        const stages = technicalStages(intl, 'uninstall', { status: 'running', stage: 'engine', timings: { resolve: 0.2, composer: 7.8 } });
+
+        assert.deepEqual(
+            stages.map((stage) => [stage.key, stage.status, stage.seconds, stage.label]),
+            [
+                ['resolve', 'done', 0.2, 'registry-bridge.installer.steps.resolve'],
+                ['composer', 'done', 7.8, 'registry-bridge.installer.steps.server-uninstall'],
+                ['engine', 'active', null, 'registry-bridge.installer.steps.engine-uninstall'],
+            ]
+        );
+    });
+
+    test('polling slows down while the socket delivers and reads the record at once after a missed event', async function (assert) {
+        const ctx = setup();
+        let subscribed = true;
+        ctx.socket.instance = () => ({ state: 'open', isSubscribed: () => subscribed, unsubscribe: (channel) => (ctx.unsubscribed = channel), closeChannel: () => {} });
+        const tracker = ctx.tracker().listen();
+        const done = tracker.track({ id: 'j1', status: 'queued' });
+        assert.strictEqual(ctx.timers.at(-1).ms, 15000, 'a safety-net poll while the socket is subscribed');
+
+        ctx.emit({ job: 'j1', seq: 1, status: 'running', phase: 'prepare', percent: 2 });
+        ctx.emit({ job: 'j1', seq: 3, status: 'running', phase: 'install', percent: 40 });
+        assert.strictEqual(ctx.timers.at(-1).ms, 0, 'event 2 was missed: read the record now');
+
+        subscribed = false;
+        ctx.records = [{ id: 'j1', status: 'running', phase: 'install', percent: 30, seq: 3 }];
+        await ctx.timers.at(-1).fn();
+        assert.strictEqual(tracker.job.percent, 40, 'the bar never goes backwards');
+        assert.strictEqual(ctx.timers.at(-1).ms, 4000, 'faster polls without the socket');
+
+        ctx.records = [
+            { id: 'j1', status: 'running', seq: 9 },
+            { id: 'j1', status: 'completed', result: { timings: { composer: 2 } } },
+        ];
+        ctx.emit({ job: 'j1', seq: 10, status: 'completed', phase: 'finish', percent: 100 });
+        await settle();
+        assert.strictEqual(ctx.timers.at(-1).ms, 1000, 'the record is not finished yet: read it again shortly');
+        await ctx.timers.at(-1).fn();
+
+        const job = await done;
+        assert.deepEqual(job.result, { timings: { composer: 2 } }, 'the final state comes from the API');
+        assert.strictEqual(ctx.unsubscribed, 'install.c1.e1', 'the channel is left once the job is done');
     });
 
     test('runInstallerJob moves the modal through progress and success with named steps and a cancellable reload', async function (assert) {
@@ -358,10 +427,10 @@ module('Unit | Utility | installer-job', function () {
         await settle();
         assert.strictEqual(ctx.modal.options.phase, 'progress');
 
-        ctx.emit({ job: 'j1', step: 'engine.install', progress: 50, status: 'running' });
+        ctx.emit({ job: 'j1', step: 'engine.install', stage: 'engine', progress: 50, status: 'running' });
         assert.deepEqual(
             ctx.modal.options.steps.map((group) => group.status),
-            ['done', 'active', 'pending']
+            ['done', 'done', 'active', 'pending']
         );
 
         ctx.records = [{ id: 'j1', status: 'completed' }];
@@ -372,7 +441,7 @@ module('Unit | Utility | installer-job', function () {
         assert.strictEqual(ctx.modal.options.secondsLeft, 2);
         assert.deepEqual(
             ctx.modal.options.steps.map((group) => group.status),
-            ['done', 'done', 'done']
+            ['done', 'done', 'done', 'done']
         );
 
         ctx.modal.options.cancelReload();
@@ -397,7 +466,7 @@ module('Unit | Utility | installer-job', function () {
         assert.strictEqual(ctx.modal.options.phase, 'failure');
         assert.deepEqual(
             ctx.modal.options.steps.map((group) => group.status),
-            ['done', 'failed', 'pending']
+            ['done', 'done', 'failed', 'pending']
         );
         assert.strictEqual(ctx.modal.options.installerError.message, 'npm install exited with code 1');
     });

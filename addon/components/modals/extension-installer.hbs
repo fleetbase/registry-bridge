@@ -10,6 +10,12 @@
                 <p class="text-sm dark:text-gray-200 mb-4" data-test-installer-intro>
                     {{t (concat "registry-bridge." this.jobAction ".confirm.body") company=(or @options.companyName (t "registry-bridge.common.this-organization")) installedVersion=(or @options.installedVersion "")}}
                 </p>
+                {{#if this.compatibility.verdict}}
+                    <InfoBlock @type={{this.compatibility.type}} @icon={{this.compatibility.icon}} class="mb-4" data-test-installer-compatibility={{this.compatibility.verdict}}>
+                        <strong>{{this.compatibility.label}}</strong>
+                        {{this.compatibility.reason}}
+                    </InfoBlock>
+                {{/if}}
             {{/if}}
         {{else if (eq this.phase "progress")}}
             <p class="text-sm font-semibold dark:text-white mb-3" role="status" aria-live="polite" data-test-installer-progress-title>
@@ -41,12 +47,6 @@
                     </span>
                     <span class="flex-1 min-w-0">
                         <span class="block text-sm dark:text-gray-100">{{step.label}}</span>
-                        {{#if step.detail}}
-                            <span class="block font-mono text-xs text-gray-500 dark:text-gray-400 truncate">{{step.detail}}</span>
-                        {{/if}}
-                        {{#if (and (eq step.status "active") @options.stepDescription)}}
-                            <span class="block text-xs text-gray-500 dark:text-gray-400" data-test-installer-step-description>{{@options.stepDescription}}</span>
-                        {{/if}}
                     </span>
                 </li>
             {{/each}}
@@ -67,9 +67,9 @@
                 </div>
             {{/if}}
         {{else if (eq this.phase "progress")}}
-            {{#if @options.progress}}
-                <div class="mt-3"><ProgressBar @title={{@options.stepDescription}} @percent={{@options.progress}} /></div>
-            {{/if}}
+            <div class="mt-3" data-test-installer-progress-bar>
+                <ProgressBar @title={{@options.stepDescription}} @percent={{or @options.progress 0}} />
+            </div>
             <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">{{t "registry-bridge.install.progress.keep-open"}}</p>
         {{else if (eq this.phase "success")}}
             <p class="mt-3 text-sm dark:text-gray-200" data-test-installer-countdown>
@@ -81,33 +81,55 @@
             </p>
         {{else if (eq this.phase "failure")}}
             <div class="mt-3 space-y-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900 dark:bg-opacity-30 dark:text-red-200" data-test-installer-job-error>
-                {{#if @options.installerError.step}}
-                    <div class="font-semibold" data-test-installer-job-error-step>{{t "registry-bridge.installer.failed-at" step=@options.installerError.step}}</div>
-                {{/if}}
-                <div class="break-words" data-test-installer-job-error-message>{{@options.installerError.message}}</div>
-                {{#if @options.installerError.rolledBack}}
-                    <div data-test-installer-job-error-rolled-back>{{t "registry-bridge.installer.rolled-back"}}</div>
-                {{/if}}
+                <div class="break-words" data-test-installer-job-error-summary>{{@options.installerError.summary}}</div>
                 {{#if @options.installerError.rebuildRequired}}
                     <div>{{t "registry-bridge.installer.rebuild-required"}}</div>
                 {{/if}}
-                {{#if @options.installerError.log.length}}
-                    <details data-test-installer-job-error-log>
-                        <summary class="cursor-pointer select-none">{{t "registry-bridge.installer.show-log"}}</summary>
-                        <div class="mt-2 max-h-60 overflow-auto rounded bg-white px-2 py-1 font-mono text-xs text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                <div class="text-xs">{{t "registry-bridge.installer.failure.next"}}</div>
+            </div>
+        {{/if}}
+
+        {{#if (and this.hasDetails (not-eq this.phase "confirm"))}}
+            <details class="mt-3 text-xs text-gray-600 dark:text-gray-300" data-test-installer-details>
+                <summary class="cursor-pointer select-none">{{t "registry-bridge.installer.details.show"}}</summary>
+                <div class="mt-2 space-y-2">
+                    {{#if this.details.length}}
+                        <ul class="space-y-1" data-test-installer-details-stages>
+                            {{#each this.details as |stage|}}
+                                <li class="flex flex-row items-center gap-2" data-test-installer-details-stage={{stage.key}} data-status={{stage.status}}>
+                                    <FaIcon @icon={{stage.icon}} @spin={{eq stage.status "active"}} @size="xs" />
+                                    <span class="flex-1">{{stage.label}}</span>
+                                    {{#if stage.duration}}
+                                        <span class="font-mono text-gray-500 dark:text-gray-400">{{stage.duration}}</span>
+                                    {{/if}}
+                                </li>
+                            {{/each}}
+                        </ul>
+                    {{/if}}
+                    {{#if @options.installerError.message}}
+                        {{#if @options.installerError.step}}
+                            <div class="font-semibold" data-test-installer-job-error-step>{{t "registry-bridge.installer.failed-at" step=@options.installerError.step}}</div>
+                        {{/if}}
+                        <div class="break-words font-mono" data-test-installer-job-error-message>{{@options.installerError.message}}</div>
+                        {{#if @options.installerError.rolledBack}}
+                            <div data-test-installer-job-error-rolled-back>{{t "registry-bridge.installer.rolled-back"}}</div>
+                        {{/if}}
+                    {{/if}}
+                    {{#if @options.installerError.log.length}}
+                        <div class="max-h-60 overflow-auto rounded bg-white px-2 py-1 font-mono text-xs text-gray-800 dark:bg-gray-900 dark:text-gray-200" data-test-installer-job-error-log>
                             {{#each @options.installerError.log as |line|}}
                                 <div class="whitespace-pre-wrap">{{line}}</div>
                             {{/each}}
                         </div>
-                    </details>
-                {{/if}}
-            </div>
-            {{#if this.cliCommand}}
-                <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    {{t "registry-bridge.install.failed.cli"}}
-                    <ClickToCopy @value={{this.cliCommand}} class="mt-1"><code>{{this.cliCommand}}</code></ClickToCopy>
+                    {{/if}}
+                    {{#if (and (eq this.phase "failure") this.cliCommand)}}
+                        <div>
+                            {{t "registry-bridge.install.failed.cli"}}
+                            <ClickToCopy @value={{this.cliCommand}} class="mt-1"><code>{{this.cliCommand}}</code></ClickToCopy>
+                        </div>
+                    {{/if}}
                 </div>
-            {{/if}}
+            </details>
         {{/if}}
     </div>
 </Modal::Default>
