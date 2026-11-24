@@ -19,7 +19,7 @@
                 "registry-bridge.explore.pricing.paid"
             }}</label>
     </fieldset>
-    <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}}>
+    <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}} {{did-insert this.revealCurrent}} {{did-update this.revealCurrent @catalog.slug}}>
         <span class="rb-rail-label">{{t "registry-bridge.store.discover.categories"}}</span>
         <LinkTo @route="explore.index" @query={{this.resetQuery}} class="rb-rail-link {{if this.allCurrent 'is-current'}}" data-test-rail-category="all">
             <FaIcon @icon="grip" @fixedWidth={{true}} />

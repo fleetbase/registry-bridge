@@ -1531,7 +1531,10 @@ body[data-theme='dark'] .rb-featured {
     /* The rail on a phone: filters in a row, then the categories as one scrolling row of chips */
     .rb-rail {
         position: static;
-        max-width: none;
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
         max-height: none;
         overflow: visible;
         gap: 12px;
@@ -1546,8 +1549,19 @@ body[data-theme='dark'] .rb-featured {
 
     .rb-rail nav.rb-rail-section {
         flex-wrap: nowrap;
+        min-width: 0;
+        max-width: 100%;
         overflow-x: auto;
         scrollbar-width: none;
+    }
+
+    .rb-rail nav.rb-rail-section::-webkit-scrollbar {
+        display: none;
+    }
+
+    .rb-category-main {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .rb-rail nav.rb-rail-section .rb-rail-label {
