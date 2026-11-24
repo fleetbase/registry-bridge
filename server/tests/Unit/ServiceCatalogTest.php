@@ -88,10 +88,11 @@ test('the console state comes from its host-modules.json and package.json', func
     Files::write($root . '/package.json', json_encode(['dependencies' => ['@acme/built-engine' => '1.0.0'], 'devDependencies' => ['ember-source' => '5.4.0']]));
     $config = InstallerConfig::fromArray(['api_path' => $root . '/api', 'console_path' => $root, 'work_path' => $root . '/work']);
 
-    expect(ServiceCatalog::consoleState($config))->toBe(['host_versions' => null, 'built_in' => ['@acme/built-engine', 'ember-source']]);
+    expect(ServiceCatalog::consoleState($config))->toBe(['host_versions' => null, 'built_in' => ['@acme/built-engine', 'ember-source'], 'console_version' => null]);
 
-    Files::write($root . '/dist/host-modules.json', json_encode(['versions' => ['@fleetbase/ember-ui' => '0.4.6'], 'modules' => []]));
-    expect(ServiceCatalog::consoleState($config)['host_versions'])->toBe(['@fleetbase/ember-ui' => '0.4.6']);
+    Files::write($root . '/dist/host-modules.json', json_encode(['console' => '0.8.1', 'versions' => ['@fleetbase/ember-ui' => '0.4.6'], 'modules' => []]));
+    expect(ServiceCatalog::consoleState($config)['host_versions'])->toBe(['@fleetbase/ember-ui' => '0.4.6'])
+        ->and(ServiceCatalog::consoleState($config)['console_version'])->toBe('0.8.1');
 
     Files::delete($root);
 });

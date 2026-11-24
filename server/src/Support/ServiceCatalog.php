@@ -2,6 +2,8 @@
 
 namespace Fleetbase\RegistryBridge\Support;
 
+use Composer\Semver\Semver;
+use Composer\Semver\VersionParser;
 use Fleetbase\RegistryBridge\Exceptions\RegistryException;
 use Fleetbase\RegistryBridge\Support\Installer\Files;
 use Fleetbase\RegistryBridge\Support\Installer\InstallerConfig;
@@ -257,6 +259,10 @@ class ServiceCatalog
         $state['receipts'] = ServiceReceipts::all($config);
         $state['error']    = $error;
         $state['console']  = app()->bound(InstallerConfig::class) ? static::consoleState(app(InstallerConfig::class)) : null;
+        $state['versions'] = [
+            'api'     => InstanceRegistration::detectApiVersion(),
+            'console' => $state['console']['console_version'] ?? InstanceRegistration::detectConsoleVersion(is_string(config('fleetbase.console.path')) ? config('fleetbase.console.path') : null),
+        ];
 
         return $state;
     }
@@ -265,7 +271,7 @@ class ServiceCatalog
      * What the console build can take, for `install_mode`: the module versions in its host-modules.json (null
      * when the build has none, so it cannot load prebuilt engines) and the engines built into it.
      *
-     * @return array{host_versions: array<string, string>|null, built_in: array<int, string>}
+     * @return array{host_versions: array<string, string>|null, built_in: array<int, string>, console_version: string|null}
      */
     public static function consoleState(InstallerConfig $config): array
     {
@@ -275,6 +281,8 @@ class ServiceCatalog
         return [
             'host_versions' => is_array($hostModules) ? array_filter((array) ($hostModules['versions'] ?? []), 'is_string') : null,
             'built_in'      => array_keys(array_merge((array) ($package['dependencies'] ?? []), (array) ($package['devDependencies'] ?? []))),
+            // The console release the build came from (host-modules.json `console`, fleetbase#730), which `compat.console` ranges name.
+            'console_version' => is_array($hostModules) && is_string($hostModules['console'] ?? null) && $hostModules['console'] !== '' ? $hostModules['console'] : null,
         ];
     }
 
@@ -313,6 +321,74 @@ class ServiceCatalog
     protected static function minor(string $version): string
     {
         return preg_match('/^\D*(\d+)\.(\d+)/', $version, $match) ? $match[1] . '.' . $match[2] : $version;
+    }
+
+    /**
+     * Can this instance install the listing, in the terms the console shows a non-technical user:
+     *
+     *   ready         nothing stands in the way (a licence may still have to be bought: that is the purchase flow)
+     *   needs_update  the latest release needs a newer Fleetbase (console or core API) than this one runs
+     *   unavailable   it cannot be installed here: the wrong hosting, no published release, not connected to the
+     *                 registry, or a release made only for an older Fleetbase
+     *
+     * `reason` is a code the console turns into one plain sentence; `requires` and `current` are the technical
+     * breakdown it keeps behind "details". A version this instance cannot detect is not held against it.
+     *
+     * @param array<string, mixed>|mixed $compat   the release's `compat` ranges (`console`, `api`)
+     * @param array<string, mixed>       $versions this instance's `console` and `api` versions
+     *
+     * @return array{verdict: string, reason: string, requires: array{console: string|null, api: string|null}, current: array{console: string|null, api: string|null}}
+     */
+    public static function compatibility(?string $blockedCode, mixed $compat, array $versions = []): array
+    {
+        $compat   = is_array($compat) ? $compat : [];
+        $requires = [
+            'console' => static::str($compat['console'] ?? $compat['fleetbase'] ?? $compat['@fleetbase/console'] ?? null) ?: null,
+            'api'     => static::str($compat['api'] ?? $compat['core-api'] ?? $compat['fleetbase/core-api'] ?? null) ?: null,
+        ];
+        $current = ['console' => static::str($versions['console'] ?? null) ?: null, 'api' => static::str($versions['api'] ?? null) ?: null];
+        $verdict = fn (string $verdict, string $reason) => ['verdict' => $verdict, 'reason' => $reason, 'requires' => $requires, 'current' => $current];
+
+        if (in_array($blockedCode, ['hosting', 'no_release', 'not_registered'], true)) {
+            return $verdict('unavailable', $blockedCode);
+        }
+
+        foreach (['api', 'console'] as $part) {
+            $fit = static::versionFit($current[$part], $requires[$part]);
+            if ($fit === 'older') {
+                return $verdict('needs_update', $part === 'api' ? 'core_too_old' : 'console_too_old');
+            }
+            if ($fit === 'newer') {
+                return $verdict('unavailable', $part === 'api' ? 'core_too_new' : 'console_too_new');
+            }
+        }
+
+        return $verdict('ready', 'ok');
+    }
+
+    /**
+     * Whether $version satisfies $range (`ok`), is below it (`older`) or past it (`newer`); `ok` when either is
+     * unknown or cannot be parsed.
+     */
+    public static function versionFit(?string $version, ?string $range): string
+    {
+        if ($version === null || $range === null || trim($range) === '' || trim($range) === '*' || !class_exists(Semver::class)) {
+            return 'ok';
+        }
+
+        try {
+            $version = ltrim($version, 'vV');
+            if (Semver::satisfies($version, $range)) {
+                return 'ok';
+            }
+            $parser = new VersionParser();
+            $lower  = $parser->parseConstraints($range)->getLowerBound();
+            $normal = $parser->normalize($version);
+
+            return $lower->isZero() || version_compare($normal, $lower->getVersion(), $lower->isInclusive() ? '>=' : '>') ? 'newer' : 'older';
+        } catch (\Throwable) {
+            return 'ok';
+        }
     }
 
     /**
@@ -472,6 +548,8 @@ class ServiceCatalog
                 'licence_state'          => static::licenceState($licence),
                 'install_blocked_reason' => $blockedReason,
                 'install_blocked_code'   => $blocked['code'] ?? null,
+                // The plain verdict the console shows first (ready / needs_update / unavailable), the technical ranges behind it.
+                'compatibility'          => static::compatibility($blocked['code'] ?? null, Arr::get($listing, 'compat', Arr::get($release, 'compat')), static::arr($state['versions'] ?? null)),
                 'purchase_available'     => ($blocked['code'] ?? null) === 'licence_required' && $checkout,
                 'versions'               => array_values((array) Arr::get($listing, 'versions', [])),
                 // the time estimate in the install and uninstall dialogs: `runtime` (minutes), `build` (a rebuild)
