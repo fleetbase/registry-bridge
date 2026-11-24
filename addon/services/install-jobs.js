@@ -45,6 +45,12 @@ export default class InstallJobsService extends Service {
         return entry && entry.status !== 'failed' ? { action: entry.action, phase: entry.phase, percent: entry.percent } : null;
     }
 
+    /** A running uninstall on an extension (the library row dims and shows "Removing…"), else null. */
+    removalFor(extension) {
+        const entry = this.entryFor(extension);
+        return entry?.action === 'uninstall' && entry.status !== 'failed' ? entry : null;
+    }
+
     /** The last failure on an extension, until it is dismissed or retried. */
     failureFor(extension) {
         const entry = this.entryFor(extension);
@@ -69,9 +75,9 @@ export default class InstallJobsService extends Service {
     }
 
     /**
-     * Start an install or update and follow it.
+     * Start an install, update or uninstall and follow it.
      *
-     * @param {String} action install | update
+     * @param {String} action install | update | uninstall
      * @param {Object} extension a catalog record
      * @param {String} [version] a specific release
      * @return {Promise<Object|null>} the finished job, or null when it could not start
@@ -90,7 +96,7 @@ export default class InstallJobsService extends Service {
             return null;
         }
 
-        const target = version ?? extension.latest_version ?? extension.current_bundle_version ?? null;
+        const target = action === 'uninstall' ? null : (version ?? extension.latest_version ?? extension.current_bundle_version ?? null);
         this.set(id, { id, action, name: extension.name, status: 'running', phase: 'prepare', percent: 0, failure: null, details: [] });
 
         const tracker = new InstallerJobTracker({
@@ -114,16 +120,41 @@ export default class InstallJobsService extends Service {
         if (job.status === 'failed') {
             const failure = describeInstallerFailure(this.intl, job, { action });
             this.set(id, { status: 'failed', percent: 0, failure, details: technicalStages(this.intl, action, job) });
-            this.notifications.error(this.intl.t('registry-bridge.store.done.failed', { name: extension.name }));
+            this.notifications.error(this.intl.t(`registry-bridge.store.done.${action === 'uninstall' ? 'remove-failed' : 'failed'}`, { name: extension.name }));
             return job;
         }
 
-        this.set(id, { status: 'completed', phase: 'finish', percent: 100 });
-        this.registryContext.loadCounts();
-        this.remember({ action, name: extension.name, id });
+        this.set(id, { status: 'completed', phase: 'finish', percent: 99 });
+        this.remember({ action, name: extension.name, id, paid: extension.payment_required === true });
+        // The job ends by reloading the API's workers; reloading the console before the API answers again would
+        // fail its session check and sign the user out. Wait for it, still on "Finishing up…".
+        await this.waitForApi();
+        this.set(id, { percent: 100 });
         setTimeout(() => this.reload(), this.reloadDelay);
 
         return job;
+    }
+
+    /** How long to wait for the API after a job, and how often to ask. Replaced in tests. */
+    apiWaitTimeout = 120000;
+    apiWaitInterval = 3000;
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    /**
+     * Resolve once the API answers again (the public runtime engine list), or after `apiWaitTimeout`.
+     */
+    async waitForApi() {
+        const started = Date.now();
+        await this.wait(this.apiWaitInterval);
+        while (Date.now() - started < this.apiWaitTimeout) {
+            try {
+                await this.fetch.get('engines/runtime', {}, { namespace: '~registry/v1' });
+                return true;
+            } catch {
+                await this.wait(this.apiWaitInterval);
+            }
+        }
+        return false;
     }
 
     remember(note) {
@@ -144,7 +175,8 @@ export default class InstallJobsService extends Service {
             return;
         }
         if (note?.name) {
-            this.notifications.success(this.intl.t(`registry-bridge.store.done.${note.action === 'update' ? 'updated' : 'installed'}`, { name: note.name }));
+            const key = note.action === 'update' ? 'updated' : note.action === 'uninstall' ? (note.paid ? 'removed-paid' : 'removed') : 'installed';
+            this.notifications.success(this.intl.t(`registry-bridge.store.done.${key}`, { name: note.name }));
         }
     }
 }

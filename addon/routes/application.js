@@ -1,5 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import { next } from '@ember/runloop';
 import { PANEL_PARAM } from '../services/extension-panel';
 
 export default class ApplicationRoute extends Route {
@@ -22,15 +23,26 @@ export default class ApplicationRoute extends Route {
         }
     }
 
-    /** The module has its own tab bar (Registry::StoreNav), so the console sidebar is off while it is open. */
+    /**
+     * The module has its own tab bar (Registry::StoreNav), so the console sidebar is off while it is open. Checked
+     * after every transition that ends here: a route left on the way in (the dashboard) may re-enable it as it exits.
+     */
     activate() {
         super.activate(...arguments);
         this.sidebar.disable?.();
+        this.hostRouter.on('routeDidChange', this, this.keepSidebarOff);
     }
 
     deactivate() {
         super.deactivate(...arguments);
+        this.hostRouter.off('routeDidChange', this, this.keepSidebarOff);
         this.sidebar.enable?.();
+    }
+
+    keepSidebarOff() {
+        if ((this.hostRouter.currentRouteName ?? '').startsWith('console.extensions')) {
+            next(() => this.sidebar.disable?.());
+        }
     }
 
     model() {

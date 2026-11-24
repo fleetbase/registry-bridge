@@ -51,6 +51,8 @@ export default class RegistryExtensionModel extends Model {
     @attr('array') highlights;
     @attr('array') setup_steps;
     @attr('array') adds_to;
+    @attr('string') auto_update;
+    @attr('object') auto_update_last;
     /** `hosting`, `compat`, `package_names`, `publisher`, `licence`, `install_blocked_code`, `install_blocked_reason`, `purchase_available`, … */
     @attr('object') meta;
     @attr('boolean') core_extension;

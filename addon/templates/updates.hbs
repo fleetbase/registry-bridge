@@ -1,18 +1,40 @@
-<div class="rb-page" data-test-updates-page>
-    <h1 class="rb-page-title">{{t "registry-bridge.store.updates.title"}}</h1>
+<div class="rb-page rb-library" data-test-updates-page>
+    <div class="rb-library-head">
+        <h1 class="rb-page-title">{{t "registry-bridge.store.updates.title"}}</h1>
+    </div>
     {{#if this.isLoading}}
-        <div class="rb-list rb-skeleton" aria-busy="true"><Spinner /></div>
+        <div class="rb-loading" aria-busy="true"><Skeleton::Table @rows={{2}} @columns={{3}} @checkbox={{false}} /></div>
     {{else if this.error}}
-        <div class="rb-empty">
-            <p>{{t "registry-bridge.store.error"}}</p>
-            <Button @text={{t "registry-bridge.store.retry"}} @onClick={{this.retry}} />
-        </div>
-    {{else if this.rows.length}}
-        <Registry::ExtensionCollection @extensions={{this.rows}} @view="list" />
+        <InfoBlock @type="danger" @icon="triangle-exclamation">
+            <div class="font-semibold">{{t "registry-bridge.store.error"}}</div>
+            <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.store.retry"}} @onClick={{this.retry}} /></div>
+        </InfoBlock>
     {{else}}
-        <div class="rb-empty" data-test-updates-empty>
-            <FaIcon @icon="circle-check" @size="2x" class="rb-empty-icon" />
-            <p>{{t "registry-bridge.store.updates.none"}}</p>
+        {{#each this.rows as |extension|}}
+            <section class="rb-update-card" data-test-update-card={{extension.slug}}>
+                <div class="rb-update-head">
+                    <Registry::ExtensionIcon @extension={{extension}} @size="md" />
+                    <div class="rb-lib-id">
+                        <strong class="rb-update-name">{{extension.name}}</strong>
+                        <span class="rb-muted">{{t "registry-bridge.store.updates.from-to" from=extension.installed_version to=extension.latest_version}}</span>
+                    </div>
+                    <Registry::InstallButton @extension={{extension}} @size="md" />
+                </div>
+                <div class="rb-update-notes">
+                    <strong>{{t "registry-bridge.store.updates.whats-new"}}</strong>
+                    {{or extension.meta.latest_release.notes (t "registry-bridge.store.page.no-notes")}}
+                </div>
+                {{#if extension.auto_update}}
+                    <div class="rb-update-auto">
+                        <span class="rb-muted">{{t "registry-bridge.store.updates.auto"}}</span>
+                        <Cell::AutoUpdatePolicy @row={{extension}} />
+                    </div>
+                {{/if}}
+            </section>
+        {{/each}}
+        <div class="rb-empty {{if this.rows.length 'is-compact'}}" data-test-updates-empty>
+            <FaIcon @icon="circle-check" @size={{if this.rows.length "lg" "2x"}} class="rb-empty-icon" />
+            <p>{{if this.rows.length (t "registry-bridge.store.updates.rest-current") (t "registry-bridge.store.updates.none")}}</p>
         </div>
     {{/if}}
 </div>

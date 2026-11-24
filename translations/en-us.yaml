@@ -482,6 +482,10 @@ registry-bridge:
     updates:
       title: Updates
       none: Everything is up to date.
+      from-to: "{from} → {to}"
+      whats-new: "What's new:"
+      auto: Update automatically
+      rest-current: Everything else is up to date.
     error: Something went wrong loading your extensions.
     retry: Try again
     page:
@@ -524,6 +528,47 @@ registry-bridge:
       installed: "{name} is ready to use."
       updated: "{name} is up to date."
       failed: "{name} couldn't be installed. Nothing on your Fleetbase changed."
+      removed: "{name} was removed."
+      removed-paid: "{name} was removed. Your purchase stays; reinstall it from Purchased any time."
+      remove-failed: "{name} couldn't be removed. It is still installed and working."
     pill:
       installing: Installing {name} · {percent}%
       updating: Updating {name} · {percent}%
+      removing: Removing {name} · {percent}%
+    library:
+      installed-title: Installed
+      installed-empty: Nothing installed yet. Extensions you install show up here.
+      browse: Browse extensions
+      browse-paid: Browse paid extensions
+      purchased-title: Purchased
+      purchased-by: Bought by {organization}
+      purchased-sub: What your organization bought
+      purchased-note: Removing an extension never cancels what you paid for. Reinstall it here at no charge.
+      purchased-empty: Nothing bought yet.
+      updates-ready: "{count, plural, one {1 update ready.} other {# updates ready.}}"
+      update-for: "{name} {version} is out."
+      review-updates: Review updates
+      removing: Removing…
+      receipt: Receipt
+      plan:
+        free: Free
+        bought: Bought
+        renews: Renews {date}
+        refunded: Refunded
+        revoked: Revoked
+      status:
+        installed: Installed
+        not-installed: Not installed
+        update: Update ready
+        current: Up to date
+      remove:
+        label: Remove {name}
+        title: Remove {name}?
+        keep: Keep it
+        confirm: Remove
+        failed: "{name} couldn't be removed"
+        failed-body: Nothing changed. It is still installed and working.
+        effect:
+          default: "{name} stops working on your Fleetbase. Your data stays, and you can install it again any time."
+          in-app: "{name} leaves {app}. Your orders, drivers and history stay, and you can install it again any time."
+          paid: "{name} stops working here, but your purchase stays. Reinstall it from Purchased at no charge."

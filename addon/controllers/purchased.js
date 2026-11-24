@@ -25,6 +25,10 @@ export default class PurchasedController extends Controller {
     @tracked extensions = [];
     @tracked error = null;
 
+    get isLoading() {
+        return this.load.isRunning;
+    }
+
     get rows() {
         return (this.extensions ?? []).filter((extension) => matchesQuery(extension, this.query));
     }

@@ -46,7 +46,10 @@ export default class RegistryStoreNavComponent extends Component {
     get jobs() {
         return this.installJobs.running.map((job) => ({
             ...job,
-            label: this.intl.t(`registry-bridge.store.pill.${job.action === 'update' ? 'updating' : 'installing'}`, { name: job.name, percent: job.percent ?? 0 }),
+            label: this.intl.t(`registry-bridge.store.pill.${job.action === 'update' ? 'updating' : job.action === 'uninstall' ? 'removing' : 'installing'}`, {
+                name: job.name,
+                percent: job.percent ?? 0,
+            }),
         }));
     }
 

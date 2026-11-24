@@ -482,6 +482,10 @@ registry-bridge:
     updates:
       title: Cập nhật
       none: Mọi thứ đã được cập nhật.
+      from-to: "{from} → {to}"
+      whats-new: "Có gì mới:"
+      auto: Tự động cập nhật
+      rest-current: Mọi thứ khác đều mới nhất.
     error: Đã xảy ra lỗi khi tải tiện ích.
     retry: Thử lại
     page:
@@ -524,6 +528,47 @@ registry-bridge:
       installed: "{name} đã sẵn sàng."
       updated: "{name} đã được cập nhật."
       failed: Không thể cài {name}. Fleetbase của bạn không có gì thay đổi.
+      removed: "Đã gỡ {name}."
+      removed-paid: "Đã gỡ {name}. Giao dịch mua vẫn còn; cài lại từ mục Đã mua bất cứ lúc nào."
+      remove-failed: "Không thể gỡ {name}. Tiện ích vẫn được cài và hoạt động."
     pill:
       installing: Đang cài {name} · {percent}%
       updating: Đang cập nhật {name} · {percent}%
+      removing: Đang gỡ {name} · {percent}%
+    library:
+      installed-title: Đã cài
+      installed-empty: Chưa cài gì. Tiện ích bạn cài sẽ hiện ở đây.
+      browse: Duyệt tiện ích
+      browse-paid: Duyệt tiện ích trả phí
+      purchased-title: Đã mua
+      purchased-by: Do {organization} mua
+      purchased-sub: Những gì tổ chức của bạn đã mua
+      purchased-note: Gỡ tiện ích không hủy khoản bạn đã trả. Cài lại tại đây miễn phí.
+      purchased-empty: Chưa mua gì.
+      updates-ready: "{count, plural, other {# bản cập nhật sẵn sàng.}}"
+      update-for: "Đã có {name} {version}."
+      review-updates: Xem bản cập nhật
+      removing: Đang gỡ…
+      receipt: Biên nhận
+      plan:
+        free: Miễn phí
+        bought: Đã mua
+        renews: Gia hạn {date}
+        refunded: Đã hoàn tiền
+        revoked: Đã thu hồi
+      status:
+        installed: Đã cài
+        not-installed: Chưa cài
+        update: Có bản cập nhật
+        current: Mới nhất
+      remove:
+        label: Gỡ {name}
+        title: Gỡ {name}?
+        keep: Giữ lại
+        confirm: Gỡ
+        failed: Không thể gỡ {name}
+        failed-body: Không có gì thay đổi. Tiện ích vẫn được cài và hoạt động.
+        effect:
+          default: "{name} sẽ ngừng hoạt động trên Fleetbase của bạn. Dữ liệu vẫn được giữ, và bạn có thể cài lại bất cứ lúc nào."
+          in-app: "{name} sẽ rời khỏi {app}. Đơn hàng, tài xế và lịch sử vẫn được giữ, và bạn có thể cài lại bất cứ lúc nào."
+          paid: "{name} sẽ ngừng hoạt động ở đây, nhưng giao dịch mua vẫn còn. Cài lại từ mục Đã mua miễn phí."

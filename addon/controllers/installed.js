@@ -35,6 +35,15 @@ export default class InstalledController extends Controller {
         return (this.extensions ?? []).filter((extension) => matchesQuery(extension, this.query));
     }
 
+    get isLoading() {
+        return this.load.isRunning;
+    }
+
+    /** The first extension with an update, for the banner's one line. */
+    get firstUpdate() {
+        return (this.extensions ?? []).find((extension) => extension.update_available === true) ?? null;
+    }
+
     get updatesAvailable() {
         return (this.extensions ?? []).filter((extension) => extension.update_available === true).length;
     }

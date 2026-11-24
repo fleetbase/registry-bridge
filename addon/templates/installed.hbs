@@ -1,63 +1,35 @@
-<Layout::Resource::Tabular
-    @resource="registry-extension"
-    @title={{t "registry-bridge.installed.title"}}
-    @searchQuery={{this.query}}
-    @onSearch={{perform this.search}}
-    @data={{this.rows}}
-    @columns={{this.columns}}
-    @controller={{this}}
-    @selectable={{false}}
-    @canSelectAll={{false}}
-    @pagination={{false}}
-    @hideColumnsPicker={{not this.isTable}}
-    @onReload={{perform this.load}}
-    data-test-installed
->
-    <:header>
-        {{#if this.updatesAvailable}}
-            <Badge @status="info" @hideStatusDot={{true}} @disableHumanize={{true}} data-test-installed-updates>{{t "registry-bridge.installed.updates-available" count=this.updatesAvailable}}</Badge>
-        {{/if}}
-        <Button @icon={{if this.isTable "table-cells-large" "table-list"}} @size="xs" @helpText={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} @onClick={{fn this.setLayout (if this.isTable "grid" "table")}} aria-label={{if this.isTable (t "registry-bridge.explore.layout.grid") (t "registry-bridge.explore.layout.table")}} data-test-installed-layout />
-    </:header>
-    <:default as |rows|>
-        {{#if this.load.isRunning}}
-            <div class="p-4" aria-busy="true" data-test-installed-loading>
-                {{#if this.isTable}}<Skeleton::Table @rows={{7}} @columns={{6}} @checkbox={{false}} />{{else}}<Skeleton::CardsGrid @count={{8}} @columns={{4}} @hideMedia={{true}} @avatar={{true}} @status="badge" @lines={{2}} @footerActions={{1}} />{{/if}}
-            </div>
-        {{else if this.error}}
-            <div class="p-4" data-test-installed-error>
-                <InfoBlock @type="danger" @icon="triangle-exclamation">
-                    <div>{{t "registry-bridge.installed.error"}}</div>
-                    <div class="mt-2"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.common.retry"}} @onClick={{perform this.load}} /></div>
-                </InfoBlock>
-            </div>
-        {{else if this.isTable}}
-            <Table
-                @rows={{rows}}
-                @columns={{this.columns}}
-                @selectable={{false}}
-                @canSelectAll={{false}}
-                @pagination={{false}}
-                @searchQuery={{this.query}}
-                @emptyStateComponent={{component
-                    "table/empty-state"
-                    icon="inbox"
-                    title=(t "registry-bridge.installed.empty.title")
-                    description=(t "registry-bridge.installed.empty.body")
-                    filteredTitle=(t "registry-bridge.installed.empty.filtered")
-                    primaryText=(t "registry-bridge.installed.empty.explore")
-                    primaryIcon="shapes"
-                    primaryAction=this.explore
-                    secondaryText=(t "registry-bridge.installed.empty.purchased")
-                    secondaryIcon="bag-shopping"
-                    secondaryAction=this.purchased
-                }}
-                data-test-installed-table
-            />
-        {{else}}
-            <Layout::Resource::CardsGrid @resource="registry-extension" @data={{rows}} @gap="sm" @columns="4" @containerClass="p-4" @emptyStateText={{t "registry-bridge.installed.empty.body"}} as |Item|>
-                <ExtensionCard @resource={{Item.model}} />
-            </Layout::Resource::CardsGrid>
-        {{/if}}
-    </:default>
-</Layout::Resource::Tabular>
+<div class="rb-page rb-library" data-test-installed-page>
+    <div class="rb-library-head">
+        <h1 class="rb-page-title">{{t "registry-bridge.store.library.installed-title"}}</h1>
+        {{#if this.extensions.length}}<span class="rb-muted">{{t "registry-bridge.store.results.count" count=this.extensions.length}}</span>{{/if}}
+    </div>
+
+    {{#if this.firstUpdate}}
+        <div class="rb-banner" data-test-updates-banner>
+            <span class="rb-banner-title">{{t "registry-bridge.store.library.updates-ready" count=this.updatesAvailable}}</span>
+            <span class="rb-muted">{{t "registry-bridge.store.library.update-for" name=this.firstUpdate.name version=this.firstUpdate.latest_version}}</span>
+            <LinkTo @route="updates" class="rb-btn rb-btn-primary rb-banner-action">{{t "registry-bridge.store.library.review-updates"}}</LinkTo>
+        </div>
+    {{/if}}
+
+    {{#if this.isLoading}}
+        <div class="rb-loading" aria-busy="true"><Skeleton::Table @rows={{4}} @columns={{4}} @checkbox={{false}} /></div>
+    {{else if this.error}}
+        <InfoBlock @type="danger" @icon="triangle-exclamation">
+            <div class="font-semibold">{{t "registry-bridge.store.error"}}</div>
+            <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.store.retry"}} @onClick={{perform this.load}} /></div>
+        </InfoBlock>
+    {{else if this.extensions.length}}
+        <div class="rb-lib-list" role="list">
+            {{#each this.extensions as |extension|}}
+                <Registry::LibraryRow @extension={{extension}} />
+            {{/each}}
+        </div>
+    {{else}}
+        <div class="rb-empty" data-test-installed-empty>
+            <FaIcon @icon="shapes" @size="2x" class="rb-muted" />
+            <p>{{t "registry-bridge.store.library.installed-empty"}}</p>
+            <LinkTo @route="explore" class="rb-btn rb-btn-primary">{{t "registry-bridge.store.library.browse"}}</LinkTo>
+        </div>
+    {{/if}}
+</div>

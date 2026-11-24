@@ -482,6 +482,10 @@ registry-bridge:
     updates:
       title: التحديثات
       none: كل شيء محدَّث.
+      from-to: "{from} → {to}"
+      whats-new: "الجديد:"
+      auto: التحديث تلقائياً
+      rest-current: كل ما عدا ذلك محدَّث.
     error: حدث خطأ أثناء تحميل الإضافات.
     retry: حاول مرة أخرى
     page:
@@ -524,6 +528,47 @@ registry-bridge:
       installed: "{name} جاهز للاستخدام."
       updated: "{name} محدَّث."
       failed: تعذّر تثبيت {name}. لم يتغير شيء في Fleetbase لديك.
+      removed: "أُزيل {name}."
+      removed-paid: "أُزيل {name}. مشترياتك باقية؛ أعد تثبيته من المشتراة في أي وقت."
+      remove-failed: "تعذّرت إزالة {name}. ما زال مثبّتاً ويعمل."
     pill:
       installing: جارٍ تثبيت {name} · {percent}%
       updating: جارٍ تحديث {name} · {percent}%
+      removing: جارٍ إزالة {name} · {percent}%
+    library:
+      installed-title: المثبّتة
+      installed-empty: لا شيء مثبّت بعد. ستظهر هنا الإضافات التي تثبّتها.
+      browse: تصفّح الإضافات
+      browse-paid: تصفّح الإضافات المدفوعة
+      purchased-title: المشتراة
+      purchased-by: اشترتها {organization}
+      purchased-sub: ما اشترته مؤسستك
+      purchased-note: إزالة الإضافة لا تلغي ما دفعته. أعد تثبيتها من هنا مجاناً.
+      purchased-empty: لم تشترِ شيئاً بعد.
+      updates-ready: "{count, plural, one {تحديث واحد جاهز.} other {# تحديثات جاهزة.}}"
+      update-for: "صدر {name} {version}."
+      review-updates: مراجعة التحديثات
+      removing: جارٍ الإزالة…
+      receipt: الإيصال
+      plan:
+        free: مجاني
+        bought: مشتراة
+        renews: تتجدد في {date}
+        refunded: مستردّة
+        revoked: ملغاة
+      status:
+        installed: مثبّتة
+        not-installed: غير مثبّتة
+        update: تحديث جاهز
+        current: محدَّثة
+      remove:
+        label: إزالة {name}
+        title: إزالة {name}؟
+        keep: إبقاؤها
+        confirm: إزالة
+        failed: تعذّرت إزالة {name}
+        failed-body: لم يتغير شيء. ما زالت مثبّتة وتعمل.
+        effect:
+          default: "سيتوقف {name} عن العمل في Fleetbase لديك. تبقى بياناتك، ويمكنك تثبيته مجدداً في أي وقت."
+          in-app: "سيُزال {name} من {app}. تبقى طلباتك وسائقوك وسجلّك، ويمكنك تثبيته مجدداً في أي وقت."
+          paid: "سيتوقف {name} عن العمل هنا، لكن مشترياتك تبقى. أعد تثبيته من المشتراة مجاناً."

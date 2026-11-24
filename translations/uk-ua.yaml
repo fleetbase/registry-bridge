@@ -482,6 +482,10 @@ registry-bridge:
     updates:
       title: Оновлення
       none: Усе оновлено.
+      from-to: "{from} → {to}"
+      whats-new: "Що нового:"
+      auto: Оновлювати автоматично
+      rest-current: Усе інше оновлено.
     error: Не вдалося завантажити розширення.
     retry: Спробувати ще раз
     page:
@@ -524,6 +528,47 @@ registry-bridge:
       installed: "{name} готове до роботи."
       updated: "{name} оновлено."
       failed: Не вдалося встановити {name}. У вашому Fleetbase нічого не змінилося.
+      removed: "{name} видалено."
+      removed-paid: "{name} видалено. Покупка залишається; встановіть його знову з розділу «Придбані» будь-коли."
+      remove-failed: "Не вдалося видалити {name}. Розширення встановлене й працює."
     pill:
       installing: Встановлення {name} · {percent}%
       updating: Оновлення {name} · {percent}%
+      removing: Видалення {name} · {percent}%
+    library:
+      installed-title: Встановлені
+      installed-empty: Поки нічого не встановлено. Тут з'являться встановлені розширення.
+      browse: Переглянути розширення
+      browse-paid: Переглянути платні розширення
+      purchased-title: Придбані
+      purchased-by: Придбано {organization}
+      purchased-sub: Що придбала ваша організація
+      purchased-note: Видалення розширення не скасовує оплату. Встановіть його знову тут безкоштовно.
+      purchased-empty: Ще нічого не придбано.
+      updates-ready: "{count, plural, one {# оновлення готове.} few {# оновлення готові.} many {# оновлень готові.} other {# оновлень готові.}}"
+      update-for: "Вийшла версія {name} {version}."
+      review-updates: Переглянути оновлення
+      removing: Видалення…
+      receipt: Квитанція
+      plan:
+        free: Безкоштовно
+        bought: Придбано
+        renews: Поновлюється {date}
+        refunded: Повернено
+        revoked: Відкликано
+      status:
+        installed: Встановлено
+        not-installed: Не встановлено
+        update: Є оновлення
+        current: Оновлено
+      remove:
+        label: Видалити {name}
+        title: Видалити {name}?
+        keep: Залишити
+        confirm: Видалити
+        failed: Не вдалося видалити {name}
+        failed-body: Нічого не змінилося. Розширення встановлене й працює.
+        effect:
+          default: "{name} перестане працювати у вашому Fleetbase. Ваші дані залишаться, і ви зможете встановити його знову будь-коли."
+          in-app: "{name} зникне з {app}. Ваші замовлення, водії та історія залишаться, і ви зможете встановити його знову будь-коли."
+          paid: "{name} перестане працювати тут, але покупка залишиться. Встановіть його знову з розділу «Придбані» безкоштовно."
