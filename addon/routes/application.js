@@ -30,6 +30,9 @@ export default class ApplicationRoute extends Route {
     activate() {
         super.activate(...arguments);
         this.sidebar.disable?.();
+        // The module's styles hide the console sidebar while this class is on the body (see .rb-store-open); the
+        // sidebar service alone leaves its space behind on a fresh load.
+        document.body.classList.add('rb-store-open');
         this.hostRouter.on('routeDidChange', this, this.keepSidebarOff);
         this.keepSidebarOff();
     }
@@ -37,6 +40,7 @@ export default class ApplicationRoute extends Route {
     deactivate() {
         super.deactivate(...arguments);
         this.hostRouter.off('routeDidChange', this, this.keepSidebarOff);
+        document.body.classList.remove('rb-store-open');
         this.sidebar.enable?.();
     }
 

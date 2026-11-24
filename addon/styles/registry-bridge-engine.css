@@ -2329,3 +2329,9 @@ body[data-theme='dark'] .rb-banner {
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* While Extensions is open (the application route adds the class) the console sidebar is gone: the module has its
+   own tab bar, and the sidebar service alone leaves the sidebar's space behind on a fresh load. */
+body.rb-store-open .next-sidebar {
+    display: none !important;
+}
