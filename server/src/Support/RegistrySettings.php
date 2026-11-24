@@ -101,8 +101,31 @@ class RegistrySettings
 
         $config->set('registry-bridge.registry', array_merge(
             (array) $config->get('registry-bridge.registry', []),
-            static::merge(static::$defaults, $stored, $container->make('encrypter'))
+            static::merge(static::$defaults, $stored, static::encrypterFor($stored, $container))
         ));
+    }
+
+    /**
+     * The app's encrypter, resolved only when an instance token is stored. Without a token nothing is decrypted, so
+     * artisan commands run on an instance that has no APP_KEY yet (`key:generate`, `migrate:status` in CI) instead of
+     * failing at boot. When the key is missing or invalid the stored token cannot be read and is treated as absent.
+     *
+     * @param array<string, mixed> $stored setting key => stored value
+     */
+    protected static function encrypterFor(array $stored, Container $container): ?StringEncrypter
+    {
+        $token = $stored[InstanceRegistration::SETTING_INSTANCE_TOKEN] ?? null;
+        if (!is_string($token) || $token === '') {
+            return null;
+        }
+
+        try {
+            $encrypter = $container->make('encrypter');
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return $encrypter instanceof StringEncrypter ? $encrypter : null;
     }
 
     /**
@@ -130,7 +153,7 @@ class RegistrySettings
      *
      * @return array<string, mixed> config key => value
      */
-    public static function merge(array $defaults, array $stored, StringEncrypter $encrypter): array
+    public static function merge(array $defaults, array $stored, ?StringEncrypter $encrypter): array
     {
         $values = [];
         foreach (static::KEYS as $setting => $key) {
