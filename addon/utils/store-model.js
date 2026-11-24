@@ -61,7 +61,7 @@ export function progressOf(progress) {
     }
     percent = Math.max(0, Math.min(100, Math.round(percent)));
 
-    let stage = STAGES.includes(progress.stage) ? progress.stage : PHASE_STAGES[progress.phase] ?? null;
+    let stage = STAGES.includes(progress.stage) ? progress.stage : (PHASE_STAGES[progress.phase] ?? null);
     if (!stage) {
         stage = percent < 30 ? 'downloading' : percent < 90 ? 'installing' : 'finishing';
     }
