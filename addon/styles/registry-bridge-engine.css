@@ -477,3 +477,471 @@ body[data-theme='dark'] .extension-panel-viewer-image {
 .extension-installer-step .fa-spin {
     animation: none;
 }
+
+/* ------------------------------------------------------------------------------------------------------------------
+ * Extensions redesign (Round 2 · A + B + D): icons, tiles, rows, the view toggle, the verdict and the install button.
+ * Light by default; body[data-theme='dark'] swaps the tokens. Components: addon/components/registry/*.
+ * ---------------------------------------------------------------------------------------------------------------- */
+:root {
+    --rb-surface: #ffffff;
+    --rb-surface-2: #f9fafb;
+    --rb-line: #e5e7eb;
+    --rb-line-strong: #d1d5db;
+    --rb-ink: #111827;
+    --rb-ink-2: #374151;
+    --rb-muted: #6b7280;
+    --rb-primary: #2563eb;
+    --rb-primary-ink: #ffffff;
+    --rb-primary-track: #1e3a8a; /* the unfilled part of the progress button; the white label stays readable on both parts */
+    --rb-secondary-bg: #f3f4f6;
+    --rb-secondary-ink: #1f2937;
+    --rb-link: #2563eb;
+    --rb-ok: #15803d;
+    --rb-ok-bg: #f0fdf4;
+    --rb-ok-line: #bbf7d0;
+    --rb-warn: #b45309;
+    --rb-warn-bg: #fffbeb;
+    --rb-warn-line: #fde68a;
+    --rb-bad: #b91c1c;
+    --rb-bad-bg: #fef2f2;
+    --rb-bad-line: #fecaca;
+    --rb-verified: #2563eb;
+}
+
+body[data-theme='dark'] {
+    --rb-surface: #1f2937;
+    --rb-surface-2: #161e2c;
+    --rb-line: #273244;
+    --rb-line-strong: #374151;
+    --rb-ink: #f9fafb;
+    --rb-ink-2: #d1d5db;
+    --rb-muted: #9ca3af;
+    --rb-primary: #2563eb;
+    --rb-primary-ink: #ffffff;
+    --rb-primary-track: #1e3a8a;
+    --rb-secondary-bg: #374151;
+    --rb-secondary-ink: #e5e7eb;
+    --rb-link: #60a5fa;
+    --rb-ok: #86efac;
+    --rb-ok-bg: #10241d;
+    --rb-ok-line: #14532d;
+    --rb-warn: #fcd34d;
+    --rb-warn-bg: #2a2410;
+    --rb-warn-line: #713f12;
+    --rb-bad: #fca5a5;
+    --rb-bad-bg: #2a1a1f;
+    --rb-bad-line: #7f1d1d;
+    --rb-verified: #60a5fa;
+}
+
+.rb-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
+}
+
+.rb-icon > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rb-name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rb-ink);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rb-name:hover {
+    color: var(--rb-link);
+}
+
+.rb-name:focus-visible {
+    outline: 2px solid var(--rb-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* The name's hit area covers the whole tile or row; the install button sits above it. */
+.rb-stretch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+
+.rb-above {
+    position: relative;
+    z-index: 1;
+}
+
+.rb-publisher {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--rb-muted);
+    font-size: 12px;
+}
+
+.rb-verified {
+    color: var(--rb-verified);
+}
+
+.rb-chip {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rb-line-strong);
+    background: var(--rb-surface-2);
+    color: var(--rb-muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* Cards */
+.rb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+}
+
+.rb-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--rb-line);
+    border-radius: 12px;
+    background: var(--rb-surface);
+    font-size: 13px;
+    transition:
+        border-color 120ms,
+        box-shadow 120ms;
+}
+
+.rb-tile:hover {
+    border-color: var(--rb-line-strong);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+}
+
+.rb-tile-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.rb-tile-id {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.rb-tile-id .rb-name {
+    font-size: 14px;
+}
+
+.rb-tile-blurb {
+    margin: 0;
+    min-height: 38px;
+    color: var(--rb-ink-2);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rb-tile-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.rb-tile-foot .rb-install-btn {
+    margin-left: auto;
+}
+
+/* List rows */
+.rb-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--rb-line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--rb-surface);
+}
+
+.rb-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rb-line);
+    font-size: 13px;
+}
+
+.rb-row:last-child {
+    border-bottom: 0;
+}
+
+.rb-row:hover {
+    background: var(--rb-surface-2);
+}
+
+.rb-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.rb-row-main .rb-name {
+    font-size: 14px;
+}
+
+.rb-row-blurb {
+    color: var(--rb-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rb-row-col {
+    flex: none;
+    color: var(--rb-muted);
+    font-size: 12px;
+}
+
+.rb-row-category {
+    width: 130px;
+}
+
+.rb-row-publisher {
+    width: 120px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rb-row-verdict {
+    width: 160px;
+}
+
+@media (max-width: 900px) {
+    .rb-row-category,
+    .rb-row-publisher,
+    .rb-row-verdict {
+        display: none;
+    }
+}
+
+/* Cards / list */
+.rb-view-toggle {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--rb-line-strong);
+    border-radius: 8px;
+    background: var(--rb-surface);
+}
+
+.rb-view-toggle-btn {
+    width: 30px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--rb-muted);
+    cursor: pointer;
+}
+
+.rb-view-toggle-btn.is-on {
+    background: var(--rb-secondary-bg);
+    color: var(--rb-ink);
+}
+
+.rb-view-toggle-btn:focus-visible {
+    outline: 2px solid var(--rb-primary);
+    outline-offset: 1px;
+}
+
+/* Verdict */
+.rb-verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.rb-verdict.is-ready {
+    color: var(--rb-ok);
+}
+
+.rb-verdict.is-needs_update {
+    color: var(--rb-warn);
+}
+
+.rb-verdict.is-unavailable {
+    color: var(--rb-muted);
+}
+
+.rb-verdict-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--rb-line);
+    font-size: 13px;
+}
+
+.rb-verdict-card.is-ready {
+    background: var(--rb-ok-bg);
+    border-color: var(--rb-ok-line);
+}
+
+.rb-verdict-card.is-needs_update {
+    background: var(--rb-warn-bg);
+    border-color: var(--rb-warn-line);
+}
+
+.rb-verdict-card.is-unavailable {
+    background: var(--rb-surface-2);
+}
+
+.rb-verdict-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.rb-verdict-card.is-ready .rb-verdict-card-title {
+    color: var(--rb-ok);
+}
+
+.rb-verdict-card.is-needs_update .rb-verdict-card-title {
+    color: var(--rb-warn);
+}
+
+.rb-verdict-card-reason {
+    margin: 0;
+    color: var(--rb-ink-2);
+    line-height: 1.5;
+}
+
+.rb-verdict-card-details summary {
+    cursor: pointer;
+    color: var(--rb-muted);
+    font-size: 12px;
+}
+
+.rb-verdict-card-details ul {
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--rb-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+}
+
+/* The install button: Get, Buy, Update, Open, disabled states, and the progress bar it becomes. */
+.rb-install-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    overflow: hidden;
+    border: 0;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 120ms,
+        box-shadow 120ms;
+}
+
+.rb-install-btn-sm {
+    height: 28px;
+    min-width: 64px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.rb-install-btn-md {
+    height: 34px;
+    min-width: 110px;
+    padding: 0 18px;
+    font-size: 13px;
+}
+
+.rb-install-btn-lg {
+    height: 38px;
+    min-width: 160px;
+    padding: 0 24px;
+    font-size: 14px;
+}
+
+.rb-install-btn.is-primary {
+    background: var(--rb-primary);
+    color: var(--rb-primary-ink);
+}
+
+.rb-install-btn.is-primary:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.rb-install-btn.is-secondary {
+    background: var(--rb-secondary-bg);
+    color: var(--rb-secondary-ink);
+}
+
+.rb-install-btn:disabled {
+    background: transparent;
+    color: var(--rb-muted);
+    box-shadow: inset 0 0 0 1px var(--rb-line-strong);
+    cursor: not-allowed;
+}
+
+.rb-install-btn:focus-visible {
+    outline: 2px solid var(--rb-primary);
+    outline-offset: 2px;
+}
+
+.rb-install-btn.is-progress {
+    background: var(--rb-primary-track);
+    color: var(--rb-primary-ink);
+    cursor: default;
+}
+
+.rb-install-btn-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--rb-primary);
+    transition: width 300ms ease;
+}
+
+.rb-install-btn-label {
+    position: relative;
+}

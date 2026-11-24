@@ -1,0 +1,24 @@
+<div class="rb-view-toggle" role="group" aria-label={{t "registry-bridge.store.view.label"}} data-test-view-toggle ...attributes>
+    <button
+        type="button"
+        class="rb-view-toggle-btn {{if this.isCards 'is-on'}}"
+        aria-pressed={{if this.isCards "true" "false"}}
+        title={{t "registry-bridge.store.view.cards"}}
+        {{on "click" (fn this.pick "cards")}}
+        data-test-view-cards
+    >
+        <FaIcon @icon="grip" @size="sm" />
+        <span class="sr-only">{{t "registry-bridge.store.view.cards"}}</span>
+    </button>
+    <button
+        type="button"
+        class="rb-view-toggle-btn {{if this.isList 'is-on'}}"
+        aria-pressed={{if this.isList "true" "false"}}
+        title={{t "registry-bridge.store.view.list"}}
+        {{on "click" (fn this.pick "list")}}
+        data-test-view-list
+    >
+        <FaIcon @icon="list" @size="sm" />
+        <span class="sr-only">{{t "registry-bridge.store.view.list"}}</span>
+    </button>
+</div>

@@ -407,3 +407,37 @@ registry-bridge:
       default-ready: Працює з вашим Fleetbase.
       default-needs_update: Перед встановленням цього розширення Fleetbase потрібно оновити.
       default-unavailable: Це розширення не можна встановити на цей Fleetbase.
+  store:
+    verified: Перевірений видавець
+    view:
+      label: Вигляд
+      cards: Картки
+      list: Список
+    button:
+      get: Отримати
+      get-free: Отримати · Безкоштовно
+      buy: Купити · {price}
+      downloading: Завантаження… {percent}%
+      installing: Встановлення… {percent}%
+      finishing: Завершення…
+      open: Відкрити
+      update: Оновити
+      blocked: Поки не можна встановити
+      unavailable: Недоступно
+      registration: Не підключено
+      unauthorized: Зверніться до адміністратора
+      hint:
+        blocked: Потрібна новіша версія Fleetbase. Попросіть адміністратора Fleetbase оновити її.
+        unavailable: Це розширення недоступне для вашого налаштування.
+        registration: Спершу підключіть цей Fleetbase до реєстру розширень.
+        unauthorized: Ваша роль не дозволяє встановлювати розширення. Зверніться до адміністратора.
+    verdict:
+      details: Показати подробиці
+      inline:
+        ready: Працює з вашим Fleetbase
+        needs_update: Потрібне оновлення Fleetbase
+        unavailable: Недоступно для вашого налаштування
+      short:
+        ready: Працює у вас
+        needs_update: Потрібне оновлення
+        unavailable: Недоступно

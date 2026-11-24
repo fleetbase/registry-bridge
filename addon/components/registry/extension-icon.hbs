@@ -1,0 +1,7 @@
+<span class="rb-icon" style={{this.style}} aria-hidden="true" data-test-extension-icon ...attributes>
+    {{#if this.src}}
+        <img src={{this.src}} alt="" loading="lazy" {{on "error" this.onError}} />
+    {{else}}
+        {{this.monogram.letter}}
+    {{/if}}
+</span>

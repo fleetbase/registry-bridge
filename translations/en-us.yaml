@@ -407,3 +407,37 @@ registry-bridge:
       default-ready: Works with your Fleetbase.
       default-needs_update: Fleetbase needs an update before this extension can be installed.
       default-unavailable: "This extension can't be installed on this Fleetbase."
+  store:
+    verified: Verified publisher
+    view:
+      label: View
+      cards: Cards
+      list: List
+    button:
+      get: Get
+      get-free: Get · Free
+      buy: Buy · {price}
+      downloading: Downloading… {percent}%
+      installing: Installing… {percent}%
+      finishing: Finishing up…
+      open: Open
+      update: Update
+      blocked: "Can't install yet"
+      unavailable: Not available
+      registration: Not connected
+      unauthorized: Ask an admin
+      hint:
+        blocked: This needs a newer Fleetbase. Ask whoever runs your Fleetbase to update it.
+        unavailable: This extension isn't available for your setup.
+        registration: Connect this Fleetbase to the extensions registry first.
+        unauthorized: "Your role can't install extensions. Ask an admin."
+    verdict:
+      details: Show details
+      inline:
+        ready: Works with your Fleetbase
+        needs_update: Needs a Fleetbase update
+        unavailable: Not available for your setup
+      short:
+        ready: Works with yours
+        needs_update: Needs an update
+        unavailable: Not available

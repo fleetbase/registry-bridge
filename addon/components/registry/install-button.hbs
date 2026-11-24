@@ -1,0 +1,32 @@
+{{#if this.isProgress}}
+    <div
+        class="rb-install-btn rb-install-btn-{{this.size}} is-progress"
+        role="progressbar"
+        aria-label={{this.label}}
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow={{this.state.percent}}
+        data-test-install-button="progress"
+        data-stage={{this.state.stage}}
+        ...attributes
+    >
+        <span class="rb-install-btn-fill" style={{this.fillStyle}}></span>
+        <span class="rb-install-btn-label">{{this.label}}</span>
+    </div>
+{{else}}
+    <button
+        type="button"
+        class="rb-install-btn rb-install-btn-{{this.size}} {{if this.state.primary 'is-primary' 'is-secondary'}}"
+        disabled={{this.state.disabled}}
+        title={{this.hint}}
+        aria-describedby={{if this.hint this.hintId}}
+        {{on "click" this.run}}
+        data-test-install-button={{this.state.kind}}
+        ...attributes
+    >
+        <span class="rb-install-btn-label">{{this.label}}</span>
+    </button>
+    {{#if this.hint}}
+        <span id={{this.hintId}} class="sr-only">{{this.hint}}</span>
+    {{/if}}
+{{/if}}

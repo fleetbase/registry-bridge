@@ -407,3 +407,37 @@ registry-bridge:
       default-ready: يعمل مع Fleetbase لديك.
       default-needs_update: يحتاج Fleetbase إلى تحديث قبل تثبيت هذه الإضافة.
       default-unavailable: لا يمكن تثبيت هذه الإضافة على Fleetbase هذا.
+  store:
+    verified: ناشر موثّق
+    view:
+      label: العرض
+      cards: بطاقات
+      list: قائمة
+    button:
+      get: احصل عليه
+      get-free: احصل عليه · مجاناً
+      buy: شراء · {price}
+      downloading: جارٍ التنزيل… {percent}%
+      installing: جارٍ التثبيت… {percent}%
+      finishing: جارٍ الإنهاء…
+      open: فتح
+      update: تحديث
+      blocked: لا يمكن التثبيت بعد
+      unavailable: غير متاح
+      registration: غير متصل
+      unauthorized: اطلب من المسؤول
+      hint:
+        blocked: تحتاج هذه الإضافة إلى إصدار أحدث من Fleetbase. اطلب من مسؤول Fleetbase تحديثه.
+        unavailable: هذه الإضافة غير متاحة لإعدادك.
+        registration: اربط Fleetbase هذا بسجل الإضافات أولاً.
+        unauthorized: لا يسمح دورك بتثبيت الإضافات. اطلب من المسؤول.
+    verdict:
+      details: عرض التفاصيل
+      inline:
+        ready: يعمل مع Fleetbase لديك
+        needs_update: يحتاج إلى تحديث Fleetbase
+        unavailable: غير متاح لإعدادك
+      short:
+        ready: يعمل لديك
+        needs_update: يحتاج إلى تحديث
+        unavailable: غير متاح

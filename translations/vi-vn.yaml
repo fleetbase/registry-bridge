@@ -407,3 +407,37 @@ registry-bridge:
       default-ready: Tương thích với Fleetbase của bạn.
       default-needs_update: Cần cập nhật Fleetbase trước khi cài tiện ích này.
       default-unavailable: Không thể cài tiện ích này trên Fleetbase này.
+  store:
+    verified: Nhà phát hành đã xác minh
+    view:
+      label: Chế độ xem
+      cards: Thẻ
+      list: Danh sách
+    button:
+      get: Nhận
+      get-free: Nhận · Miễn phí
+      buy: Mua · {price}
+      downloading: Đang tải… {percent}%
+      installing: Đang cài… {percent}%
+      finishing: Đang hoàn tất…
+      open: Mở
+      update: Cập nhật
+      blocked: Chưa thể cài
+      unavailable: Không khả dụng
+      registration: Chưa kết nối
+      unauthorized: Hỏi quản trị viên
+      hint:
+        blocked: Cần phiên bản Fleetbase mới hơn. Hãy nhờ người quản lý Fleetbase cập nhật.
+        unavailable: Tiện ích này không khả dụng cho thiết lập của bạn.
+        registration: Hãy kết nối Fleetbase này với kho tiện ích trước.
+        unauthorized: Vai trò của bạn không thể cài tiện ích. Hãy hỏi quản trị viên.
+    verdict:
+      details: Xem chi tiết
+      inline:
+        ready: Hoạt động với Fleetbase của bạn
+        needs_update: Cần cập nhật Fleetbase
+        unavailable: Không khả dụng cho thiết lập của bạn
+      short:
+        ready: Hoạt động với bạn
+        needs_update: Cần cập nhật
+        unavailable: Không khả dụng
