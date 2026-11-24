@@ -289,11 +289,24 @@ class ServiceCatalog
         $state['console']  = app()->bound(InstallerConfig::class) ? static::consoleState(app(InstallerConfig::class)) : null;
         $state['versions'] = [
             'api'        => InstanceRegistration::detectApiVersion(),
-            'console'    => $state['console']['console_version'] ?? InstanceRegistration::detectConsoleVersion(is_string(config('fleetbase.console.path')) ? config('fleetbase.console.path') : null),
+            'console'    => $state['console']['console_version'] ?? InstanceRegistration::detectConsoleVersion(static::consolePath()),
             'extensions' => static::installedExtensions($state['console'], $state['local_packages']),
         ];
 
         return $state;
+    }
+
+    /**
+     * The console path from config, when config is available (it is not in framework-free unit tests).
+     */
+    protected static function consolePath(): ?string
+    {
+        if (!function_exists('app') || !app()->bound('config')) {
+            return null;
+        }
+        $path = config('fleetbase.console.path');
+
+        return is_string($path) ? $path : null;
     }
 
     /**
