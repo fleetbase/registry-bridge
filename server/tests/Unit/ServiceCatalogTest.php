@@ -328,3 +328,40 @@ test('lookup resolves npm and Composer names, slugs and ids from the catalog', f
     expect(ServiceCatalog::lookup('@acme/unknown-engine', $client))->toBeNull()
         ->and(ServiceCatalog::lookup('unknown', $client))->toBeNull();
 });
+
+test('a listing carries featured, highlights, setup steps and the extensions it adds to', function () {
+    $listing = array_merge(RegistryServiceFake::body('catalog-extension'), [
+        'is_featured'         => true,
+        'featured_at'         => '2026-11-24T05:37:31.000000Z',
+        'highlights'          => ['Live vehicle positions', '  ', 'Trips and fuel'],
+        'setup_steps'         => ['Open Settings', 'Paste your key'],
+        'compat'              => ['console' => '>=0.7', 'extensions' => ['@fleetbase/fleetops-engine' => '>=0.6', '@acme/route-tools-engine' => '^1.0']],
+        'requires_extensions' => [['package' => '@acme/route-tools-engine', 'range' => '^1.0', 'name' => 'Acme Routes', 'slug' => 'acme-routes']],
+    ]);
+    $state = array_merge(registeredState(), ['versions' => ['console' => '0.8.1', 'extensions' => ['@fleetbase/fleetops-engine' => '0.6.4']]]);
+
+    $mapped = ServiceCatalog::transform($listing, $state);
+
+    expect($mapped['is_featured'])->toBeTrue()
+        ->and($mapped['featured_at'])->toBe('2026-11-24T05:37:31.000000Z')
+        ->and($mapped['highlights'])->toBe(['Live vehicle positions', 'Trips and fuel'])
+        ->and($mapped['setup_steps'])->toBe(['Open Settings', 'Paste your key'])
+        ->and($mapped['adds_to'])->toBe([['package' => '@fleetbase/fleetops-engine', 'name' => 'Fleet-Ops'], ['package' => '@acme/route-tools-engine', 'name' => 'Acme Routes']])
+        ->and($mapped['meta']['compatibility'])->toMatchArray(['verdict' => 'unavailable', 'reason' => 'missing_extension'])
+        ->and($mapped['meta']['compatibility']['missing'])->toBe([['package' => '@acme/route-tools-engine', 'name' => 'Acme Routes', 'range' => '^1.0']]);
+
+    // Without them: not featured, empty lists, adds to nothing.
+    $plain = ServiceCatalog::transform(RegistryServiceFake::body('catalog-extension'));
+    expect($plain['is_featured'])->toBeFalse()
+        ->and($plain['featured_at'])->toBeNull()
+        ->and($plain['highlights'])->toBe([])
+        ->and($plain['setup_steps'])->toBe([])
+        ->and($plain['adds_to'])->toBe([]);
+});
+
+test('Explore passes featured and the featured sort to the service', function () {
+    expect(ServiceCatalog::catalogFilters(Request::create('/registry-extensions', 'GET', ['explore' => 1, 'query' => ' demo ', 'featured' => 'true', 'sort' => 'featured'])))
+        ->toBe(['q' => 'demo', 'sort' => 'featured', 'featured' => '1'])
+        ->and(ServiceCatalog::catalogFilters(Request::create('/registry-extensions', 'GET', ['featured' => '0', 'sort' => 'bogus'])))->toBe([])
+        ->and(ServiceCatalog::sortFilter('Featured'))->toBe('featured');
+});

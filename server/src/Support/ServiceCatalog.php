@@ -33,6 +33,18 @@ class ServiceCatalog
 
     public const MAX_LIMIT = 100;
 
+    /** Product names of the core console extensions, by package name without scope and `-engine`. */
+    public const CORE_EXTENSION_NAMES = [
+        'fleetops'        => 'Fleet-Ops',
+        'storefront'      => 'Storefront',
+        'ledger'          => 'Ledger',
+        'customer-portal' => 'Customer Portal',
+        'pallet'          => 'Pallet',
+        'valhalla'        => 'Valhalla',
+        'vroom'           => 'VROOM',
+        'ai'              => 'AI',
+    ];
+
     /**
      * One page of Explore, mapped, with the Explore request parameters (`query`, `category`, `page`, `limit`).
      *
@@ -48,19 +60,10 @@ class ServiceCatalog
      */
     public static function query(Request $request, RegistryClient $client, RegistryConfig $config, array $localPackages = []): LengthAwarePaginator
     {
-        $search        = trim(static::str($request->input('query', '')));
-        $category      = trim(static::str($request->input('category', '')));
         $limit         = static::int($request->input('limit', static::DEFAULT_LIMIT), static::DEFAULT_LIMIT);
         $page          = max(1, static::int($request->input('page', 1), 1));
         $hideInstalled = Utils::castBoolean($request->input('hide_installed', false)) === true;
-
-        $filters = array_filter([
-            'q'        => $search,
-            'category' => $category,
-            'pricing'  => static::pricingFilter($request->input('pricing')),
-            'hosting'  => static::hostingFilter($request->input('hosting')),
-            'sort'     => static::sortFilter($request->input('sort')),
-        ], fn ($value) => $value !== '');
+        $filters       = static::catalogFilters($request);
 
         $state = static::state($client, $config, $localPackages);
 
@@ -238,6 +241,24 @@ class ServiceCatalog
     }
 
     /**
+     * The service catalog filters from the Explore request: `q` (from `query`), `category`, `pricing`, `hosting`,
+     * `sort` and `featured` (`1`: staff-featured listings only; `sort=featured` lists them first instead).
+     *
+     * @return array<string, string>
+     */
+    public static function catalogFilters(Request $request): array
+    {
+        return array_filter([
+            'q'        => trim(static::str($request->input('query', ''))),
+            'category' => trim(static::str($request->input('category', ''))),
+            'pricing'  => static::pricingFilter($request->input('pricing')),
+            'hosting'  => static::hostingFilter($request->input('hosting')),
+            'sort'     => static::sortFilter($request->input('sort')),
+            'featured' => Utils::castBoolean($request->input('featured', false)) === true ? '1' : '',
+        ], fn ($value) => $value !== '');
+    }
+
+    /**
      * Instance state used to decorate listings, read best-effort from the instance API.
      *
      * Without a registration (or when the service cannot be reached) the state is empty and listings show as
@@ -267,8 +288,9 @@ class ServiceCatalog
         $state['error']    = $error;
         $state['console']  = app()->bound(InstallerConfig::class) ? static::consoleState(app(InstallerConfig::class)) : null;
         $state['versions'] = [
-            'api'     => InstanceRegistration::detectApiVersion(),
-            'console' => $state['console']['console_version'] ?? InstanceRegistration::detectConsoleVersion(is_string(config('fleetbase.console.path')) ? config('fleetbase.console.path') : null),
+            'api'        => InstanceRegistration::detectApiVersion(),
+            'console'    => $state['console']['console_version'] ?? InstanceRegistration::detectConsoleVersion(is_string(config('fleetbase.console.path')) ? config('fleetbase.console.path') : null),
+            'extensions' => static::installedExtensions($state['console'], $state['local_packages']),
         ];
 
         return $state;
@@ -291,6 +313,76 @@ class ServiceCatalog
             // The console release the build came from (host-modules.json `console`, fleetbase#730), which `compat.console` ranges name.
             'console_version' => is_array($hostModules) && is_string($hostModules['console'] ?? null) && $hostModules['console'] !== '' ? $hostModules['console'] : null,
         ];
+    }
+
+    /**
+     * The console extensions on this instance, for `compat.extensions`: package name => installed version (null
+     * when it is there but its version is unknown). Versions come from host-modules.json (`versions`, which lists
+     * the engines the console loads, core modules like Fleet-Ops included); engines built into the console and
+     * packages the installer recorded count as installed without a version. Null when the console state is
+     * unknown, so nothing is held against the instance.
+     *
+     * @param array{host_versions: array<string, string>|null, built_in: array<int, string>}|null $console
+     * @param array<int, string>                                                                  $localPackages
+     *
+     * @return array<string, string|null>|null
+     */
+    public static function installedExtensions(?array $console, array $localPackages = []): ?array
+    {
+        if ($console === null || ($console['host_versions'] === null && $console['built_in'] === [])) {
+            return null;
+        }
+
+        $installed = [];
+        foreach (array_merge($console['built_in'], array_values(array_filter($localPackages, 'is_string'))) as $package) {
+            $installed[$package] = null;
+        }
+        foreach ((array) $console['host_versions'] as $package => $version) {
+            $installed[(string) $package] = static::str($version) ?: null;
+        }
+
+        return $installed;
+    }
+
+    /**
+     * A plain name for another extension's console package: the catalog's name when known, the core modules by
+     * their product names, else the package name title-cased without its scope and `-engine`
+     * (`@acme/route-tools-engine` → `Route Tools`).
+     */
+    public static function extensionName(string $package, ?string $known = null): string
+    {
+        if (is_string($known) && trim($known) !== '') {
+            return trim($known);
+        }
+
+        $base = preg_replace('/-engine$/', '', (string) preg_replace('#^@[^/]+/#', '', $package)) ?? $package;
+        if (isset(static::CORE_EXTENSION_NAMES[$base])) {
+            return static::CORE_EXTENSION_NAMES[$base];
+        }
+
+        return implode(' ', array_map('ucfirst', array_filter(preg_split('/[-_.\s]+/', $base) ?: []))) ?: $package;
+    }
+
+    /**
+     * `compat.extensions` as a list: `[{package, name, range}]`, named from `$names` (package => catalog name,
+     * from the listing's `requires_extensions`) or humanized.
+     *
+     * @param array<string, string> $names
+     *
+     * @return array<int, array{package: string, name: string, range: string}>
+     */
+    public static function requiredExtensions(mixed $compat, array $names = []): array
+    {
+        $required = is_array($compat) && is_array($compat['extensions'] ?? null) ? $compat['extensions'] : [];
+        $list     = [];
+        foreach ($required as $package => $range) {
+            if (!is_string($package) || $package === '' || !is_string($range)) {
+                continue;
+            }
+            $list[] = ['package' => $package, 'name' => static::extensionName($package, $names[$package] ?? null), 'range' => $range];
+        }
+
+        return $list;
     }
 
     /**
@@ -334,30 +426,59 @@ class ServiceCatalog
      * Can this instance install the listing, in the terms the console shows a non-technical user:
      *
      *   ready         nothing stands in the way (a licence may still have to be bought: that is the purchase flow)
-     *   needs_update  the latest release needs a newer Fleetbase (console or core API) than this one runs
+     *   needs_update  the latest release needs a newer Fleetbase (console or core API), or a newer version of an
+     *                 extension it builds on, than this instance has
      *   unavailable   it cannot be installed here: the wrong hosting, no published release, not connected to the
-     *                 registry, or a release made only for an older Fleetbase
+     *                 registry, a release made only for an older Fleetbase, an extension it needs is not installed
+     *                 (`missing_extension`) or is newer than it allows (`extension_too_new`)
      *
      * `reason` is a code the console turns into one plain sentence; `requires` and `current` are the technical
-     * breakdown it keeps behind "details". A version this instance cannot detect is not held against it.
+     * breakdown it keeps behind "details". `requires.extensions` lists every extension the release needs
+     * (`compat.extensions`) with what this instance has (`installed`, `fit`); `missing` and `mismatched` are the
+     * ones in the way. A version this instance cannot detect is not held against it.
      *
-     * @param array<string, mixed>|mixed $compat   the release's `compat` ranges (`console`, `api`)
-     * @param array<string, mixed>       $versions this instance's `console` and `api` versions
+     * @param array<string, mixed>|mixed $compat   the release's `compat` ranges (`console`, `api`, `extensions`)
+     * @param array<string, mixed>       $versions this instance's `console` and `api` versions, and `extensions`
+     *                                             (package => version or null, from `installedExtensions()`;
+     *                                             absent or null when unknown)
+     * @param array<string, string>      $names    catalog names of required extensions, by package
      *
-     * @return array{verdict: string, reason: string, requires: array{console: string|null, api: string|null}, current: array{console: string|null, api: string|null}}
+     * @return array{verdict: string, reason: string, requires: array{console: string|null, api: string|null, extensions: array<int, array<string, mixed>>}, current: array{console: string|null, api: string|null}, missing: array<int, array<string, string>>, mismatched: array<int, array<string, mixed>>}
      */
-    public static function compatibility(?string $blockedCode, mixed $compat, array $versions = []): array
+    public static function compatibility(?string $blockedCode, mixed $compat, array $versions = [], array $names = []): array
     {
-        $compat   = is_array($compat) ? $compat : [];
+        $compat    = is_array($compat) ? $compat : [];
+        $installed = is_array($versions['extensions'] ?? null) ? $versions['extensions'] : null;
+        $required  = array_map(function (array $extension) use ($installed) {
+            $known   = $installed !== null && array_key_exists($extension['package'], $installed);
+            $version = $known ? (static::str($installed[$extension['package']]) ?: null) : null;
+            $fit     = $installed === null ? 'unknown' : (!$known ? 'missing' : ($version === null ? 'unknown' : static::versionFit($version, $extension['range'])));
+
+            return $extension + ['installed' => $version, 'fit' => $fit];
+        }, static::requiredExtensions($compat, $names));
+
         $requires = [
-            'console' => static::str($compat['console'] ?? $compat['fleetbase'] ?? $compat['@fleetbase/console'] ?? null) ?: null,
-            'api'     => static::str($compat['api'] ?? $compat['core-api'] ?? $compat['fleetbase/core-api'] ?? null) ?: null,
+            'console'    => static::str($compat['console'] ?? $compat['fleetbase'] ?? $compat['@fleetbase/console'] ?? null) ?: null,
+            'api'        => static::str($compat['api'] ?? $compat['core-api'] ?? $compat['fleetbase/core-api'] ?? null) ?: null,
+            'extensions' => $required,
         ];
-        $current = ['console' => static::str($versions['console'] ?? null) ?: null, 'api' => static::str($versions['api'] ?? null) ?: null];
-        $verdict = fn (string $verdict, string $reason) => ['verdict' => $verdict, 'reason' => $reason, 'requires' => $requires, 'current' => $current];
+        $current    = ['console' => static::str($versions['console'] ?? null) ?: null, 'api' => static::str($versions['api'] ?? null) ?: null];
+        $missing    = array_values(array_map(fn (array $e) => ['package' => $e['package'], 'name' => $e['name'], 'range' => $e['range']], array_filter($required, fn (array $e) => $e['fit'] === 'missing')));
+        $mismatched = array_values(array_filter($required, fn (array $e) => in_array($e['fit'], ['older', 'newer'], true)));
+        $verdict    = fn (string $verdict, string $reason) => ['verdict' => $verdict, 'reason' => $reason, 'requires' => $requires, 'current' => $current, 'missing' => $missing, 'mismatched' => $mismatched];
 
         if (in_array($blockedCode, ['hosting', 'no_release', 'not_registered'], true)) {
             return $verdict('unavailable', $blockedCode);
+        }
+
+        // An extension it builds on that is not here (or too new) cannot be fixed by updating Fleetbase.
+        if ($missing !== []) {
+            return $verdict('unavailable', 'missing_extension');
+        }
+        foreach ($mismatched as $extension) {
+            if ($extension['fit'] === 'newer') {
+                return $verdict('unavailable', 'extension_too_new');
+            }
         }
 
         foreach (['api', 'console'] as $part) {
@@ -368,6 +489,10 @@ class ServiceCatalog
             if ($fit === 'newer') {
                 return $verdict('unavailable', $part === 'api' ? 'core_too_new' : 'console_too_new');
             }
+        }
+
+        if ($mismatched !== []) {
+            return $verdict('needs_update', 'extension_too_old');
         }
 
         return $verdict('ready', 'ok');
@@ -495,6 +620,15 @@ class ServiceCatalog
         $console          = is_array($state['console'] ?? null) ? $state['console'] : null;
         $nextDist         = $updateVersion !== '' ? Arr::get($update, 'latest.dist') : Arr::get($release, 'dist');
 
+        $compat        = Arr::get($listing, 'compat', Arr::get($release, 'compat'));
+        // Catalog names of the extensions it needs (the detail's `requires_extensions`); the rest are humanized.
+        $requiredNames = [];
+        foreach ((array) Arr::get($listing, 'requires_extensions', []) as $required) {
+            if (is_array($required) && is_string($required['package'] ?? null) && is_string($required['name'] ?? null) && $required['name'] !== '') {
+                $requiredNames[$required['package']] = $required['name'];
+            }
+        }
+
         $checkout      = (bool) ($state['checkout'] ?? false);
         $blocked       = static::installBlock($registered, $hosting, $kind, $isPaid, $isPurchased, $names, $latest, $checkout);
         $blockedReason = $blocked['reason'] ?? null;
@@ -541,6 +675,14 @@ class ServiceCatalog
             'installed_version'        => $installedVersion ?: null,
             'latest_version'           => $updateVersion ?: ($latest ?: null),
             'update_available'         => (bool) ($update['update_available'] ?? false),
+            // Staff-featured in the catalog
+            'is_featured'              => (bool) Arr::get($listing, 'is_featured', Arr::get($listing, 'featured_at') !== null),
+            'featured_at'              => Arr::get($listing, 'featured_at'),
+            // "What you'll get" and "After you install": short lines from the listing
+            'highlights'               => static::lines(Arr::get($listing, 'highlights')),
+            'setup_steps'              => static::lines(Arr::get($listing, 'setup_steps')),
+            // The extensions this one adds to (`compat.extensions`), named for people
+            'adds_to'                  => array_map(fn (array $e) => ['package' => $e['package'], 'name' => $e['name']], static::requiredExtensions($compat, $requiredNames)),
             'source'                   => static::SOURCE,
             'meta'                     => [
                 'source'                 => static::SOURCE,
@@ -549,14 +691,14 @@ class ServiceCatalog
                 'package_names'          => $packages,
                 'publisher'              => Arr::get($listing, 'publisher'),
                 'hosting'                => $hosting,
-                'compat'                 => Arr::get($listing, 'compat', Arr::get($release, 'compat')),
+                'compat'                 => $compat,
                 'latest_release'         => $release ?: null,
                 'licence'                => $licence,
                 'licence_state'          => static::licenceState($licence),
                 'install_blocked_reason' => $blockedReason,
                 'install_blocked_code'   => $blocked['code'] ?? null,
                 // The plain verdict the console shows first (ready / needs_update / unavailable), the technical ranges behind it.
-                'compatibility'          => static::compatibility($blocked['code'] ?? null, Arr::get($listing, 'compat', Arr::get($release, 'compat')), static::arr($state['versions'] ?? null)),
+                'compatibility'          => static::compatibility($blocked['code'] ?? null, $compat, static::arr($state['versions'] ?? null), $requiredNames),
                 'purchase_available'     => ($blocked['code'] ?? null) === 'licence_required' && $checkout,
                 'versions'               => array_values((array) Arr::get($listing, 'versions', [])),
                 // the time estimate in the install and uninstall dialogs: `runtime` (minutes), `build` (a rebuild)
@@ -679,13 +821,13 @@ class ServiceCatalog
     }
 
     /**
-     * The service `sort`: `popular` (default), `newest`, `updated`, `name` or `price`.
+     * The service `sort`: `popular` (default), `featured` (staff-featured first), `newest`, `updated`, `name` or `price`.
      */
     public static function sortFilter(mixed $sort): string
     {
         $sort = strtolower(trim(static::str($sort)));
 
-        return in_array($sort, ['popular', 'newest', 'updated', 'name', 'price'], true) ? $sort : '';
+        return in_array($sort, ['popular', 'featured', 'newest', 'updated', 'name', 'price'], true) ? $sort : '';
     }
 
     /**
@@ -973,6 +1115,16 @@ class ServiceCatalog
     /**
      * @return array<string, mixed>
      */
+    /**
+     * A list of short non-empty strings.
+     *
+     * @return array<int, string>
+     */
+    protected static function lines(mixed $value): array
+    {
+        return array_values(array_filter(array_map(fn ($line) => is_string($line) ? trim($line) : '', is_array($value) ? $value : []), fn (string $line) => $line !== ''));
+    }
+
     protected static function arr(mixed $value): array
     {
         return is_array($value) ? $value : [];
