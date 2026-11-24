@@ -29,10 +29,10 @@
 - **Breaking:**
   - this release needs the Registry Service (registry v2.0.0) and Fleetbase **v0.9.0** (core-api 2.0, ember-core 0.4.0, the console's runtime-engine initializers);
   - the v1 registry tables are no longer used;
-  - the `@fleetbase` npm scope must no longer point at `registry.fleetbase.io`.
+  - consoles whose `.npmrc` still points the `@fleetbase` scope at `registry.fleetbase.io` must remove it: the Registry Service only serves extension packages, not the core `@fleetbase/*` packages from npmjs.
 - Run `php artisan migrate`. That creates `registry_service_installs`, adds the auto-update columns, and makes `uuid` unique on the older registry tables (from v0.2.1).
 - The API needs a worker on the `installer` queue. In the Docker images it runs next to Octane with `REGISTRY_INSTALLER_WORKER=true` and `REGISTRY_INSTALLER_RELOAD_OCTANE=true`. The scheduler must run for auto-update and cloud re-registration.
-- Self-hosted: register the instance with a code from the registry website (Extensions → Connect), or set `REGISTRY_INSTANCE_TOKEN`.
+- Self-hosted: register the instance in the admin settings (Registry Service → Instance registration) with a one-time code from an owner or admin of your registry organization, or run `php artisan registry:register`.
 - Fleetbase Cloud: set `REGISTRY_CLOUD_AUTO_REGISTER=true` and `REGISTRY_CLOUD_PLATFORM_SECRET` (the same value as the Registry Service). Set `REGISTRY_PREINSTALLED_EXTENSIONS=true` where every extension is already in the images.
 
 ---
