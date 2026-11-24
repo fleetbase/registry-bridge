@@ -64,6 +64,13 @@ class ServiceCatalog
 
         $state = static::state($client, $config, $localPackages);
 
+        // "Works with my Fleetbase": the registry keeps listings whose newest compatible release fits this console
+        $console = static::str($state['versions']['console'] ?? '');
+        if (Utils::castBoolean($request->input('compatible', false)) === true && $console !== '') {
+            $filters['compatible'] = '1';
+            $filters['console']    = $console;
+        }
+
         // Installed state is only known here, so hiding installed listings pages over the whole filtered catalog
         if ($hideInstalled) {
             $items = array_values(array_filter(
