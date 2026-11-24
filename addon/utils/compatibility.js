@@ -13,7 +13,7 @@ export const VERDICTS = {
  * Reason codes the server sends (ServiceCatalog::compatibility) that have
  * their own sentence; anything else falls back to the verdict's default.
  */
-export const REASONS = ['ok', 'core_too_old', 'console_too_old', 'core_too_new', 'console_too_new', 'hosting', 'no_release', 'not_registered'];
+export const REASONS = ['ok', 'core_too_old', 'console_too_old', 'core_too_new', 'console_too_new', 'hosting', 'no_release', 'not_registered', 'needs_console_build'];
 
 /**
  * "Can I install this?" for an extension, in plain words first: a verdict

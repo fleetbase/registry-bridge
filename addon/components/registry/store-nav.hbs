@@ -1,7 +1,7 @@
 <div class="rb-store-nav" data-test-store-nav ...attributes>
     <nav class="rb-store-tabs" aria-label={{t "registry-bridge.store.nav.label"}}>
         {{#each this.tabs as |tab|}}
-            <LinkTo @route={{tab.route}} @activeClass="is-current" class="rb-store-tab" data-test-store-tab={{tab.id}}>
+            <LinkTo @route={{tab.route}} @current-when={{tab.currentWhen}} @activeClass="is-current" class="rb-store-tab" data-test-store-tab={{tab.id}}>
                 {{t (concat "registry-bridge.store.nav." tab.id)}}
                 {{#if tab.count}}
                     <span class="rb-store-tab-count {{if (eq tab.id 'updates') 'is-attention'}}">{{tab.count}}</span>
@@ -9,6 +9,12 @@
             </LinkTo>
         {{/each}}
     </nav>
+    {{#each this.jobs as |job|}}
+        <button type="button" class="rb-job-pill" role="status" {{on "click" (fn this.openJob job)}} data-test-job-pill={{job.id}}>
+            <span class="rb-job-pill-spinner" aria-hidden="true"></span>
+            {{job.label}}
+        </button>
+    {{/each}}
     <form class="rb-store-search" role="search" {{on "submit" this.submit}}>
         <FaIcon @icon="magnifying-glass" @size="sm" class="rb-store-search-icon" />
         <label class="sr-only" for="rb-store-search">{{t "registry-bridge.store.nav.search"}}</label>

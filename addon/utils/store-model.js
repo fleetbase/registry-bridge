@@ -122,3 +122,19 @@ export function buttonState(extension = {}, { progress = null, canInstall = true
             return price.free || extension.is_purchased === true ? { kind: 'get', primary: true, price } : { kind: 'buy', primary: true, price };
     }
 }
+
+/** Go to an extension's page (the `extension` route), by public id. */
+export function openExtensionPage(router, extension) {
+    const id = extension?.public_id ?? extension?.id ?? extension?.slug;
+    return id ? router.transitionTo('console.extensions.extension', id) : null;
+}
+
+/** An extension's screenshots as a plain array of `{ url }`, whether the record holds an array or a has-many. */
+export function screenshotsOf(extension) {
+    const shots = extension?.screenshots;
+    if (!shots) {
+        return [];
+    }
+    const list = typeof shots.toArray === 'function' ? shots.toArray() : typeof shots.slice === 'function' ? shots.slice() : Array.from(shots);
+    return list.map((shot) => ({ url: shot?.url ?? (typeof shot?.get === 'function' ? shot.get('url') : null) })).filter((shot) => typeof shot.url === 'string' && shot.url);
+}

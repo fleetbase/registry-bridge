@@ -404,6 +404,7 @@ registry-bridge:
       hosting-self-hosted: Це розширення доступне лише для самостійно розгорнутого Fleetbase.
       no_release: Для цього розширення ще немає версії для встановлення.
       not_registered: Підключіть цей Fleetbase до реєстру розширень, щоб встановлювати розширення.
+      needs_console_build: "Для цього розширення потрібно перезібрати консоль, а цей Fleetbase не може зробити це сам. Зверніться до адміністратора Fleetbase."
       default-ready: Працює з вашим Fleetbase.
       default-needs_update: Перед встановленням цього розширення Fleetbase потрібно оновити.
       default-unavailable: Це розширення не можна встановити на цей Fleetbase.
@@ -433,6 +434,8 @@ registry-bridge:
         unauthorized: Ваша роль не дозволяє встановлювати розширення. Зверніться до адміністратора.
     verdict:
       details: Показати подробиці
+      installed: "Встановлено"
+      installed-reason: "Встановлено й працює з вашим Fleetbase."
       inline:
         ready: Працює з вашим Fleetbase
         needs_update: Потрібне оновлення Fleetbase
@@ -453,6 +456,8 @@ registry-bridge:
       learn-more: Докладніше
       categories: Категорії
       see-all: Усі
+      all-categories: Усі категорії
+      fewer-categories: Менше категорій
       shelves:
         popular: Популярні
         updated: Нові та оновлені
@@ -479,3 +484,46 @@ registry-bridge:
       none: Усе оновлено.
     error: Не вдалося завантажити розширення.
     retry: Спробувати ще раз
+    page:
+      not-found: Не вдалося завантажити це розширення.
+      adds-to: Додається до {app}
+      remove: Видалити
+      find-it: "Знайдіть у {path}"
+      screenshots: Знімки екрана
+      screenshot-of: Знімок екрана {name}
+      sections: Розділи
+      tabs:
+        overview: Огляд
+        whats-new: Що нового
+        support: Підтримка
+      highlights: Що ви отримаєте
+      setup: Після встановлення
+      version: Версія {version}
+      no-notes: Для цієї версії немає приміток.
+      links:
+        website: Вебсайт
+        support: Отримати підтримку
+        privacy: Політика конфіденційності
+        terms: Умови
+        source: Вихідний код
+      no-links: Видавець не додав посилань.
+      more: Більше в категорії {category}
+      help: Довідка та посилання
+      facts:
+        version: Версія
+        updated: Оновлено
+        languages: Мови
+        adds-to: Додається до
+        category: Категорія
+    failure:
+      title: Не вдалося встановити {name}
+      update-title: Не вдалося оновити {name}
+      retry: Спробувати ще раз
+      dismiss: Закрити
+    done:
+      installed: "{name} готове до роботи."
+      updated: "{name} оновлено."
+      failed: Не вдалося встановити {name}. У вашому Fleetbase нічого не змінилося.
+    pill:
+      installing: Встановлення {name} · {percent}%
+      updating: Оновлення {name} · {percent}%

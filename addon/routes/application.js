@@ -13,6 +13,7 @@ export default class ApplicationRoute extends Route {
     @service extensionPurchase;
     @service urlSearchParams;
     @service sidebar;
+    @service installJobs;
 
     beforeModel() {
         if (this.abilities.cannot('registry-bridge see extension')) {
@@ -43,6 +44,7 @@ export default class ApplicationRoute extends Route {
         this.registryContext.loadCounts();
         this.registryContext.watchCounts(this.hostRouter);
         this.restoreFromUrl();
+        this.installJobs.announce();
     }
 
     /**

@@ -2,7 +2,7 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
-import { isVerified } from '../../utils/store-model';
+import { isVerified, openExtensionPage, screenshotsOf } from '../../utils/store-model';
 
 /**
  * The Discover banner: one featured extension at a time (up to three, with
@@ -12,7 +12,7 @@ import { isVerified } from '../../utils/store-model';
  * @argument {Function} [onOpen]
  */
 export default class RegistryFeaturedComponent extends Component {
-    @service extensionPanel;
+    @service hostRouter;
     @tracked index = 0;
 
     get items() {
@@ -32,7 +32,7 @@ export default class RegistryFeaturedComponent extends Component {
     }
 
     get screenshot() {
-        return this.current?.screenshots?.[0]?.url ?? null;
+        return screenshotsOf(this.current)[0]?.url ?? null;
     }
 
     get meta() {
@@ -47,6 +47,6 @@ export default class RegistryFeaturedComponent extends Component {
         if (typeof this.args.onOpen === 'function') {
             return this.args.onOpen(this.current);
         }
-        return this.extensionPanel.open(this.current);
+        return openExtensionPage(this.hostRouter, this.current);
     }
 }

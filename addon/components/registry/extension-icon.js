@@ -3,6 +3,7 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { htmlSafe } from '@ember/template';
 import { monogram } from '../../utils/store-model';
+import { DEFAULT_EXTENSION_ICON } from '../../models/registry-extension';
 
 /** Pixel sizes for `@size`: row 32, tile 44, featured 64, extension page 104. */
 const SIZES = { xs: 28, sm: 32, md: 44, lg: 64, xl: 104 };
@@ -22,7 +23,9 @@ export default class RegistryExtensionIconComponent extends Component {
     }
 
     get src() {
-        return this.failed ? null : this.args.extension?.icon_url || null;
+        const url = this.args.extension?.icon_url;
+        // The model's stand-in icon is not the extension's own: show the monogram instead
+        return this.failed || !url || url === DEFAULT_EXTENSION_ICON ? null : url;
     }
 
     get monogram() {

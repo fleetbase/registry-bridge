@@ -37,9 +37,14 @@
             <section class="rb-section" aria-labelledby="rb-categories-title">
                 <div class="rb-section-head">
                     <h2 id="rb-categories-title" class="rb-section-title">{{t "registry-bridge.store.discover.categories"}}</h2>
+                    {{#if this.hasMoreCategories}}
+                        <button type="button" class="rb-link rb-see-all" aria-expanded={{if this.showAllCategories "true" "false"}} {{on "click" this.toggleCategories}}>
+                            {{if this.showAllCategories (t "registry-bridge.store.discover.fewer-categories") (t "registry-bridge.store.discover.all-categories")}}
+                        </button>
+                    {{/if}}
                 </div>
                 <div class="rb-category-grid">
-                    {{#each this.categories as |category|}}
+                    {{#each this.discoverCategories as |category|}}
                         <LinkTo @route="explore.category" @model={{category.slug}} class="rb-category-tile" data-test-category-tile={{category.slug}}>
                             <span class="rb-category-icon" aria-hidden="true"><FaIcon @icon={{or category.icon "shapes"}} /></span>
                             <span>{{category.name}}</span>

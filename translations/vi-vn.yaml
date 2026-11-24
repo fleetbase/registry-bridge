@@ -404,6 +404,7 @@ registry-bridge:
       hosting-self-hosted: Tiện ích này chỉ dành cho Fleetbase tự lưu trữ.
       no_release: Tiện ích này chưa có phiên bản nào để cài đặt.
       not_registered: Hãy kết nối Fleetbase này với kho tiện ích để cài đặt tiện ích.
+      needs_console_build: "Tiện ích này cần dựng lại bảng điều khiển, việc mà Fleetbase này không tự làm được. Hãy hỏi người quản lý Fleetbase của bạn."
       default-ready: Tương thích với Fleetbase của bạn.
       default-needs_update: Cần cập nhật Fleetbase trước khi cài tiện ích này.
       default-unavailable: Không thể cài tiện ích này trên Fleetbase này.
@@ -433,6 +434,8 @@ registry-bridge:
         unauthorized: Vai trò của bạn không thể cài tiện ích. Hãy hỏi quản trị viên.
     verdict:
       details: Xem chi tiết
+      installed: "Đã cài"
+      installed-reason: "Đã cài và hoạt động với Fleetbase của bạn."
       inline:
         ready: Hoạt động với Fleetbase của bạn
         needs_update: Cần cập nhật Fleetbase
@@ -453,6 +456,8 @@ registry-bridge:
       learn-more: Tìm hiểu thêm
       categories: Danh mục
       see-all: Xem tất cả
+      all-categories: Tất cả danh mục
+      fewer-categories: Ít danh mục hơn
       shelves:
         popular: Phổ biến
         updated: Mới và cập nhật
@@ -479,3 +484,46 @@ registry-bridge:
       none: Mọi thứ đã được cập nhật.
     error: Đã xảy ra lỗi khi tải tiện ích.
     retry: Thử lại
+    page:
+      not-found: Không thể tải tiện ích này.
+      adds-to: Thêm vào {app}
+      remove: Gỡ bỏ
+      find-it: "Tìm ở {path}"
+      screenshots: Ảnh chụp màn hình
+      screenshot-of: Ảnh chụp màn hình {name}
+      sections: Mục
+      tabs:
+        overview: Tổng quan
+        whats-new: Có gì mới
+        support: Hỗ trợ
+      highlights: Bạn sẽ nhận được
+      setup: Sau khi cài
+      version: Phiên bản {version}
+      no-notes: Không có ghi chú cho phiên bản này.
+      links:
+        website: Trang web
+        support: Nhận hỗ trợ
+        privacy: Chính sách quyền riêng tư
+        terms: Điều khoản
+        source: Mã nguồn
+      no-links: Nhà phát hành chưa thêm liên kết nào.
+      more: Thêm trong {category}
+      help: Trợ giúp và liên kết
+      facts:
+        version: Phiên bản
+        updated: Cập nhật
+        languages: Ngôn ngữ
+        adds-to: Thêm vào
+        category: Danh mục
+    failure:
+      title: Không thể cài {name}
+      update-title: Không thể cập nhật {name}
+      retry: Thử lại
+      dismiss: Đóng
+    done:
+      installed: "{name} đã sẵn sàng."
+      updated: "{name} đã được cập nhật."
+      failed: Không thể cài {name}. Fleetbase của bạn không có gì thay đổi.
+    pill:
+      installing: Đang cài {name} · {percent}%
+      updating: Đang cập nhật {name} · {percent}%

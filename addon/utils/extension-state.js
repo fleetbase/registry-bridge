@@ -11,7 +11,7 @@
 export const CARD_STATES = ['free', 'paid', 'on-sale', 'installed', 'update', 'purchased', 'unavailable'];
 
 /** Install blocks that mean "not on this instance" rather than "not yet": the card says so. */
-export const UNAVAILABLE_CODES = ['hosting', 'no_release'];
+export const UNAVAILABLE_CODES = ['hosting', 'no_release', 'needs_console_build'];
 
 export const CTA = {
     INSTALL: 'install',

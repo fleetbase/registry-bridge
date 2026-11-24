@@ -28,6 +28,7 @@ export default class ExploreIndexController extends Controller {
     queryParams = ['query', 'category', 'pricing', 'hosting', 'hide_installed', 'compatible', 'sort', 'page', 'layout'];
     @tracked compatible = null;
     @tracked featured = [];
+    @tracked showAllCategories = false;
     @tracked shelves = [];
     @tracked query = null;
     @tracked category = null;
@@ -170,6 +171,24 @@ export default class ExploreIndexController extends Controller {
             { label: t('updated'), valuePath: 'updatedAgo', width: '10%' },
             { label: '', valuePath: 'id', cellComponent: 'cell/extension-action', width: '10%' },
         ];
+    }
+
+    /**
+     * Discover's category tiles: categories with extensions first (most first),
+     * the first eight unless "All categories" was pressed.
+     */
+    get discoverCategories() {
+        const count = (category) => Number(category.meta?.extensions_count ?? category.extensions_count ?? 0) || 0;
+        const sorted = [...(this.categories ?? [])].sort((a, b) => count(b) - count(a));
+        return this.showAllCategories ? sorted : sorted.slice(0, 8);
+    }
+
+    get hasMoreCategories() {
+        return (this.categories ?? []).length > 8;
+    }
+
+    @action toggleCategories() {
+        this.showAllCategories = !this.showAllCategories;
     }
 
     /** Cards or list, remembered per browser (store-view). */

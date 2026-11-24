@@ -4,6 +4,7 @@ export default buildRoutes(function () {
     this.route('installed');
     this.route('purchased');
     this.route('updates');
+    this.route('extension', { path: '/extension/:id' });
     this.route('explore', { path: '/' }, function () {
         this.route('index', { path: '/' });
         this.route('category', { path: '/:slug' });

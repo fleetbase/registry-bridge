@@ -404,6 +404,7 @@ registry-bridge:
       hosting-self-hosted: هذه الإضافة متاحة فقط على Fleetbase المستضاف ذاتيًا.
       no_release: لا يوجد إصدار من هذه الإضافة لتثبيته بعد.
       not_registered: اربط Fleetbase هذا بسجل الإضافات لتتمكن من تثبيت الإضافات.
+      needs_console_build: "تحتاج هذه الإضافة إلى إعادة بناء وحدة التحكم، وهذا لا يمكن لـ Fleetbase هذا القيام به تلقائياً. اسأل مسؤول Fleetbase لديك."
       default-ready: يعمل مع Fleetbase لديك.
       default-needs_update: يحتاج Fleetbase إلى تحديث قبل تثبيت هذه الإضافة.
       default-unavailable: لا يمكن تثبيت هذه الإضافة على Fleetbase هذا.
@@ -433,6 +434,8 @@ registry-bridge:
         unauthorized: لا يسمح دورك بتثبيت الإضافات. اطلب من المسؤول.
     verdict:
       details: عرض التفاصيل
+      installed: "مثبّتة"
+      installed-reason: "مثبّتة وتعمل مع Fleetbase لديك."
       inline:
         ready: يعمل مع Fleetbase لديك
         needs_update: يحتاج إلى تحديث Fleetbase
@@ -453,6 +456,8 @@ registry-bridge:
       learn-more: اعرف المزيد
       categories: الفئات
       see-all: عرض الكل
+      all-categories: كل الفئات
+      fewer-categories: فئات أقل
       shelves:
         popular: الأكثر شيوعاً
         updated: جديد ومحدَّث
@@ -479,3 +484,46 @@ registry-bridge:
       none: كل شيء محدَّث.
     error: حدث خطأ أثناء تحميل الإضافات.
     retry: حاول مرة أخرى
+    page:
+      not-found: تعذّر تحميل هذه الإضافة.
+      adds-to: تُضاف إلى {app}
+      remove: إزالة
+      find-it: "تجده في {path}"
+      screenshots: لقطات الشاشة
+      screenshot-of: لقطة شاشة لـ {name}
+      sections: الأقسام
+      tabs:
+        overview: نظرة عامة
+        whats-new: الجديد
+        support: الدعم
+      highlights: ما ستحصل عليه
+      setup: بعد التثبيت
+      version: الإصدار {version}
+      no-notes: لا توجد ملاحظات لهذا الإصدار.
+      links:
+        website: الموقع
+        support: الحصول على الدعم
+        privacy: سياسة الخصوصية
+        terms: الشروط
+        source: الشيفرة المصدرية
+      no-links: لم يضف الناشر أي روابط.
+      more: المزيد في {category}
+      help: المساعدة والروابط
+      facts:
+        version: الإصدار
+        updated: آخر تحديث
+        languages: اللغات
+        adds-to: تُضاف إلى
+        category: الفئة
+    failure:
+      title: تعذّر تثبيت {name}
+      update-title: تعذّر تحديث {name}
+      retry: حاول مرة أخرى
+      dismiss: إغلاق
+    done:
+      installed: "{name} جاهز للاستخدام."
+      updated: "{name} محدَّث."
+      failed: تعذّر تثبيت {name}. لم يتغير شيء في Fleetbase لديك.
+    pill:
+      installing: جارٍ تثبيت {name} · {percent}%
+      updating: جارٍ تحديث {name} · {percent}%

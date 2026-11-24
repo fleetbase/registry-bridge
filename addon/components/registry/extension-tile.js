@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
-import { isVerified } from '../../utils/store-model';
+import { isVerified, openExtensionPage } from '../../utils/store-model';
 
 /**
  * An extension as a card (Discover shelves and the cards view): icon, name,
@@ -16,7 +16,7 @@ import { isVerified } from '../../utils/store-model';
  * @argument {Function} [onAction] passed to the install button
  */
 export default class RegistryExtensionTileComponent extends Component {
-    @service extensionPanel;
+    @service hostRouter;
 
     get extension() {
         return this.args.extension ?? {};
@@ -42,6 +42,6 @@ export default class RegistryExtensionTileComponent extends Component {
         if (typeof this.args.onOpen === 'function') {
             return this.args.onOpen(this.extension);
         }
-        return this.extensionPanel.open(this.extension);
+        return openExtensionPage(this.hostRouter, this.extension);
     }
 }

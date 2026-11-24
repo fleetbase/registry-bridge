@@ -44,6 +44,11 @@ export default class RegistryVerdictComponent extends Component {
     }
 
     get detail() {
-        return compatibilityVerdict(this.intl, this.args.extension);
+        const detail = compatibilityVerdict(this.intl, this.args.extension);
+        // Installed and fine: say so rather than "Ready to install"
+        if (detail && this.args.extension?.is_installed === true && this.verdict === 'ready') {
+            return { ...detail, label: this.intl.t('registry-bridge.store.verdict.installed'), reason: this.intl.t('registry-bridge.store.verdict.installed-reason') };
+        }
+        return detail;
     }
 }

@@ -14,6 +14,8 @@ export default class RegistryStoreNavComponent extends Component {
     @service registryContext;
     @service abilities;
     @service storeView;
+    @service installJobs;
+    @service intl;
     @tracked draft = null;
 
     /** The cards/list toggle shows where there is a catalog to show: Discover and the category pages. */
@@ -26,6 +28,8 @@ export default class RegistryStoreNavComponent extends Component {
         const tab = (id, route, permission = null) => ({
             id,
             route,
+            // The extension page belongs to Discover
+            currentWhen: id === 'discover' ? 'explore extension' : route,
             count: id === 'discover' ? null : count(id),
             visible: permission ? this.abilities.can(permission) : true,
         });
@@ -36,6 +40,18 @@ export default class RegistryStoreNavComponent extends Component {
             tab('purchased', 'purchased'),
             tab('updates', 'updates', 'registry-bridge list extension-install'),
         ].filter((item) => item.visible);
+    }
+
+    /** Running installs and updates, as pills that lead back to the extension's page. */
+    get jobs() {
+        return this.installJobs.running.map((job) => ({
+            ...job,
+            label: this.intl.t(`registry-bridge.store.pill.${job.action === 'update' ? 'updating' : 'installing'}`, { name: job.name, percent: job.percent ?? 0 }),
+        }));
+    }
+
+    @action openJob(job) {
+        return this.hostRouter.transitionTo('console.extensions.extension', job.id);
     }
 
     get query() {

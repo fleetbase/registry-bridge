@@ -1,18 +1,5 @@
 <div class="rb-page rb-category-page" data-test-category-page={{this.slug}}>
     <aside class="rb-rail" aria-label={{t "registry-bridge.store.discover.categories"}}>
-        <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}}>
-            <span class="rb-rail-label">{{t "registry-bridge.store.discover.categories"}}</span>
-            <LinkTo @route="explore.index" @query={{hash sort="popular"}} class="rb-rail-link">
-                <FaIcon @icon="grip" @fixedWidth={{true}} />
-                {{t "registry-bridge.store.rail.all"}}
-            </LinkTo>
-            {{#each this.railCategories as |category|}}
-                <LinkTo @route="explore.category" @model={{category.slug}} class="rb-rail-link {{if category.current 'is-current'}}" data-test-rail-category={{category.slug}}>
-                    <FaIcon @icon={{category.icon}} @fixedWidth={{true}} />
-                    {{category.name}}
-                </LinkTo>
-            {{/each}}
-        </nav>
         <div class="rb-rail-section">
             <span class="rb-rail-label">{{t "registry-bridge.store.rail.show"}}</span>
             <label class="rb-switch">
@@ -33,6 +20,25 @@
                     "registry-bridge.explore.pricing.paid"
                 }}</label>
         </fieldset>
+        <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}}>
+            <span class="rb-rail-label">{{t "registry-bridge.store.discover.categories"}}</span>
+            <LinkTo @route="explore.index" @query={{hash sort="popular"}} class="rb-rail-link">
+                <FaIcon @icon="grip" @fixedWidth={{true}} />
+                {{t "registry-bridge.store.rail.all"}}
+            </LinkTo>
+            {{#each this.railCategories as |category|}}
+                <LinkTo
+                    @route="explore.category"
+                    @model={{category.slug}}
+                    class="rb-rail-link {{if category.current 'is-current'}}"
+                    title={{category.name}}
+                    data-test-rail-category={{category.slug}}
+                >
+                    <FaIcon @icon={{category.icon}} @fixedWidth={{true}} />
+                    <span class="rb-rail-text">{{category.name}}</span>
+                </LinkTo>
+            {{/each}}
+        </nav>
     </aside>
 
     <div class="rb-category-main">

@@ -5,7 +5,8 @@ import { htmlSafe } from '@ember/template';
 import { guidFor } from '@ember/object/internals';
 import formatCurrency from '@fleetbase/ember-ui/utils/format-currency';
 import { PERMISSIONS } from '../../utils/extension-state';
-import { buttonState } from '../../utils/store-model';
+import { buttonState, openExtensionPage } from '../../utils/store-model';
+import locateExtension from '../../utils/extension-location';
 
 /**
  * The one install button (design: "the button is the progress bar"). It
@@ -14,7 +15,8 @@ import { buttonState } from '../../utils/store-model';
  * progress bar labelled Downloading, Installing or Finishing up.
  *
  * @argument {Object} extension a catalog record
- * @argument {Object} [progress] the running job ({ stage, percent } or a job record)
+ * @argument {Object} [progress] the running job ({ stage, percent } or a job record); defaults to the
+ *   extension's job in the install-jobs service, so every button for it shows the same progress
  * @argument {String} [size] sm (tiles, rows) | md (default) | lg (extension page)
  * @argument {Function} [onAction] called with `(kind, extension)` instead of the default action
  * @argument {Function} [onOpen] what Open does (defaults to the extension's page)
@@ -22,15 +24,16 @@ import { buttonState } from '../../utils/store-model';
 export default class RegistryInstallButtonComponent extends Component {
     @service abilities;
     @service intl;
-    @service extensionInstaller;
+    @service installJobs;
     @service extensionPurchase;
-    @service extensionPanel;
+    @service hostRouter;
+    @service universe;
 
     hintId = `${guidFor(this)}-hint`;
 
     get state() {
         return buttonState(this.args.extension ?? {}, {
-            progress: this.args.progress,
+            progress: this.args.progress ?? this.installJobs.progressFor(this.args.extension),
             canInstall: this.abilities.can(PERMISSIONS.install),
             canPurchase: this.abilities.can(PERMISSIONS.purchase),
         });
@@ -82,13 +85,19 @@ export default class RegistryInstallButtonComponent extends Component {
 
         switch (kind) {
             case 'get':
-                return this.extensionInstaller.install(extension);
+                return this.installJobs.start('install', extension);
             case 'update':
-                return this.extensionInstaller.update(extension);
+                return this.installJobs.start('update', extension);
             case 'buy':
                 return this.extensionPurchase.purchase(extension);
-            case 'open':
-                return typeof this.args.onOpen === 'function' ? this.args.onOpen(extension) : this.extensionPanel.open(extension);
+            case 'open': {
+                if (typeof this.args.onOpen === 'function') {
+                    return this.args.onOpen(extension);
+                }
+                // Open goes where the extension lives (e.g. Fleet-Ops → Settings → LocoNav), else its page
+                const location = locateExtension(this.universe, extension);
+                return location ? this.hostRouter.transitionTo(location.route, ...location.models, { queryParams: location.queryParams }) : openExtensionPage(this.hostRouter, extension);
+            }
         }
     }
 }

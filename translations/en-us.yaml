@@ -404,6 +404,7 @@ registry-bridge:
       hosting-self-hosted: This extension is only available on self-hosted Fleetbase.
       no_release: "There's no version of this extension to install yet."
       not_registered: Connect this Fleetbase to the extension registry to install extensions.
+      needs_console_build: "This extension needs the console to be rebuilt, which this Fleetbase can't do on its own. Ask whoever runs your Fleetbase."
       default-ready: Works with your Fleetbase.
       default-needs_update: Fleetbase needs an update before this extension can be installed.
       default-unavailable: "This extension can't be installed on this Fleetbase."
@@ -433,6 +434,8 @@ registry-bridge:
         unauthorized: "Your role can't install extensions. Ask an admin."
     verdict:
       details: Show details
+      installed: "Installed"
+      installed-reason: "Installed and working with your Fleetbase."
       inline:
         ready: Works with your Fleetbase
         needs_update: Needs a Fleetbase update
@@ -453,6 +456,8 @@ registry-bridge:
       learn-more: Learn more
       categories: Categories
       see-all: See all
+      all-categories: All categories
+      fewer-categories: Fewer categories
       shelves:
         popular: Popular
         updated: New and updated
@@ -479,3 +484,46 @@ registry-bridge:
       none: Everything is up to date.
     error: Something went wrong loading your extensions.
     retry: Try again
+    page:
+      not-found: "This extension couldn't be loaded."
+      adds-to: Adds to {app}
+      remove: Remove
+      find-it: "Find it in {path}"
+      screenshots: Screenshots
+      screenshot-of: Screenshot of {name}
+      sections: Sections
+      tabs:
+        overview: Overview
+        whats-new: "What's new"
+        support: Support
+      highlights: "What you'll get"
+      setup: After you install
+      version: Version {version}
+      no-notes: No release notes for this version.
+      links:
+        website: Website
+        support: Get support
+        privacy: Privacy policy
+        terms: Terms
+        source: Source code
+      no-links: The publisher hasn't added any links.
+      more: More in {category}
+      help: Help and links
+      facts:
+        version: Version
+        updated: Updated
+        languages: Languages
+        adds-to: Adds to
+        category: Category
+    failure:
+      title: "{name} couldn't be installed"
+      update-title: "{name} couldn't be updated"
+      retry: Try again
+      dismiss: Dismiss
+    done:
+      installed: "{name} is ready to use."
+      updated: "{name} is up to date."
+      failed: "{name} couldn't be installed. Nothing on your Fleetbase changed."
+    pill:
+      installing: Installing {name} · {percent}%
+      updating: Updating {name} · {percent}%
