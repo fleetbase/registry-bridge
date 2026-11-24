@@ -70,6 +70,7 @@ class RegistryBridgeServiceProvider extends CoreServiceProvider
         \Fleetbase\RegistryBridge\Console\Commands\UninstallExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\UpdateExtension::class,
         \Fleetbase\RegistryBridge\Console\Commands\InstallerJobStatus::class,
+        \Fleetbase\RegistryBridge\Console\Commands\InstallerRefresh::class,
         \Fleetbase\RegistryBridge\Console\Commands\RegisterInstance::class,
         \Fleetbase\RegistryBridge\Console\Commands\RegisterCloudInstance::class,
         \Fleetbase\RegistryBridge\Console\Commands\SyncCloudInstalls::class,

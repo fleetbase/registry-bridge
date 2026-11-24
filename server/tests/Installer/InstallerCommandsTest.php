@@ -92,7 +92,7 @@ test('registry:install --sync runs the job in process', function () {
     expect($code)->toBe(0);
     expect($output)->toContain('Install of Widgets completed');
     expect($this->bus->dispatched)->toBe([]);
-    expect($this->sandbox->runner->commands())->toContain('composer require acme/widgets-api:1.2.0 --no-interaction');
+    expect($this->sandbox->runner->commands())->toContain('composer require acme/widgets-api:1.2.0 --no-interaction --no-progress --no-audit --no-ansi');
 });
 
 test('a failed sync install exits non-zero with the stage and log tail', function () {

@@ -27,19 +27,39 @@ class InstallContext
     /** @var array<int, string> */
     public array $completed = [];
 
+    /** Whether Composer ran without scripts, so the caches stage must run package discovery. */
+    public bool $discover = false;
+
     /** Whether the InstallReporter accepted the start of this job (so a failure is reported too). */
     public bool $reportedStart = false;
 
     /** @var array<string, mixed> */
     public array $result = [];
 
+    /** @var array<int, string> the stages this job is expected to run, for the overall percentage */
+    public array $plan = [];
+
+    /** Overall progress shown to users, 0-100; never goes backwards. */
+    public int $percent = 0;
+
+    /** Number of the last socket event, so the console can tell it missed one. */
+    public int $seq = 0;
+
+    /** @var array<string, float> seconds each finished (or failed) stage took */
+    public array $timings = [];
+
+    public float $startedAt;
+
     /** @var callable(array<string, mixed>): void|null */
     private $onProgress;
+
+    /** @var callable(array<string, mixed>): void|null */
+    private $onFinished;
 
     /**
      * @param array<string, mixed> $job the job record
      */
-    public function __construct(array $job, ?callable $onProgress = null)
+    public function __construct(array $job, ?callable $onProgress = null, ?callable $onFinished = null)
     {
         $this->id         = (string) $job['id'];
         $this->action     = (string) ($job['action'] ?? 'install');
@@ -50,6 +70,45 @@ class InstallContext
         $this->channel    = static::channel($this->action, $this->company, $this->extension->uuid);
         $this->log        = new InstallLog();
         $this->onProgress = $onProgress;
+        $this->onFinished = $onFinished;
+        $this->plan       = InstallProgress::defaultPlan($this->action);
+        $this->startedAt  = microtime(true);
+    }
+
+    /**
+     * The user-facing phase of the current stage (see InstallProgress).
+     */
+    public function phase(): string
+    {
+        return InstallProgress::phase($this->action, $this->stage);
+    }
+
+    /**
+     * Move the overall percentage to where $stepProgress into the current stage puts it, never backwards.
+     */
+    public function advance(int $stepProgress): int
+    {
+        $this->percent = max($this->percent, InstallProgress::percent($this->plan, $this->completed, $this->stage, $stepProgress));
+
+        return $this->percent;
+    }
+
+    public function elapsed(): float
+    {
+        return round(microtime(true) - $this->startedAt, 1);
+    }
+
+    /**
+     * Hand the final result to whoever stores the job record, before the final socket event goes out, so a
+     * console that reads the record on that event sees the finished job.
+     *
+     * @param array<string, mixed> $result
+     */
+    public function finished(array $result): void
+    {
+        if ($this->onFinished) {
+            ($this->onFinished)($result);
+        }
     }
 
     /**

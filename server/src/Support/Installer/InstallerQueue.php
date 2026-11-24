@@ -109,18 +109,25 @@ class InstallerQueue
             return $this->store->find($id);
         }
 
+        // The installer hands over the result before it publishes the final socket event, so the record is
+        // finished by the time a console reads it on that event.
+        $finished   = null;
+        $onFinished = function (array $result) use ($id, &$finished): void {
+            $finished = $this->finish($id, $result);
+        };
+
         try {
             if ($interrupted) {
-                $result = $installer->recover($record, $record['message'] ?? 'The installer stopped before this job finished (worker restart or timeout).');
+                $result = $installer->recover($record, $record['message'] ?? 'The installer stopped before this job finished (worker restart or timeout).', $onFinished);
             } else {
                 $now = date(DATE_ATOM);
-                $this->store->update($id, ['status' => 'running', 'started_at' => $now, 'heartbeat_at' => time()]);
+                $this->store->update($id, ['status' => 'running', 'started_at' => $now, 'heartbeat_at' => time(), 'phase' => 'prepare']);
                 $result = $installer->run($record, function (array $patch) use ($id): void {
                     $this->store->update($id, [...$patch, 'heartbeat_at' => time()]);
-                });
+                }, $onFinished);
             }
 
-            return $this->finish($id, $result);
+            return $finished ?? $this->finish($id, $result);
         } finally {
             $lock->release();
             $this->store->dequeue($id);
@@ -162,6 +169,10 @@ class InstallerQueue
         return $this->store->update($id, [
             'status'       => $failed ? 'failed' : 'completed',
             'progress'     => 100,
+            'phase'        => $failed ? ($result['failed_phase'] ?? null) : 'finish',
+            ...($failed ? [] : ['percent' => 100]),
+            'timings'      => $result['timings'] ?? [],
+            'duration'     => $result['duration'] ?? null,
             'message'      => $result['message'] ?? null,
             'failed_stage' => $result['failed_stage'] ?? null,
             'log'          => $result['log'] ?? [],

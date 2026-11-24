@@ -18,7 +18,16 @@ class InstallerConfig
     public const DEFAULT_CACHE_COMMANDS = [['config:clear'], ['route:clear'], ['view:clear'], ['event:clear'], ['queue:restart']];
 
     /**
+     * Added to every Composer command. No security audit (a Packagist API round trip on every install; run
+     * `composer audit` separately), no progress bars or colour codes in the job log.
+     */
+    public const DEFAULT_COMPOSER_FLAGS = ['--no-interaction', '--no-progress', '--no-audit', '--no-ansi'];
+
+    /**
      * @param array<int, array<int, string>> $cacheCommands artisan commands run after an install, without `php artisan`
+     * @param array<int, string>             $composerFlags options added to every Composer command
+     * @param bool                           $batchArtisan  run package discovery, the cache commands and the Octane reload in one
+     *                                                      artisan process (`registry:installer-refresh`) instead of one each
      */
     public function __construct(
         public readonly string $apiPath,
@@ -40,6 +49,8 @@ class InstallerConfig
         public readonly ?string $extensionsPath = null,
         public readonly bool $serveRuntimeEngines = false,
         public readonly bool $reloadOctane = false,
+        public readonly array $composerFlags = self::DEFAULT_COMPOSER_FLAGS,
+        public readonly bool $batchArtisan = true,
     ) {
     }
 
@@ -138,6 +149,8 @@ class InstallerConfig
             extensionsPath: is_string($config['extensions_path'] ?? null) && $config['extensions_path'] !== '' ? $config['extensions_path'] : null,
             serveRuntimeEngines: $serve,
             reloadOctane: (bool) ($config['reload_octane'] ?? false),
+            composerFlags: array_values(array_map('strval', (array) ($config['composer_flags'] ?? self::DEFAULT_COMPOSER_FLAGS))),
+            batchArtisan: (bool) ($config['batch_artisan'] ?? true),
         );
     }
 }

@@ -40,12 +40,8 @@ test('an install writes the package to the manifest and resolves it there, with 
     expect($result['status'])->toBe('completed');
     expect($result['composer_project'])->toBe($this->extensions);
     expect($sandbox->runner->commands())->toBe([
-        'composer update acme/widgets-api fleetbase/core-platform --no-interaction',
-        'php artisan config:clear',
-        'php artisan route:clear',
-        'php artisan view:clear',
-        'php artisan event:clear',
-        'php artisan queue:restart',
+        'composer update acme/widgets-api fleetbase/core-platform --no-interaction --no-progress --no-audit --no-ansi --no-scripts',
+        'php artisan registry:installer-refresh --discover --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
     ]);
     expect($sandbox->runner->calls[0]['cwd'])->toBe($this->extensions);
     expect($sandbox->runner->calls[1]['cwd'])->toBe($sandbox->api, 'artisan still runs in the API');
@@ -91,7 +87,7 @@ test('a composer failure restores the manifest and its lock, and reinstalls the 
     expect($result['rollback']['restored'])->toContain($this->extensions . '/composer.json', $this->extensions . '/composer.lock');
     expect($result['rollback']['restored'])->not->toContain($sandbox->api . '/composer.json');
 
-    $install = collect($sandbox->runner->calls)->first(fn ($call) => implode(' ', $call['command']) === 'composer install --no-interaction');
+    $install = collect($sandbox->runner->calls)->first(fn ($call) => implode(' ', $call['command']) === 'composer install --no-interaction --no-progress --no-audit --no-ansi --no-scripts');
     expect($install['cwd'])->toBe($this->extensions);
     expect(coreFiles($sandbox))->toBe($this->core);
 });
@@ -100,7 +96,7 @@ test('a failure after composer succeeded rolls the manifest back too', function 
     $sandbox = $this->sandbox;
     $sandbox->release('1.0.0');
     $before = manifestFiles($this->extensions);
-    $sandbox->runner->on(['php', 'artisan', 'queue:restart'], 1);
+    $sandbox->runner->on(['php', 'artisan', 'registry:installer-refresh'], 1);
 
     $result = $sandbox->installer()->run($sandbox->job());
 
@@ -117,7 +113,7 @@ test('a manifest without core-platform resolves just the package', function () {
 
     $this->sandbox->installer()->run($this->sandbox->job());
 
-    expect($this->sandbox->runner->commands()[0])->toBe('composer update acme/widgets-api --no-interaction');
+    expect($this->sandbox->runner->commands()[0])->toBe('composer update acme/widgets-api --no-interaction --no-progress --no-audit --no-ansi --no-scripts');
 });
 
 test('an uninstall removes the package from the manifest and resolves its removal there', function () {
@@ -130,7 +126,7 @@ test('an uninstall removes the package from the manifest and resolves its remova
 
     expect($result['status'])->toBe('completed');
     expect($result['composer_project'])->toBe($this->extensions);
-    expect($sandbox->runner->commands()[0])->toBe('composer update acme/widgets-api --no-interaction');
+    expect($sandbox->runner->commands()[0])->toBe('composer update acme/widgets-api --no-interaction --no-progress --no-audit --no-ansi --no-scripts');
     expect($sandbox->runner->calls[0]['cwd'])->toBe($this->extensions);
     expect(Files::readJson($this->extensions . '/composer.json')['require'])->toBe(['fleetbase/core-platform' => '*', 'fleetbase/fleetops-api' => '^0.6.74']);
     expect(coreFiles($sandbox))->toBe($this->core);
@@ -181,7 +177,7 @@ test('a job interrupted after composer ran is rolled back in the project it ran 
 
     expect($result['status'])->toBe('failed');
     expect(manifestFiles($this->extensions))->toBe($before);
-    expect(collect($sandbox->runner->calls)->first(fn ($call) => $call['command'] === ['composer', 'install', '--no-interaction'])['cwd'])->toBe($this->extensions);
+    expect(collect($sandbox->runner->calls)->first(fn ($call) => $call['command'] === ['composer', 'install', '--no-interaction', '--no-progress', '--no-audit', '--no-ansi', '--no-scripts'])['cwd'])->toBe($this->extensions);
 });
 
 test('a snapshot left by an installer from before the manifest still rolls back in the API', function () {
@@ -191,7 +187,7 @@ test('a snapshot left by an installer from before the manifest still rolls back 
 
     $sandbox->installer()->recover($sandbox->job() + ['stage' => 'composer']);
 
-    expect(collect($sandbox->runner->calls)->first(fn ($call) => $call['command'] === ['composer', 'install', '--no-interaction'])['cwd'])->toBe($sandbox->api);
+    expect(collect($sandbox->runner->calls)->first(fn ($call) => $call['command'] === ['composer', 'install', '--no-interaction', '--no-progress', '--no-audit', '--no-ansi'])['cwd'])->toBe($sandbox->api);
 });
 
 test('the installer follows the manifest folder the API binds as path.extensions', function () {

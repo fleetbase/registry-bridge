@@ -71,7 +71,7 @@ test('a worker runs the job under the instance lock and stores the result', func
 test('progress updates the job record while the job runs', function () {
     $job       = $this->queue->enqueue(attributes());
     $snapshots = [];
-    $this->sandbox->runner->on(['php', 'artisan', 'queue:restart'], function () use ($job, &$snapshots) {
+    $this->sandbox->runner->on(['php', 'artisan', 'registry:installer-refresh'], function () use ($job, &$snapshots) {
         $snapshots[] = $this->store->find($job['id']);
 
         return 0;

@@ -45,10 +45,13 @@ use Fleetbase\RegistryBridge\Support\Installer\Contracts\ReleaseSource;
  * command; nothing writes credentials to disk. The InstallReporter hears
  * about the outcome after the job succeeds or is rolled back.
  *
- * Socket events keep the payload the console already reads
- * (`process`, `step`, `progress` from 0 to 100 per step) and add `job`,
- * `stage` and `status`. A failure event carries `status: failed`, the stage,
- * the message and the last log lines.
+ * Socket events (`v: 2`) carry `job`, `action`, `status`, the user-facing
+ * `phase` and overall `percent` (InstallProgress), a `seq` number that grows
+ * by one per event, and the technical `stage`, `step` and per-step `progress`
+ * (0-100) with `process` as before. The final event goes out only after the
+ * job record is stored as finished, so a console that reads the record on it
+ * sees the result. A failure event also carries the message and the last log
+ * lines. Each stage's duration is kept in `timings` (seconds).
  */
 class ExtensionInstaller
 {
@@ -74,14 +77,15 @@ class ExtensionInstaller
     /**
      * Run a job record (`id`, `action`, `extension`, `version`, `company`).
      *
-     * @param array<string, mixed>                             $job
-     * @param callable(array<string, mixed> $patch): void|null $onProgress called with stage/step/progress updates
+     * @param array<string, mixed>                              $job
+     * @param callable(array<string, mixed> $patch): void|null  $onProgress called with stage/step/progress updates
+     * @param callable(array<string, mixed> $result): void|null $onFinished called with the result before the final event is published
      *
      * @return array<string, mixed> the job result: `status` completed or failed, plus details
      */
-    public function run(array $job, ?callable $onProgress = null): array
+    public function run(array $job, ?callable $onProgress = null, ?callable $onFinished = null): array
     {
-        $ctx = new InstallContext($job, $onProgress);
+        $ctx = new InstallContext($job, $onProgress, $onFinished);
 
         try {
             if ($ctx->action === 'uninstall') {
@@ -104,9 +108,9 @@ class ExtensionInstaller
      *
      * @return array<string, mixed>
      */
-    public function recover(array $job, string $reason = 'The installer stopped before this job finished (worker restart or timeout).'): array
+    public function recover(array $job, string $reason = 'The installer stopped before this job finished (worker restart or timeout).', ?callable $onFinished = null): array
     {
-        $ctx           = new InstallContext($job);
+        $ctx           = new InstallContext($job, null, $onFinished);
         $ctx->stage    = (string) ($job['stage'] ?? 'interrupted');
         $ctx->step     = isset($job['step']) ? (string) $job['step'] : null;
         $ctx->snapshot = Snapshot::load($this->config->jobDirectory($ctx->id) . '/snapshot');
@@ -126,6 +130,8 @@ class ExtensionInstaller
                 $ctx->result['previous_version'] = $this->recorder->installedVersion($ctx->company, $ctx->extension)
                     ?? ($release->enginePackage ? $this->manifest()->get($release->enginePackage)['version'] ?? null : null);
             }
+
+            $ctx->plan = InstallProgress::installPlan($release);
 
             $this->reporter->starting($ctx->action, $ctx->extension, $release, $ctx->company, $ctx->user);
             $ctx->reportedStart = true;
@@ -175,7 +181,8 @@ class ExtensionInstaller
                     unset($repository['name']);
                     $this->exec($ctx, [$this->config->composerBinary, 'config', 'repositories.' . $name, (string) json_encode($repository, JSON_UNESCAPED_SLASHES)], $this->config->apiPath);
                 }
-                $this->exec($ctx, [$this->config->composerBinary, 'require', (string) $release->composerRequirement(), '--no-interaction'], $this->config->apiPath, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
+                // Core's own composer.json: its scripts (package discovery, asset publishing) still run.
+                $this->exec($ctx, $this->composer(['require', (string) $release->composerRequirement()]), $this->config->apiPath, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
             });
         }
 
@@ -202,11 +209,12 @@ class ExtensionInstaller
                 $this->addEnginePackage($ctx, $release);
             });
             if ($rebuild) {
+                $ctx->plan = InstallProgress::installPlan($release, true);
                 $this->stage($ctx, 'build', 'console.build', fn () => $this->buildConsole($ctx));
             }
         }
 
-        $this->stage($ctx, 'caches', 'cache.clear', fn () => $this->clearCaches($ctx));
+        $this->stage($ctx, 'caches', 'cache.clear', fn () => $this->refreshApi($ctx, $ctx->discover));
 
         $this->stage($ctx, 'record', 'install.record', function () use ($ctx, $release) {
             $this->recorder->record($ctx->company, $ctx->extension, $release, [
@@ -227,6 +235,9 @@ class ExtensionInstaller
             $ctx->release                  = $release;
             $ctx->result['release']        = $release->toArray();
             $ctx->result['packages_kept']  = $this->recorder->installedElsewhere($ctx->company, $ctx->extension);
+            $ctx->plan                     = $ctx->result['packages_kept'] ? ['resolve', 'record'] : array_values(array_filter([
+                'resolve', 'snapshot', $release->composerPackage !== null ? 'composer' : null, $release->enginePackage !== null ? 'engine' : null, 'caches', 'record',
+            ]));
         });
 
         $release = $ctx->release();
@@ -242,7 +253,7 @@ class ExtensionInstaller
                     $manifest->remove((string) $release->composerPackage);
                     $ctx->log->add(sprintf('Removed %s from %s', $release->composerPackage, $manifest->file()));
                     $ctx->result['composer_project'] = $manifest->directory;
-                    $this->exec($ctx, [$this->config->composerBinary, 'update', (string) $release->composerPackage, '--no-interaction'], $manifest->directory, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
+                    $this->updateManifest($ctx, $manifest, [(string) $release->composerPackage], 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
                 });
             } elseif ($release->composerPackage !== null && $this->composerRequires($release->composerPackage)) {
                 if ($manifest !== null) {
@@ -252,7 +263,7 @@ class ExtensionInstaller
                 } else {
                     $this->stage($ctx, 'composer', 'server.uninstall', function () use ($ctx, $release) {
                         $ctx->snapshot()->flag('composer', $this->config->apiPath);
-                        $this->exec($ctx, [$this->config->composerBinary, 'remove', (string) $release->composerPackage, '--no-interaction'], $this->config->apiPath, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
+                        $this->exec($ctx, $this->composer(['remove', (string) $release->composerPackage]), $this->config->apiPath, 'server.uninstall', [OutputProgress::class, 'composerUninstallOutputProgress']);
                     });
                 }
             }
@@ -270,10 +281,11 @@ class ExtensionInstaller
                     $this->exec($ctx, [$this->config->pnpmBinary, 'remove', $engine], $this->config->consolePath, 'engine.uninstall', [OutputProgress::class, 'pnpmUninstallOutputProgress']);
                     $ctx->result['mode'] = 'build';
                 });
+                $ctx->plan = [...array_diff($ctx->plan, ['caches', 'record']), 'build', 'caches', 'record'];
                 $this->stage($ctx, 'build', 'console.build', fn () => $this->buildConsole($ctx));
             }
 
-            $this->stage($ctx, 'caches', 'cache.clear', fn () => $this->clearCaches($ctx));
+            $this->stage($ctx, 'caches', 'cache.clear', fn () => $this->refreshApi($ctx, $ctx->discover));
         }
 
         $this->stage($ctx, 'record', 'install.record', fn () => $this->recorder->remove($ctx->company, $ctx->extension));
@@ -392,12 +404,50 @@ class ExtensionInstaller
         }
     }
 
-    private function clearCaches(InstallContext $ctx): void
+    /**
+     * Bring the API up to date with the packages now installed: package discovery (when Composer ran without
+     * its scripts), the cache commands, then the Octane reload. With `batch_artisan` (the default) that is one
+     * `php artisan registry:installer-refresh` process instead of one boot of the API per command, which is
+     * most of what this stage costs.
+     */
+    private function refreshApi(InstallContext $ctx, bool $discover): void
     {
-        foreach ($this->config->cacheCommands as $command) {
-            $this->exec($ctx, [$this->config->phpBinary, 'artisan', ...$command], $this->config->apiPath);
+        if (!$this->config->batchArtisan) {
+            if ($discover) {
+                $this->exec($ctx, [$this->config->phpBinary, 'artisan', 'package:discover'], $this->config->apiPath);
+            }
+            foreach ($this->config->cacheCommands as $command) {
+                $this->exec($ctx, [$this->config->phpBinary, 'artisan', ...$command], $this->config->apiPath);
+            }
+            $this->reloadOctane($ctx);
+
+            return;
         }
-        $this->reloadOctane($ctx);
+
+        $command = [$this->config->phpBinary, 'artisan', 'registry:installer-refresh'];
+        if ($discover) {
+            $command[] = '--discover';
+        }
+        foreach ($this->config->cacheCommands as $cacheCommand) {
+            $command[] = '--run=' . implode(' ', $cacheCommand);
+        }
+        if ($this->config->reloadOctane) {
+            // The command reports a failed reload and carries on: it never fails the job.
+            $command[] = '--octane';
+        }
+        $this->exec($ctx, $command, $this->config->apiPath);
+    }
+
+    /**
+     * A Composer command with the configured flags (`composer_flags`).
+     *
+     * @param array<int, string> $arguments
+     *
+     * @return array<int, string>
+     */
+    private function composer(array $arguments, bool $noScripts = false): array
+    {
+        return [$this->config->composerBinary, ...$arguments, ...$this->config->composerFlags, ...($noScripts ? ['--no-scripts'] : [])];
     }
 
     /**
@@ -429,10 +479,15 @@ class ExtensionInstaller
             $this->report($ctx, fn () => $this->reporter->finished($ctx->action, $ctx->extension, $ctx->release(), $ctx->company, $ctx->user, !($ctx->result['packages_kept'] ?? false)));
         }
 
-        $step = ($ctx->action === 'uninstall' ? 'uninstall' : 'install') . '.complete';
-        $this->publish($ctx, ['process' => $ctx->process($step), 'step' => $step, 'progress' => 100, 'status' => 'completed', 'job' => $ctx->id, 'stage' => null]);
+        $ctx->percent = 100;
+        $ctx->log->add(sprintf('Finished in %.1fs', $ctx->elapsed()));
+        $result = [...$ctx->result, 'status' => 'completed', 'stages' => $ctx->completed, 'timings' => $ctx->timings, 'duration' => $ctx->elapsed(), 'log' => $ctx->log->tail($this->config->logLines)];
+        $ctx->finished($result);
 
-        return [...$ctx->result, 'status' => 'completed', 'stages' => $ctx->completed, 'log' => $ctx->log->tail($this->config->logLines)];
+        $step = ($ctx->action === 'uninstall' ? 'uninstall' : 'install') . '.complete';
+        $this->publish($ctx, $this->event($ctx, $step, 100, 'completed', ['stage' => null, 'phase' => 'finish']));
+
+        return $result;
     }
 
     /**
@@ -454,18 +509,13 @@ class ExtensionInstaller
             $this->report($ctx, fn () => $this->reporter->failed($ctx->action, $ctx->extension, $ctx->release(), $ctx->company, $message, $ctx->user));
         }
 
-        $this->publish($ctx, [
-            'process'  => $ctx->process((string) $step),
-            'step'     => $step,
-            'stage'    => $stage,
-            'progress' => 100,
-            'status'   => 'failed',
-            'job'      => $ctx->id,
-            'message'  => $message,
-            'log'      => $log,
-        ]);
+        $phase  = InstallProgress::phase($ctx->action, $stage);
+        $result = [...$ctx->result, 'status' => 'failed', 'failed_stage' => $stage, 'failed_phase' => $phase, 'step' => $step, 'message' => $message, 'stages' => $ctx->completed, 'rollback' => $rollback, 'timings' => $ctx->timings, 'duration' => $ctx->elapsed(), 'log' => $log];
+        $ctx->finished($result);
 
-        return [...$ctx->result, 'status' => 'failed', 'failed_stage' => $stage, 'step' => $step, 'message' => $message, 'stages' => $ctx->completed, 'rollback' => $rollback, 'log' => $log];
+        $this->publish($ctx, $this->event($ctx, (string) $step, 100, 'failed', ['step' => $step, 'stage' => $stage, 'phase' => $phase, 'message' => $message, 'log' => $log]));
+
+        return $result;
     }
 
     /**
@@ -495,19 +545,18 @@ class ExtensionInstaller
         }
 
         $commands = [];
+        $discover = false;
         if ($snapshot->flagged('composer')) {
             // The project composer ran in (the extensions manifest, or the API on a core without one); jobs
             // snapshotted before the manifest only flagged `true`.
             $project    = $snapshot->flagged('composer');
-            $commands[] = [[$this->config->composerBinary, 'install', '--no-interaction'], is_string($project) ? $project : $this->config->apiPath];
+            $project    = is_string($project) ? $project : $this->config->apiPath;
+            $manifest   = ExtensionsManifest::find($project);
+            $discover   = $manifest !== null && rtrim($project, '/') !== rtrim($this->config->apiPath, '/') && $this->noScripts($manifest);
+            $commands[] = [$this->composer(['install'], $discover), $project];
         }
         if ($snapshot->flagged('pnpm')) {
             $commands[] = [[$this->config->pnpmBinary, 'install', '--frozen-lockfile'], $this->config->consolePath];
-        }
-        if ($snapshot->flagged('composer')) {
-            foreach ($this->config->cacheCommands as $command) {
-                $commands[] = [[$this->config->phpBinary, 'artisan', ...$command], $this->config->apiPath];
-            }
         }
         foreach ($commands as [$command, $cwd]) {
             try {
@@ -517,7 +566,11 @@ class ExtensionInstaller
             }
         }
         if ($snapshot->flagged('composer')) {
-            $this->reloadOctane($ctx);
+            try {
+                $this->refreshApi($ctx, $discover);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
         }
 
         $this->emit($ctx, 'rollback', 100);
@@ -539,17 +592,22 @@ class ExtensionInstaller
     {
         $ctx->stage = $stage;
         $ctx->step  = $step;
-        $ctx->log->add(sprintf('==> %s (%s)', $stage, $step));
+        $ctx->log->add(sprintf('==> %s (%s) at +%.1fs', $stage, $step, $ctx->elapsed()));
         $this->emit($ctx, $step, 0);
+        $started = microtime(true);
 
         try {
             $callback();
         } catch (StageFailedException $e) {
+            $ctx->timings[$stage] = round(microtime(true) - $started, 1);
             throw $e;
         } catch (\Throwable $e) {
+            $ctx->timings[$stage] = round(microtime(true) - $started, 1);
             throw new StageFailedException($stage, $e->getMessage(), $e);
         }
 
+        $ctx->timings[$stage] = round(microtime(true) - $started, 1);
+        $ctx->log->add(sprintf('<== %s took %.1fs', $stage, $ctx->timings[$stage]));
         $ctx->completed[] = $stage;
         $this->emit($ctx, $step, 100);
     }
@@ -620,8 +678,37 @@ class ExtensionInstaller
 
     private function emit(InstallContext $ctx, string $step, int $progress): void
     {
-        $this->publish($ctx, ['process' => $ctx->process($step), 'step' => $step, 'progress' => $progress, 'status' => 'running', 'job' => $ctx->id, 'stage' => $ctx->stage]);
-        $ctx->notify(['stage' => $ctx->stage, 'step' => $step, 'progress' => $progress]);
+        if ($step !== 'rollback') {
+            $ctx->advance($progress);
+        }
+        $event = $this->event($ctx, $step, $progress, 'running');
+        $ctx->notify(['stage' => $ctx->stage, 'step' => $step, 'progress' => $progress, 'phase' => $event['phase'], 'percent' => $event['percent'], 'seq' => $event['seq'], 'timings' => $ctx->timings]);
+        $this->publish($ctx, $event);
+    }
+
+    /**
+     * A socket event for the job, numbered with the next `seq`.
+     *
+     * @param array<string, mixed> $extra
+     *
+     * @return array<string, mixed>
+     */
+    private function event(InstallContext $ctx, string $step, int $progress, string $status, array $extra = []): array
+    {
+        return [
+            'v'        => 2,
+            'job'      => $ctx->id,
+            'action'   => $ctx->action,
+            'status'   => $status,
+            'phase'    => $ctx->phase(),
+            'percent'  => $ctx->percent,
+            'process'  => $ctx->process($step),
+            'step'     => $step,
+            'stage'    => $ctx->stage,
+            'progress' => $progress,
+            'seq'      => ++$ctx->seq,
+            ...$extra,
+        ];
     }
 
     /**
@@ -701,7 +788,32 @@ class ExtensionInstaller
 
         $allow = $manifest->requires(ExtensionsManifest::CORE_PLATFORM) ? [$package, ExtensionsManifest::CORE_PLATFORM] : [$package];
         // No --with-dependencies, like the `composer require` this replaces: packages already locked keep their versions.
-        $this->exec($ctx, [$this->config->composerBinary, 'update', ...$allow, '--no-interaction'], $manifest->directory, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
+        $this->updateManifest($ctx, $manifest, $allow, 'server.install', [OutputProgress::class, 'composerInstallOutputProgress']);
+    }
+
+    /**
+     * `composer update <packages>` in the manifest's project, after excluding core's packages from Packagist (the
+     * manifest is in the snapshot, so a rollback undoes that too). When the manifest's only script is package
+     * discovery, Composer runs without scripts and the caches stage discovers packages in its artisan process.
+     *
+     * @param array<int, string>   $packages
+     * @param callable(string):int $progress
+     */
+    private function updateManifest(InstallContext $ctx, ExtensionsManifest $manifest, array $packages, string $step, callable $progress): void
+    {
+        $excluded = $manifest->excludeCorePackagesFromPackagist();
+        if ($excluded > 0) {
+            $ctx->log->add(sprintf('Composer resolves core\'s %d packages from core-platform only (excluded from Packagist)', $excluded));
+        }
+
+        $noScripts     = $this->noScripts($manifest);
+        $ctx->discover = $ctx->discover || $noScripts;
+        $this->exec($ctx, $this->composer(['update', ...$packages], $noScripts), $manifest->directory, $step, $progress);
+    }
+
+    private function noScripts(ExtensionsManifest $manifest): bool
+    {
+        return $this->config->batchArtisan && $manifest->scriptsOnlyDiscoverPackages();
     }
 
     private function extensionsManifest(): ?ExtensionsManifest

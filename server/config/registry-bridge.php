@@ -102,6 +102,11 @@ return [
         // an installer worker in the same container as Octane (the Docker image's REGISTRY_INSTALLER_WORKER); a
         // failed reload is logged, never fails the job.
         'reload_octane' => Utils::castBoolean(env('REGISTRY_INSTALLER_RELOAD_OCTANE', false)),
+        // Run package discovery, the cache commands and the Octane reload in one artisan process
+        // (`registry:installer-refresh`) rather than booting the API once per command.
+        'batch_artisan' => Utils::castBoolean(env('REGISTRY_INSTALLER_BATCH_ARTISAN', true)),
+        // Added to every Composer command the installer runs.
+        'composer_flags' => Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_COMPOSER_FLAGS,
         'require_checksums' => Utils::castBoolean(env('REGISTRY_INSTALLER_REQUIRE_CHECKSUMS', false)),
         'timeout' => (int) env('REGISTRY_INSTALLER_TIMEOUT', 7200),
         'lock_seconds' => (int) env('REGISTRY_INSTALLER_LOCK_SECONDS', 10800),

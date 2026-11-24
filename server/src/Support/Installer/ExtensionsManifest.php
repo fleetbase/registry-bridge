@@ -116,6 +116,85 @@ class ExtensionsManifest
         $this->write($json);
     }
 
+    /** Repository key Composer uses for Packagist; `"packagist.org": false` turns it off. */
+    public const PACKAGIST = 'packagist.org';
+
+    /**
+     * The package names core already installs: what fleetbase/core-platform provides or replaces.
+     *
+     * @return array<int, string>
+     */
+    public function corePackages(): array
+    {
+        $repository = (array) ($this->read()['repositories'][self::CORE_PLATFORM_REPOSITORY] ?? []);
+        $url        = is_string($repository['url'] ?? null) ? $repository['url'] : self::CORE_PLATFORM_REPOSITORY;
+        $path       = str_starts_with($url, '/') ? $url : $this->directory . '/' . $url;
+        $platform   = Files::readJson(rtrim($path, '/') . '/composer.json') ?? [];
+        $names      = array_keys([...(array) ($platform['provide'] ?? []), ...(array) ($platform['replace'] ?? [])]);
+        $names      = array_values(array_unique(array_map('strtolower', array_filter($names, fn ($name) => is_string($name) && str_contains($name, '/')))));
+        sort($names);
+
+        return $names;
+    }
+
+    /**
+     * Keep Composer from looking up core's own packages on Packagist (`exclude` on the packagist.org
+     * repository), so a resolve only reads the metadata of the extension's own dependencies.
+     *
+     * Without it a partial update of one extension that requires fleetbase/core-api loads every Packagist
+     * release of core-api and, through their requirements, most of the Laravel ecosystem (about 1,300
+     * metadata requests and 2,400 packages for LocoNav) only to settle on what core-platform provides.
+     * Those names can never come from Packagist anyway: core already has them in its own vendor folder.
+     *
+     * Leaves a manifest that turned Packagist off alone. Returns how many names are excluded.
+     */
+    public function excludeCorePackagesFromPackagist(): int
+    {
+        $names = $this->corePackages();
+        $json  = $this->read();
+        $repos = $json['repositories'] ?? [];
+        if ($names === [] || !is_array($repos) || array_is_list($repos) && $repos !== []) {
+            // Repositories written as a list cannot be addressed by name; leave them as they are.
+            return 0;
+        }
+
+        $packagist = $repos[self::PACKAGIST] ?? ['type' => 'composer', 'url' => 'https://repo.packagist.org'];
+        if ($packagist === false || !is_array($packagist)) {
+            return 0;
+        }
+        if (($packagist['exclude'] ?? null) === $names) {
+            return count($names);
+        }
+
+        $packagist['exclude']        = $names;
+        $repos[self::PACKAGIST]      = $packagist;
+        $json['repositories']        = $repos;
+        $this->write($json);
+
+        return count($names);
+    }
+
+    /**
+     * Whether the manifest's Composer scripts do nothing but `artisan package:discover`, so the installer can
+     * run Composer with `--no-scripts` and discover packages in the same artisan process that clears caches.
+     */
+    public function scriptsOnlyDiscoverPackages(): bool
+    {
+        $scripts = $this->read()['scripts'] ?? [];
+        if (!is_array($scripts)) {
+            return false;
+        }
+        foreach ($scripts as $event => $commands) {
+            foreach ((array) $commands as $command) {
+                if ($event !== 'post-autoload-dump' || !is_string($command) || !preg_match('#^@php\s+(\S*/)?artisan\s+package:discover(\s+--ansi)?$#', trim($command))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Let Composer fetch over plain http in this project (`config.secure-http: false`). Only for a registry on a
      * local or private address (see allowsPlainHttp()); Composer refuses http repositories otherwise.

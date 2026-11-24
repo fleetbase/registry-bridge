@@ -10,8 +10,10 @@ use Illuminate\Contracts\Cache\Repository;
  *
  * A record: id, action, extension {uuid, id, name}, version, company, user,
  * status (queued, running, interrupted, completed, failed), stage, step,
- * progress, message, failed_stage, log, result, created_at, started_at,
- * finished_at, heartbeat_at. `position` is computed on read: the number of
+ * progress (of the step), phase and percent (the user-facing step and overall
+ * progress, see InstallProgress), seq (of the last socket event), timings
+ * (seconds per stage), duration, message, failed_stage, log, result,
+ * created_at, started_at, finished_at, heartbeat_at. `position` is computed on read: the number of
  * jobs ahead of this one (0 = running or next).
  */
 class InstallerJobStore
@@ -37,6 +39,9 @@ class InstallerJobStore
             'stage'      => null,
             'step'       => null,
             'progress'   => 0,
+            'phase'      => null,
+            'percent'    => 0,
+            'seq'        => 0,
             'message'    => null,
             'result'     => null,
             'created_at' => date(DATE_ATOM),

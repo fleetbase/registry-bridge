@@ -141,14 +141,10 @@ test('a service release installs from the service package endpoints with credent
         ->and($result['release']['engine']['tarball'])->toBe(HELLO_TARBALL)
         ->and($this->sandbox->runner->commands())->toBe([
             'composer config repositories.fleetbase-registry-service {"type":"composer","url":"https://registry.example.test/composer","canonical":false}',
-            'composer require ' . HELLO_API . ':1.0.0 --no-interaction',
+            'composer require ' . HELLO_API . ':1.0.0 --no-interaction --no-progress --no-audit --no-ansi',
             'pnpm add ' . HELLO_NPM . '@' . HELLO_TARBALL . ' --config.ignore-workspace-root-check=true',
             'pnpm build --environment production',
-            'php artisan config:clear',
-            'php artisan route:clear',
-            'php artisan view:clear',
-            'php artisan event:clear',
-            'php artisan queue:restart',
+            'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
         ]);
 
     $env = array_column($this->sandbox->runner->calls, 'env');
@@ -191,12 +187,8 @@ test('a service release with a prebuilt dist installs as a runtime engine, downl
         ->and($downloads)->toBe([[HELLO_DIST, ['Authorization' => 'Bearer ' . RegistryServiceFake::INSTANCE_TOKEN]]])
         ->and($this->sandbox->runner->commands())->toBe([
             'composer config repositories.fleetbase-registry-service {"type":"composer","url":"https://registry.example.test/composer","canonical":false}',
-            'composer require ' . HELLO_API . ':1.0.0 --no-interaction',
-            'php artisan config:clear',
-            'php artisan route:clear',
-            'php artisan view:clear',
-            'php artisan event:clear',
-            'php artisan queue:restart',
+            'composer require ' . HELLO_API . ':1.0.0 --no-interaction --no-progress --no-audit --no-ansi',
+            'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
         ])
         ->and($this->sandbox->manifest()->has(HELLO_NPM))->toBeTrue()
         ->and(is_file($this->sandbox->runtime . '/' . HELLO_NPM . '/manifest.json'))->toBeTrue()
@@ -247,7 +239,7 @@ test('a dist the service cannot serve falls back to the engine package and a reb
     [$listing] = helloListingWithDist($this->sandbox);
     $this->service->respondWith('GET', 'v1/catalog/extensions/' . HELLO_ID, 200, $listing);
     $this->service->on('POST', 'v1/instances/me/installs', 'instances-installs-installing', 'instances-installs-installed');
-    $fetcher = fn (string $url) => throw new \RuntimeException(sprintf('Could not download %s.', $url));
+    $fetcher = fn (string $url) => throw new RuntimeException(sprintf('Could not download %s.', $url));
 
     $result = serviceInstaller($this->sandbox, RegistryServiceFake::config(), $fetcher)->run(helloJob());
 
@@ -332,7 +324,7 @@ test('a failed package step rolls back with credentials and is reported as faile
         ->and($reports[1]['error'])->toBe($result['message']);
 
     $rollback = array_values(array_filter($this->sandbox->runner->calls, fn ($call) => $call['command'][1] === 'install'));
-    expect($rollback[0]['command'])->toBe(['composer', 'install', '--no-interaction'])
+    expect($rollback[0]['command'])->toBe(['composer', 'install', '--no-interaction', '--no-progress', '--no-audit', '--no-ansi'])
         ->and($rollback[0]['env'])->toHaveKey('COMPOSER_AUTH');
 });
 
@@ -374,7 +366,7 @@ test('an uninstall removes the packages and releases the licence seat', function
     $result = serviceInstaller($this->sandbox, RegistryServiceFake::config())->run(helloJob('uninstall'));
 
     expect($result['status'])->toBe('completed')
-        ->and($this->sandbox->runner->commands())->toContain('composer remove ' . HELLO_API . ' --no-interaction', 'pnpm remove ' . HELLO_NPM)
+        ->and($this->sandbox->runner->commands())->toContain('composer remove ' . HELLO_API . ' --no-interaction --no-progress --no-audit --no-ansi', 'pnpm remove ' . HELLO_NPM)
         ->and($this->service->requestsTo('DELETE', 'v1/instances/me/installs/' . HELLO_ID))->toHaveCount(1)
         ->and($this->sandbox->recorder->isInstalled('company-1', helloRef()))->toBeFalse();
 });

@@ -17,6 +17,8 @@ class InstallLog
 
     public function add(string $line): void
     {
+        // Colour codes from tools that force them (`artisan --ansi`) only clutter the log the console shows.
+        $line = (string) preg_replace('/\e\[[0-9;?]*[A-Za-z]/', '', $line);
         foreach (preg_split('/\r?\n/', rtrim($line)) ?: [] as $part) {
             $this->lines[] = $part;
         }

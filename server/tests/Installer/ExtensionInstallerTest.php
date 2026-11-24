@@ -39,12 +39,8 @@ test('a release with a prebuilt dist installs as a runtime engine without a cons
     expect($result['mode'])->toBe('runtime');
     expect($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'caches', 'record']);
     expect($sandbox->runner->commands())->toBe([
-        'composer require acme/widgets-api:1.0.0 --no-interaction',
-        'php artisan config:clear',
-        'php artisan route:clear',
-        'php artisan view:clear',
-        'php artisan event:clear',
-        'php artisan queue:restart',
+        'composer require acme/widgets-api:1.0.0 --no-interaction --no-progress --no-audit --no-ansi',
+        'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
     ]);
     expect($sandbox->runner->calls[0]['cwd'])->toBe($sandbox->api);
 
@@ -103,14 +99,10 @@ test('without a prebuilt dist the engine is installed with pnpm add and pnpm bui
     expect($result['mode'])->toBe('build');
     expect($result['stages'])->toBe(['resolve', 'download', 'snapshot', 'composer', 'engine', 'build', 'caches', 'record']);
     expect($sandbox->runner->commands())->toBe([
-        'composer require acme/widgets-api:2.1.0 --no-interaction',
+        'composer require acme/widgets-api:2.1.0 --no-interaction --no-progress --no-audit --no-ansi',
         'pnpm add @acme/widgets-engine@2.1.0 --config.ignore-workspace-root-check=true',
         'pnpm build --environment production',
-        'php artisan config:clear',
-        'php artisan route:clear',
-        'php artisan view:clear',
-        'php artisan event:clear',
-        'php artisan queue:restart',
+        'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
     ]);
     expect($sandbox->runner->calls[1]['cwd'])->toBe($sandbox->console);
     expect($sandbox->runner->calls[2]['cwd'])->toBe($sandbox->console);
@@ -184,7 +176,7 @@ test('a composer failure rolls back the snapshot and reports the stage and the l
 
     expect(sandboxState($sandbox))->toBe($before);
     expect($result['rollback']['performed'])->toBeTrue();
-    expect($sandbox->runner->ran('composer install --no-interaction'))->toBeTrue('vendor/ is synced with the restored lock');
+    expect($sandbox->runner->ran('composer install --no-interaction --no-progress --no-audit --no-ansi'))->toBeTrue('vendor/ is synced with the restored lock');
     expect($sandbox->recorder->installs)->toBe([]);
 
     $failure = $sandbox->publisher->last();
@@ -209,13 +201,9 @@ test('an incompatible prebuilt engine is refused, composer is rolled back and no
     expect(is_dir($this->engineDir))->toBeFalse();
     expect(sandboxState($sandbox))->toBe($before);
     expect($sandbox->runner->commands())->toBe([
-        'composer require acme/widgets-api:1.0.0 --no-interaction',
-        'composer install --no-interaction',
-        'php artisan config:clear',
-        'php artisan route:clear',
-        'php artisan view:clear',
-        'php artisan event:clear',
-        'php artisan queue:restart',
+        'composer require acme/widgets-api:1.0.0 --no-interaction --no-progress --no-audit --no-ansi',
+        'composer install --no-interaction --no-progress --no-audit --no-ansi',
+        'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
     ]);
 });
 
@@ -260,7 +248,7 @@ test('a failure after the engine is unpacked removes the dist and restores the r
     $sandbox = $this->sandbox;
     $sandbox->release('1.0.0');
     $before = sandboxState($sandbox);
-    $sandbox->runner->on(['php', 'artisan', 'config:clear'], fn () => new ProcessResult(1, 'cache store unreachable'));
+    $sandbox->runner->on(['php', 'artisan', 'registry:installer-refresh'], fn () => new ProcessResult(1, 'cache store unreachable'));
 
     $result = $sandbox->installer()->run($sandbox->job());
 
@@ -309,7 +297,7 @@ test('an update replaces the engines-dist folder and restores the previous one w
 
     // 1.1.0 installs, then a later stage fails.
     $sandbox->release('1.1.0');
-    $sandbox->runner->on(['php', 'artisan', 'queue:restart'], 1);
+    $sandbox->runner->on(['php', 'artisan', 'registry:installer-refresh'], 1);
     $failed = $sandbox->installer()->run($sandbox->job('update', ['version' => '1.1.0']));
 
     expect($failed['status'])->toBe('failed');
@@ -319,12 +307,12 @@ test('an update replaces the engines-dist folder and restores the previous one w
     expect(sandboxState($sandbox))->toBe($previous);
 
     // Without the failure the update lands.
-    $sandbox->runner->on(['php', 'artisan', 'queue:restart'], 0);
+    $sandbox->runner->on(['php', 'artisan', 'registry:installer-refresh'], 0);
     $updated = $sandbox->installer()->run($sandbox->job('update', ['id' => 'job-update-2', 'version' => '1.1.0']));
     expect($updated['status'])->toBe('completed');
     expect($updated['previous_version'])->toBe('1.0.0');
     expect(file_get_contents($this->engineDir . '/assets/engine.js'))->toContain('v1.1.0');
-    expect($sandbox->runner->commands())->toContain('composer require acme/widgets-api:1.1.0 --no-interaction');
+    expect($sandbox->runner->commands())->toContain('composer require acme/widgets-api:1.1.0 --no-interaction --no-progress --no-audit --no-ansi');
     expect($sandbox->recorder->installs['company-1']['ext-uuid-1']['version'])->toBe('1.1.0');
 });
 
@@ -339,7 +327,7 @@ test('uninstall removes a runtime engine without a build and publishes on uninst
 
     expect($result['status'])->toBe('completed');
     expect($result['stages'])->toBe(['resolve', 'snapshot', 'composer', 'engine', 'caches', 'record']);
-    expect($sandbox->runner->commands())->toBe(['composer remove acme/widgets-api --no-interaction', 'php artisan config:clear', 'php artisan route:clear', 'php artisan view:clear', 'php artisan event:clear', 'php artisan queue:restart']);
+    expect($sandbox->runner->commands())->toBe(['composer remove acme/widgets-api --no-interaction --no-progress --no-audit --no-ansi', 'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart']);
     expect(is_dir($this->engineDir))->toBeFalse();
     expect($sandbox->manifest()->all())->toBe([]);
     expect($sandbox->recorder->installs['company-1'])->toBe([]);
@@ -376,14 +364,10 @@ test('uninstall of a built engine runs pnpm remove and a console build', functio
 
     expect($result['mode'])->toBe('build');
     expect($sandbox->runner->commands())->toBe([
-        'composer remove acme/widgets-api --no-interaction',
+        'composer remove acme/widgets-api --no-interaction --no-progress --no-audit --no-ansi',
         'pnpm remove @acme/widgets-engine',
         'pnpm build --environment production',
-        'php artisan config:clear',
-        'php artisan route:clear',
-        'php artisan view:clear',
-        'php artisan event:clear',
-        'php artisan queue:restart',
+        'php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart',
     ]);
 });
 
@@ -419,7 +403,7 @@ test('a job interrupted mid-install is rolled back from the snapshot on disk', f
     expect($result['failed_stage'])->toBe('composer');
     expect($result['message'])->toContain('stopped before this job finished');
     expect(sandboxState($sandbox))->toBe($before);
-    expect($sandbox->runner->ran('composer install --no-interaction'))->toBeTrue();
+    expect($sandbox->runner->ran('composer install --no-interaction --no-progress --no-audit --no-ansi'))->toBeTrue();
     expect(is_dir($sandbox->root . '/work/job-install'))->toBeFalse();
 });
 
@@ -464,9 +448,10 @@ test('with reload_octane the installer reloads the Octane workers after an insta
 
     $result = $sandbox->installer()->run($sandbox->job());
     expect($result['status'])->toBe('completed')
-        ->and(array_slice($sandbox->runner->commands(), -2))->toBe(['php artisan queue:restart', 'php artisan octane:reload']);
+        ->and(array_slice($sandbox->runner->commands(), -1))->toBe(['php artisan registry:installer-refresh --run=config:clear --run=route:clear --run=view:clear --run=event:clear --run=queue:restart --octane']);
 
-    // No Octane server beside this worker: octane:reload exits 1, the update still completes.
+    // Without batching, octane:reload runs last on its own; with no Octane server beside this worker it exits 1 and the update still completes.
+    $sandbox->configOverrides = ['reload_octane' => true, 'batch_artisan' => false];
     $sandbox->runner->on(['php', 'artisan', 'octane:reload'], 1);
     $sandbox->release('1.0.1');
     $update = $sandbox->installer()->run($sandbox->job('update', ['version' => '1.0.1']));
