@@ -15,7 +15,13 @@ export default class PurchasedRoute extends Route {
         }
     }
 
-    model(params = {}) {
-        return this.fetch.get('registry-extensions/purchased', params, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'registry-extension' });
+    /** Loaded by the controller so the page keeps its header and shows a skeleton, an error or the list. */
+    model() {
+        return { load: () => this.fetch.get('registry-extensions/purchased', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'registry-extension' }) };
+    }
+
+    setupController(controller) {
+        super.setupController(...arguments);
+        controller.load.perform();
     }
 }

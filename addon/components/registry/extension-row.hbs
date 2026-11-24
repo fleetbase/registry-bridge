@@ -1,0 +1,21 @@
+<div class="rb-row" role="listitem" data-test-extension-row={{this.extension.slug}} ...attributes>
+    <Registry::ExtensionIcon @extension={{this.extension}} @size="sm" />
+    <div class="rb-row-main">
+        <button type="button" class="rb-name rb-stretch" {{on "click" this.open}} data-test-extension-name>{{this.extension.name}}</button>
+        {{#if this.blurb}}
+            <span class="rb-row-blurb">{{this.blurb}}</span>
+        {{/if}}
+    </div>
+    <span class="rb-row-col rb-row-category">{{this.category}}</span>
+    <span class="rb-row-col rb-row-publisher">
+        {{this.publisher}}
+        {{#if this.verified}}
+            <FaIcon @icon="circle-check" @size="xs" class="rb-verified" />
+            <span class="sr-only">{{t "registry-bridge.store.verified"}}</span>
+        {{/if}}
+    </span>
+    {{#if this.showVerdict}}
+        <span class="rb-row-col rb-row-verdict"><Registry::Verdict @extension={{this.extension}} @variant="short" /></span>
+    {{/if}}
+    <Registry::InstallButton @extension={{this.extension}} @progress={{@progress}} @size="sm" @onAction={{@onAction}} @onOpen={{@onOpen}} class="rb-above" />
+</div>

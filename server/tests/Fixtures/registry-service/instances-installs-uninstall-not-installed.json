@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "DELETE",
+        "path": "/v1/instances/me/installs/@registry-demo/pro-engine"
+    },
+    "status": 404,
+    "body": {
+        "errors": [
+            "This extension is not installed on this instance."
+        ]
+    }
+}

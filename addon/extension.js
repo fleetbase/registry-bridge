@@ -10,7 +10,7 @@ export default {
             priority: 99,
             id: 'registry-bridge',
             slug: 'registry-bridge',
-            description: 'Discover, install, and publish extensions to the Fleetbase extension registry.',
+            description: 'Discover, install and buy extensions from the Fleetbase extension registry.',
             shortcuts: [
                 {
                     title: 'Explore',
@@ -33,7 +33,7 @@ export default {
             ],
         });
 
-        // Register admin controls
+        // Register admin controls. Review and publishing moved to the publisher website (registry staff console).
         menuService.registerAdminMenuPanel(
             'Extensions Registry',
             [
@@ -41,16 +41,6 @@ export default {
                     title: 'Registry Config',
                     icon: 'gear',
                     component: new ExtensionComponent('@fleetbase/registry-bridge-engine', 'registry-admin-config'),
-                }),
-                new MenuItem({
-                    title: 'Awaiting Review',
-                    icon: 'gavel',
-                    component: new ExtensionComponent('@fleetbase/registry-bridge-engine', 'extension-reviewer-control'),
-                }),
-                new MenuItem({
-                    title: 'Pending Publish',
-                    icon: 'rocket',
-                    component: new ExtensionComponent('@fleetbase/registry-bridge-engine', 'extension-pending-publish-viewer'),
                 }),
             ],
             {

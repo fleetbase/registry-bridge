@@ -15,7 +15,13 @@ export default class InstalledRoute extends Route {
         }
     }
 
-    model(params = {}) {
-        return this.fetch.get('registry-extensions/installed', params, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'registry-extension' });
+    /** Loaded by the controller so the page keeps its header and shows a skeleton, an error or the list. */
+    model() {
+        return { load: () => this.fetch.get('registry-extensions/installed', {}, { namespace: '~registry/v1', normalizeToEmberData: true, modelType: 'registry-extension' }) };
+    }
+
+    setupController(controller) {
+        super.setupController(...arguments);
+        controller.load.perform();
     }
 }

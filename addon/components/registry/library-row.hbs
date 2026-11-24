@@ -1,0 +1,92 @@
+<div
+    class="rb-lib-row {{if this.removal 'is-removing'}} {{if this.confirming 'is-confirming'}}"
+    role="listitem"
+    data-test-library-row={{this.extension.slug}}
+    {{on "keydown" this.onKeydown}}
+    ...attributes
+>
+    <div class="rb-lib-row-main">
+        <Registry::ExtensionIcon @extension={{this.extension}} @size="sm" />
+        <div class="rb-lib-id">
+            <button type="button" class="rb-name" {{on "click" this.open}} data-test-extension-name>{{this.extension.name}}</button>
+            {{#if this.removal}}
+                <span class="rb-lib-note is-removing" role="status">{{t "registry-bridge.store.library.removing"}}</span>
+            {{else if this.note}}
+                <span class="rb-lib-note">{{this.note}}</span>
+            {{/if}}
+        </div>
+        <span class="rb-lib-col rb-lib-plan">{{this.plan}}</span>
+        <span class="rb-lib-col rb-lib-status is-{{this.status.tone}}">{{this.status.text}}</span>
+        {{#if this.isPurchasedView}}
+            <span class="rb-lib-col rb-lib-receipt">
+                {{#if this.receiptUrl}}
+                    <a href={{this.receiptUrl}} target="_blank" rel="noopener noreferrer" class="rb-link">{{t "registry-bridge.store.library.receipt"}}</a>
+                {{/if}}
+            </span>
+        {{/if}}
+        <div class="rb-lib-actions">
+            {{#unless this.removal}}
+                <Registry::InstallButton @extension={{this.extension}} @size="sm" />
+            {{/unless}}
+            {{#if this.canRemove}}
+                <button
+                    type="button"
+                    class="rb-icon-btn is-danger {{if this.confirming 'is-on'}}"
+                    aria-label={{t "registry-bridge.store.library.remove.label" name=this.extension.name}}
+                    aria-expanded={{if this.confirming "true" "false"}}
+                    aria-controls={{this.popoverId}}
+                    disabled={{if this.removal true false}}
+                    {{on "click" this.toggleConfirm}}
+                    data-test-library-remove
+                >
+                    <FaIcon @icon="trash-can" @size="sm" />
+                </button>
+            {{/if}}
+        </div>
+    </div>
+
+    {{#if this.removal}}
+        <span class="rb-lib-bar" style={{this.barStyle}} aria-hidden="true"></span>
+    {{/if}}
+
+    {{#if this.confirming}}
+        <div
+            id={{this.popoverId}}
+            class="rb-popover"
+            role="dialog"
+            aria-label={{t "registry-bridge.store.library.remove.title" name=this.extension.name}}
+            {{did-insert this.focusFirst}}
+            data-test-remove-popover
+        >
+            <strong class="rb-popover-title">{{t "registry-bridge.store.library.remove.title" name=this.extension.name}}</strong>
+            <p class="rb-popover-body">{{this.effect}}</p>
+            <div class="rb-popover-actions">
+                <button type="button" class="rb-btn rb-btn-ghost" {{on "click" this.closeConfirm}}>{{t "registry-bridge.store.library.remove.keep"}}</button>
+                <button type="button" class="rb-btn rb-btn-danger" {{on "click" this.remove}} data-test-remove-confirm>{{t "registry-bridge.store.library.remove.confirm"}}</button>
+            </div>
+        </div>
+    {{/if}}
+
+    {{#if this.failure}}
+        <div class="rb-lib-failure" role="alert" data-test-remove-failure>
+            <div>
+                <strong>{{t "registry-bridge.store.library.remove.failed" name=this.extension.name}}</strong>
+                <span>{{t "registry-bridge.store.library.remove.failed-body"}}</span>
+            </div>
+            <div class="rb-failure-actions">
+                <button type="button" class="rb-btn rb-btn-light" {{on "click" this.retry}}>{{t "registry-bridge.store.failure.retry"}}</button>
+                <button type="button" class="rb-btn rb-btn-ghost" {{on "click" this.dismiss}}>{{t "registry-bridge.store.failure.dismiss"}}</button>
+            </div>
+            {{#if this.canSeeDetails}}
+                <details class="rb-failure-details">
+                    <summary>{{t "registry-bridge.store.verdict.details"}}</summary>
+                    {{#if this.failure.failure.message}}<p>{{this.failure.failure.message}}</p>{{/if}}
+                    {{#if this.failure.failure.log.length}}
+                        <pre>{{#each this.failure.failure.log as |line|}}{{line}}
+                            {{/each}}</pre>
+                    {{/if}}
+                </details>
+            {{/if}}
+        </div>
+    {{/if}}
+</div>

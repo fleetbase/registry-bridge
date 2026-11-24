@@ -1,131 +1,382 @@
 registry-bridge:
-  extension-name: Cầu nối Đăng ký
+  extension-name: Cầu nối kho tiện ích
   common:
+    retry: Thử lại
+    close: Đóng
+  installer:
+    starting: Đang bắt đầu…
+    queued-next: Đang chờ bắt đầu…
+    queued-behind: "Đang chờ {count, plural, other {# lượt cài đặt khác}} hoàn tất…"
+    completed: Đã xong.
+    failed: Đã xảy ra lỗi.
+    failed-at: "Thất bại ở bước: {step}"
+    rolled-back: Mọi thay đổi đã được hoàn tác; phiên bản trở lại như trước.
+    rebuild-required: Bảng điều khiển đã được dựng lại trong lúc chạy tác vụ; hãy dựng lại lần nữa để gỡ tiện ích khỏi bảng điều khiển.
+    retry: Thử lại
+    reloading: "Xong. Bảng điều khiển sẽ tải lại sau {seconds} giây…"
+    installed: "Đã cài đặt {extensionName}."
+    uninstalled: "Đã gỡ cài đặt {extensionName}."
+    updated: "Đã cập nhật {extensionName}."
+    steps:
+      resolve: Đang xác định bản phát hành…
+      download: Đang tải xuống và xác minh bản phát hành…
+      snapshot: Đang lưu điểm khôi phục…
+      server-install: Đang cài đặt gói máy chủ…
+      server-uninstall: Đang gỡ gói máy chủ…
+      engine-install: Đang cài đặt engine bảng điều khiển…
+      engine-uninstall: Đang gỡ engine bảng điều khiển…
+      console-build: Đang dựng lại bảng điều khiển (có thể mất một lúc)…
+      cache-clear: Đang xóa bộ nhớ đệm…
+      record: Đang hoàn tất…
+      rollback: Đang hoàn tác thay đổi…
+    phases:
+      prepare: Chuẩn bị
+      download: Tải xuống
+      install: Cài đặt
+      update: Cập nhật
+      remove: Gỡ bỏ
+      finish: Hoàn tất
+    status:
+      prepare: Đang kiểm tra mọi thứ đã sẵn sàng…
+      download: "Đang tải {name}…"
+      install: "Đang cài đặt {name}…"
+      update: "Đang cập nhật {name}…"
+      remove: "Đang gỡ bỏ {name}…"
+      finish: Sắp xong, đang hoàn tất…
+      build: Đang dựng lại bảng điều khiển. Bước này có thể mất một lúc…
+      rollback: Đã xảy ra lỗi. Đang khôi phục mọi thứ như cũ…
+    details:
+      show: Hiện chi tiết
+      seconds: "{seconds} giây"
+    failure:
+      install: Quá trình cài đặt chưa hoàn tất. Không có gì bị thay đổi, bạn có thể thử lại an toàn.
+      update: Quá trình cập nhật chưa hoàn tất. Không có gì bị thay đổi, bạn có thể thử lại an toàn.
+      uninstall: Quá trình gỡ cài đặt chưa hoàn tất. Không có gì bị thay đổi, bạn có thể thử lại an toàn.
+      generic: Thao tác chưa hoàn tất. Hãy thử lại sau giây lát.
+      rollback-incomplete: Không thể hoàn tất và không phải mọi thay đổi đều được hoàn tác. Hãy nhờ quản trị viên xem chi tiết.
+      next: Nếu lỗi vẫn tiếp diễn, hãy gửi chi tiết cho quản trị viên hoặc bộ phận hỗ trợ Fleetbase.
+  explore:
+    title: Khám phá tiện ích
+    category-title: "{categoryName}"
+    loading: Đang tải tiện ích
+    this-registry: Kho tiện ích
+    filters:
+      category: Danh mục
+      pricing: Giá
+      hosting: Hình thức lưu trữ
+      hide-installed: Ẩn tiện ích đã cài
+      sort: Sắp xếp
+      active: Bộ lọc đang dùng
+      remove: "Bỏ bộ lọc {filter}"
+    sort:
+      popular: Cài đặt nhiều nhất
+      newest: Mới nhất
+      updated: Cập nhật gần đây
+      name: Tên
+    pricing:
+      free: Miễn phí
+      paid: Trả phí
+    hosting:
+      self_hosted: Tự lưu trữ
+      cloud: Fleetbase Cloud
+      both: Đám mây và tự lưu trữ
+    empty:
+      title: Chưa có tiện ích nào được phát hành trên kho này
+      body: "Bảng điều khiển này đang kết nối với {host}. Tiện ích sẽ xuất hiện ở đây khi nhà phát hành gửi lên và đội ngũ kho phê duyệt."
+      check-config: Kiểm tra cấu hình kho
+    no-results:
+      title: "Không có tiện ích nào khớp với “{query}”"
+      filtered-title: Không có tiện ích nào khớp với các bộ lọc này
+      body: Hãy thử từ khóa rộng hơn, bỏ bớt bộ lọc hoặc duyệt theo danh mục. Tìm kiếm bao gồm tên, phụ đề, thẻ và nhà phát hành.
+      clear: Xóa tìm kiếm và bộ lọc
+    error:
+      title: Kho tiện ích không phản hồi
+      body: "Không thể kết nối tới {host} hoặc yêu cầu bị từ chối. Hãy thử lại sau giây lát; nếu vẫn lỗi, quản trị viên có thể kiểm tra Quản trị → Cấu hình kho."
+    registration:
+      body: Phiên bản này chưa được đăng ký với dịch vụ kho, nên có thể duyệt tiện ích nhưng chưa thể cài đặt hoặc mua.
+      action: Đăng ký phiên bản này
+      ask-admin: Hãy nhờ quản trị viên đăng ký tại Quản trị → Cấu hình kho.
+  maintenance:
+    title: "Tiện ích mở rộng tạm dừng trong khi nâng cấp kho đăng ký."
+  card:
+    free: Miễn phí
+    purchased: Đã mua
+    on-sale: Đang giảm giá
+    installed: Đã cài đặt
+    installed-version: "Đã cài v{version}"
+    update: "Cập nhật v{version}"
+    update-to: "Cập nhật lên v{version}"
+    ready-to-install: Sẵn sàng cài đặt
+    self-hosted-only: Chỉ tự lưu trữ
+    cloud-only: Chỉ đám mây
+    verified: Nhà phát hành đã xác minh
+    view-details: Xem chi tiết
     install: Cài đặt
-    uninstall: Gỡ cài đặt
-    approve: Phê duyệt
-    reject: Từ chối
-    details: Chi tiết
-    about: Giới thiệu
-    about-extension: Giới thiệu {extensionName}
-  component:
-    extension-details-modal:
-      extension: Tiện ích mở rộng
-      author: Tác giả
-      overview: Tổng quan
-      details: Chi tiết
-      version: Phiên bản
-      updated: Cập nhật
-      website: Trang web
-      self-managed: Tự quản lý
-      self-managed-help-text: Một tiện ích mở rộng tự quản lý được thiết kế cho người dùng tự lưu trữ Fleetbase trên máy chủ của riêng họ, ngoài môi trường đám mây/SaaS. Những tiện ích mở rộng này yêu cầu cài đặt và cấu hình thủ công. Nếu bạn đang sử dụng Fleetbase như một phiên bản tự lưu trữ, bạn có thể sử dụng những tiện ích mở rộng này để thêm các tính năng bổ sung. Tuy nhiên, chúng không có sẵn cho người dùng đám mây/SaaS.
-    extension-pending-publish-viewer:
-      content-panel-title: Các tiện ích mở rộng đang chờ xuất bản
-      focused-extension-title: >
-        Chi tiết {extensionName}
-      download-bundle: Tải gói
-      view-details: Xem chi tiết
-      no-extensions-awaiting-publish: Không có tiện ích mở rộng nào đang chờ xuất bản
-    extension-reviewer-control:
-      content-panel-title: Các tiện ích mở rộng đang chờ xem xét
-      focused-extension-title: >
-        Chi tiết {extensionName}
-      approve-confirm-title: Bạn có chắc chắn muốn phê duyệt tiện ích mở rộng này không?
-      approve-confirm-body: Tiện ích mở rộng này nên được kiểm tra kỹ lưỡng trong cả môi trường phát triển và kiểm thử và kiểm tra tuân thủ cũng như các vấn đề bảo mật. Khi được phê duyệt, tiện ích mở rộng sẽ cần phải được xuất bản thủ công lên đăng ký.
-      decline-confirm-title: Bạn có chắc chắn muốn từ chối tiện ích mở rộng này không?
-      decline-confirm-body: Tiện ích mở rộng này sẽ bị từ chối, nhưng tác giả sẽ có cơ hội để sửa chữa và nộp lại để xem xét.
-      download-bundle: Tải gói
-      view-details: Xem chi tiết
-      approve: Phê duyệt
-      reject: Từ chối
-      no-extensions-awaiting-review: Không có tiện ích mở rộng nào đang chờ xem xét
+    unavailable: Không khả dụng tại đây
+  purchase:
+    title: "Mua {name}"
+    your-organization: tổ chức của bạn trên registry
+    finalizing:
+      title: Đang hoàn tất giao dịch…
+      body: "Đang xác nhận thanh toán với Stripe và ghi nhận giấy phép cho {organization}. Đừng đóng tab này."
+    success:
+      badge: Đã thanh toán
+      title: "{name} giờ là của bạn"
+      body: "Giấy phép thuộc về {organization}, nơi phiên bản này đã đăng ký, và hiển thị trong mục Đã mua."
+      receipt: Biên lai Stripe
+      install-now: Cài đặt ngay
+      later: Để sau
+      paid: "Đã thanh toán {amount}, đã bao gồm thuế."
+    failed:
+      badge: Chưa hoàn tất
+      title: Thanh toán không thành công
+      body: "Stripe báo phiên thanh toán ở trạng thái {status}. Không có khoản phí nào bị trừ và không có giấy phép nào được cấp."
+      unknown-status: chưa hoàn tất
+      try-again: Thử lại
+    processing:
+      title: Thanh toán vẫn đang được xác nhận
+      body: Stripe chưa xác nhận thanh toán. Giấy phép sẽ xuất hiện trong mục Đã mua ngay khi được xác nhận; bạn có thể đóng cửa sổ này.
+    cancelled:
+      badge: Đã hủy
+      title: Đã hủy thanh toán
+      body: Bạn đã rời trang thanh toán Stripe trước khi trả tiền. Không có khoản phí nào bị trừ và không có giấy phép nào được cấp.
   installed:
-    title: Các tiện ích mở rộng đã cài đặt
+    auto-update:
+      label: "Chính sách tự động cập nhật"
+      none: "Tắt"
+      patch: "Bản vá"
+      minor: "Bản phụ"
+      help: "Bản vá cài các phiên bản x.y.Z, bản phụ cài x.Y.z (0.x giữ nguyên bản phụ). Cập nhật được xếp hàng mỗi giờ với ảnh chụp và khôi phục, và chỉ tới phiên bản tương thích với console này."
+      saved: "Đã đặt tự động cập nhật cho {name}: {policy}."
+      last-failed: "Lần tự động cập nhật gần nhất lên v{version} thất bại; sẽ không thử lại cho tới khi có phiên bản mới hơn."
+    status:
+      up-to-date: Đã cập nhật
+      update-available: Có bản cập nhật
+      core: Dịch vụ lõi
   purchased:
-    title: Các tiện ích mở rộng đã mua
-  developers:
-    extensions:
-      extensions: Tiện ích mở rộng
-      create-new-extension: Tạo tiện ích mở rộng mới
-      new-extension: Tiện ích mở rộng mới
-      extension: Tiện ích mở rộng
-      submission: Nộp đơn
-      details: Chi tiết
-      bundles: Gói
-      monetize: Kiếm tiền
-      explore:
-        explore-extensions: Khám phá tiện ích mở rộng
-        explore-category-extensions: >
-          Tiện ích mở rộng {categoryName}
-      extension-form:
-        package-name: Tên gói
-        package-json-name: tên package.json
-        composer-json-name: tên composer.json
-        submission-success-message: Tiện ích mở rộng đã được nộp và đang chờ xem xét.
-        extension-category: Danh mục
-        extension-category-help-text: Chọn danh mục mà người dùng sẽ có thể tìm thấy tiện ích mở rộng của bạn.
-        extension-select-category: Chọn danh mục
-        extension-name: Tên tiện ích mở rộng
-        extension-icon: Biểu tượng tiện ích mở rộng
-        upload-extension-icon: Tải lên biểu tượng
-        extension-description: Mô tả
-        extension-tags: Thẻ
-        extension-add-tags: Thêm từ khóa và thẻ
-        extension-promotional-text: Văn bản quảng cáo
-        details-content-block: Chi tiết tiện ích mở rộng
-        extension-listing-details: Chi tiết niêm yết
-        extension-subtitle: Phụ đề
-        extension-website-url: URL trang web
-        extension-repo-url: URL kho lưu trữ
-        extension-support-url: URL hỗ trợ
-        extension-privacy-policy-url: URL chính sách bảo mật
-        extension-tos-url: URL điều khoản dịch vụ
-        extension-primary-language: Ngôn ngữ chính
-        extension-version: Phiên bản
-        extension-copyright: Bản quyền
-        extension-copyright-help-text: Nhập thông báo bản quyền cho tiện ích mở rộng của bạn. Thông thường bao gồm năm và tên của chủ sở hữu bản quyền hoặc công ty.
-        extension-payment-required: Cần thanh toán
-        extension-payment-required-help-text: Xác định xem có cần thanh toán hoặc đăng ký để người dùng cài đặt tiện ích mở rộng này không.
-        extension-price: Giá
-        extension-price-help-text: Xác định giá thông thường của tiện ích mở rộng. Đây là chi phí tiêu chuẩn để người dùng mua hoặc truy cập tiện ích mở rộng.
-        extension-sale-price: Giá bán
-        extension-sale-price-help-text: Nếu tiện ích mở rộng hiện đang được cung cấp với mức giá giảm, hãy nhập giá bán ở đây. Điều này nên thấp hơn giá thông thường.
-        extension-subscription-required: Cần đăng ký
-        extension-subscription-required-help-text: Xác định xem người dùng phải có đăng ký để cài đặt và sử dụng tiện ích mở rộng này không.
-        extension-subscription-billing-period: Thời gian thanh toán đăng ký
-        extension-subscription-billing-period-placeholder: Chọn thời gian thanh toán
-        extension-subscription-billing-period-help-text: Xác định thời gian thanh toán cho đăng ký. Ví dụ bao gồm hàng tháng, hàng quý, hàng năm hoặc các khoảng thời gian tùy chỉnh khác.
-        extension-subscription-amount: Số tiền đăng ký
-        extension-subscription-amount-help-text: Nhập số tiền tiêu chuẩn được tính cho đăng ký. Điều này nên phản ánh giá thông thường trước bất kỳ giảm giá hoặc điều chỉnh giá theo cấp độ nào.
-        extension-subscription-model: Mô hình đăng ký
-        extension-subscription-model-help-text: Xác định loại mô hình giá đăng ký. Các tùy chọn bao gồm giá cố định, theo cấp độ và dựa trên mức sử dụng.
-        extension-subscription-tiers: Các cấp đăng ký
-        extension-subscription-tiers-help-text: Xác định các cấp giá khác nhau cho đăng ký, nếu có. Bao gồm chi tiết như các cấp độ, giá cho mỗi cấp và bất kỳ tính năng hoặc hạn chế cụ thể nào của mỗi cấp.
-        extension-name-help-text: Nhập tên chính thức của tiện ích mở rộng. Tên này sẽ được hiển thị như một chỉ định chính cho người dùng.
-        extension-icon-help-text: Tải lên một biểu tượng đại diện cho tiện ích mở rộng. Biểu tượng này sẽ được sử dụng trong các danh sách và kết quả tìm kiếm.
-        extension-description-help-text: Cung cấp một mô tả chi tiết về những gì tiện ích mở rộng làm và các tính năng chính của nó. Thông tin này giúp người dùng hiểu chức năng của tiện ích mở rộng.
-        extension-tags-help-text: Thêm từ khóa và thẻ liên quan mô tả tiện ích mở rộng, giúp người dùng tìm thấy nó qua tìm kiếm.
-        extension-promotional-text-help-text: Viết văn bản quảng cáo để làm nổi bật các điểm bán hàng độc đáo của tiện ích mở rộng. Văn bản này sẽ được sử dụng trong các phần tiếp thị hoặc nổi bật.
-        extension-subtitle-help-text: Cung cấp một phụ đề ngắn gọn cung cấp ngữ cảnh hoặc thông tin bổ sung về tiện ích mở rộng.
-        extension-website-url-help-text: Nhập URL đến trang web chính thức của tiện ích mở rộng hoặc trang sản phẩm để biết thêm thông tin.
-        extension-repo-url-help-text: "Cung cấp URL đến kho lưu trữ mã của tiện ích mở rộng (ví dụ: GitHub, GitLab), nếu có."
-        extension-support-url-help-text: Xác định URL nơi người dùng có thể nhận hỗ trợ, đặt câu hỏi hoặc báo cáo sự cố với tiện ích mở rộng.
-        extension-privacy-policy-url-help-text: Liên kết đến tài liệu chính sách bảo mật chi tiết cách dữ liệu người dùng được xử lý và bảo vệ.
-        extension-tos-url-help-text: Liên kết đến tài liệu Điều khoản dịch vụ mà người dùng phải đồng ý trước khi sử dụng tiện ích mở rộng.
-        extension-primary-language-help-text: Xác định ngôn ngữ chính mà tiện ích mở rộng được phát triển hoặc có sẵn.
-        extension-version-help-text: Cho biết phiên bản hiện tại của tiện ích mở rộng. Điều này quan trọng để theo dõi các bản cập nhật và khả năng tương thích.
-        extension-payment-details: Chi tiết thanh toán
-        extension-screenshots: Ảnh chụp màn hình
-        upload-screenshots: Tải lên ảnh chụp màn hình
-        submit-for-review: Nộp để xem xét
-        extension-bundle: Gói tiện ích mở rộng
-        extension-upload-bundle: Tải lên gói tiện ích mở rộng
-        details: Chi tiết
-        bundle-id: ID gói
-        bundle-id-help-text: Định danh của gói hiện đang được xuất bản.
-        extension-id: ID tiện ích mở rộng
-        extension-id-help-text: Định danh duy nhất cho tiện ích mở rộng này.
-        bundles: Gói
-        upload-new-bundle: Tải lên gói mới
-        self-managed: Tự quản lý
-        self-managed-help-text: Kích hoạt tùy chọn này nếu mô-đun của bạn chỉ dành cho các phiên bản tự lưu trữ. Khi chọn tùy chọn này, mô-đun sẽ không có sẵn để cài đặt trên phiên bản đám mây/SaaS của Fleetbase và phải được người dùng cài đặt thủ công trên máy chủ của riêng họ.
+    status:
+      installed: "Đã cài v{version}"
+  admin:
+    config:
+      service:
+        title: Dịch vụ kho
+        url: URL dịch vụ
+        url-help: Địa chỉ gốc của dịch vụ kho Fleetbase. Khám phá, cài đặt, cập nhật và mua đều đi qua dịch vụ này.
+      registration:
+        title: Đăng ký phiên bản
+        help: Phiên bản được đăng ký bằng mã dùng một lần (hiệu lực 15 phút) do chủ sở hữu hoặc quản trị viên tổ chức của bạn trên kho cung cấp.
+        registered: Đã đăng ký
+        instance: Phiên bản
+        organization: Tổ chức
+        token: Token phiên bản
+        registered-at: Ngày đăng ký
+        register: Đăng ký phiên bản này
+        url-first: Hãy nhập URL dịch vụ trước.
+        register-again: "Đăng ký lại"
+        register-again-help: "Dán mã mới từ tổ chức kho của bạn. Phiên bản này giữ nguyên mã định danh, các bản cài đặt và chỗ giấy phép trên dịch vụ; chỉ token được thay thế."
+        cancel: "Hủy"
+      result:
+        connected: Đã kết nối với kho
+        failed: Không thể kết nối với kho
+        host: Máy chủ
+        status: Trạng thái HTTP
+        latency: Độ trễ
+        extensions: Tiện ích đã phát hành
+        token-accepted: "Được chấp nhận ({name}, {organization})"
+        token-rejected: Bị từ chối
+        ok-toast: "Đã kết nối với {host} trong {ms} ms."
+      test: Kiểm tra kết nối
+      save: Lưu thay đổi
+      saved: Đã lưu cấu hình kho.
+      this-instance: phiên bản này
+      registered-toast: "Đã đăng ký với {host} dưới tên {name}."
+      reregistered-toast: "Đã đăng ký lại {name} ({id}) với {host}: cùng phiên bản, token mới. Các bản cài đặt và chỗ giấy phép được giữ nguyên."
+      unregistered-toast: Phiên bản này không còn đăng ký với dịch vụ kho.
+      unregister:
+        title: Hủy đăng ký phiên bản này?
+        body: "Phiên bản này sẽ quên token kho và không thể cài đặt, cập nhật hoặc mua tiện ích nữa. Các tiện ích đã cài vẫn hoạt động. Để thu hồi chính token đó, hãy xóa phiên bản khỏi tổ chức của bạn trên kho. Nếu sau này đăng ký lại bảng điều khiển này, dịch vụ vẫn giữ cùng một phiên bản."
+        accept: Hủy đăng ký
+  compatibility:
+    details: Chi tiết kỹ thuật
+    requires: "Cần bảng điều khiển {console} và core API {api}"
+    current: "Phiên bản này đang chạy bảng điều khiển {console} và core API {api}"
+    verdicts:
+      ready: Sẵn sàng cài đặt
+      needs_update: Cần cập nhật Fleetbase trước
+      unavailable: Không khả dụng với cấu hình của bạn
+    reasons:
+      ok: Tương thích với phiên bản Fleetbase bạn đang dùng.
+      core_too_old: Tiện ích này cần phiên bản Fleetbase mới hơn. Hãy nhờ quản trị viên cập nhật Fleetbase rồi cài đặt.
+      console_too_old: Tiện ích này cần phiên bản bảng điều khiển Fleetbase mới hơn. Hãy nhờ quản trị viên cập nhật Fleetbase rồi cài đặt.
+      core_too_new: Tiện ích này chưa được cập nhật cho phiên bản Fleetbase của bạn.
+      console_too_new: Tiện ích này chưa được cập nhật cho phiên bản bảng điều khiển Fleetbase của bạn.
+      hosting-cloud: Tiện ích này chỉ có trên Fleetbase Cloud.
+      hosting-self-hosted: Tiện ích này chỉ dành cho Fleetbase tự lưu trữ.
+      no_release: Tiện ích này chưa có phiên bản nào để cài đặt.
+      not_registered: Hãy kết nối Fleetbase này với kho tiện ích để cài đặt tiện ích.
+      needs_console_build: "Tiện ích này cần dựng lại bảng điều khiển, việc mà Fleetbase này không tự làm được. Hãy hỏi người quản lý Fleetbase của bạn."
+      default-ready: Tương thích với Fleetbase của bạn.
+      default-needs_update: Cần cập nhật Fleetbase trước khi cài tiện ích này.
+      default-unavailable: Không thể cài tiện ích này trên Fleetbase này.
+  store:
+    verified: Nhà phát hành đã xác minh
+    view:
+      label: Chế độ xem
+      cards: Thẻ
+      list: Danh sách
+    button:
+      get: Nhận
+      get-free: Nhận · Miễn phí
+      buy: Mua · {price}
+      downloading: Đang tải… {percent}%
+      installing: Đang cài… {percent}%
+      finishing: Đang hoàn tất…
+      open: Mở
+      update: Cập nhật
+      blocked: Chưa thể cài
+      unavailable: Không khả dụng
+      registration: Chưa kết nối
+      unauthorized: Hỏi quản trị viên
+      hint:
+        blocked: Cần phiên bản Fleetbase mới hơn. Hãy nhờ người quản lý Fleetbase cập nhật.
+        unavailable: Tiện ích này không khả dụng cho thiết lập của bạn.
+        registration: Hãy kết nối Fleetbase này với kho tiện ích trước.
+        unauthorized: Vai trò của bạn không thể cài tiện ích. Hãy hỏi quản trị viên.
+    verdict:
+      details: Xem chi tiết
+      installed: "Đã cài"
+      installed-reason: "Đã cài và hoạt động với Fleetbase của bạn."
+      inline:
+        ready: Hoạt động với Fleetbase của bạn
+        needs_update: Cần cập nhật Fleetbase
+        unavailable: Không khả dụng cho thiết lập của bạn
+      short:
+        ready: Hoạt động với bạn
+        needs_update: Cần cập nhật
+        unavailable: Không khả dụng
+    nav:
+      label: Tiện ích
+      discover: Khám phá
+      installed: Đã cài
+      purchased: Đã mua
+      updates: Cập nhật
+      search: Tìm tiện ích
+    discover:
+      featured: Nổi bật
+      learn-more: Tìm hiểu thêm
+      categories: Danh mục
+      see-all: Xem tất cả
+      shelves:
+        popular: Phổ biến
+        updated: Mới và cập nhật
+        free: Thiết yếu miễn phí
+        for-app: Cho {app}
+        for-app-subtitle: Gắn vào ứng dụng bạn đang dùng
+    results:
+      for: Kết quả cho “{query}”
+      all: Tất cả tiện ích
+      count: "{count, plural, =0 {Không có tiện ích} other {# tiện ích}}"
+      none-in-category: Không có gì phù hợp trong danh mục này
+    filters:
+      compatible: Hoạt động với Fleetbase của tôi
+      compatible-long: Chỉ những gì hoạt động với Fleetbase của tôi
+      sort: Sắp xếp
+    rail:
+      all: Tất cả tiện ích
+      show: Hiển thị
+      price: Giá
+      any: Bất kỳ
+    breadcrumb: Đường dẫn
+    updates:
+      title: Cập nhật
+      none: Mọi thứ đã được cập nhật.
+      from-to: "{from} → {to}"
+      whats-new: "Có gì mới:"
+      auto: Tự động cập nhật
+      rest-current: Mọi thứ khác đều mới nhất.
+    error: Đã xảy ra lỗi khi tải tiện ích.
+    retry: Thử lại
+    page:
+      not-found: Không thể tải tiện ích này.
+      adds-to: Thêm vào {app}
+      remove: Gỡ bỏ
+      find-it: "Tìm ở {path}"
+      screenshots: Ảnh chụp màn hình
+      screenshot-of: Ảnh chụp màn hình {name}
+      sections: Mục
+      tabs:
+        overview: Tổng quan
+        whats-new: Có gì mới
+        support: Hỗ trợ
+      highlights: Bạn sẽ nhận được
+      setup: Sau khi cài
+      version: Phiên bản {version}
+      no-notes: Không có ghi chú cho phiên bản này.
+      links:
+        website: Trang web
+        support: Nhận hỗ trợ
+        privacy: Chính sách quyền riêng tư
+        terms: Điều khoản
+        source: Mã nguồn
+      no-links: Nhà phát hành chưa thêm liên kết nào.
+      more: Thêm trong {category}
+      help: Trợ giúp và liên kết
+      facts:
+        version: Phiên bản
+        updated: Cập nhật
+        languages: Ngôn ngữ
+        adds-to: Thêm vào
+        category: Danh mục
+    failure:
+      title: Không thể cài {name}
+      update-title: Không thể cập nhật {name}
+      retry: Thử lại
+      dismiss: Đóng
+    done:
+      installed: "{name} đã sẵn sàng."
+      updated: "{name} đã được cập nhật."
+      failed: Không thể cài {name}. Fleetbase của bạn không có gì thay đổi.
+      removed: "Đã gỡ {name}."
+      removed-paid: "Đã gỡ {name}. Giao dịch mua vẫn còn; cài lại từ mục Đã mua bất cứ lúc nào."
+      remove-failed: "Không thể gỡ {name}. Tiện ích vẫn được cài và hoạt động."
+    pill:
+      installing: Đang cài {name} · {percent}%
+      updating: Đang cập nhật {name} · {percent}%
+      removing: Đang gỡ {name} · {percent}%
+    library:
+      installed-title: Đã cài
+      installed-empty: Chưa cài gì. Tiện ích bạn cài sẽ hiện ở đây.
+      browse: Duyệt tiện ích
+      browse-paid: Duyệt tiện ích trả phí
+      purchased-title: Đã mua
+      purchased-by: Do {organization} mua
+      purchased-sub: Những gì tổ chức của bạn đã mua
+      purchased-note: Gỡ tiện ích không hủy khoản bạn đã trả. Cài lại tại đây miễn phí.
+      purchased-empty: Chưa mua gì.
+      updates-ready: "{count, plural, other {# bản cập nhật sẵn sàng.}}"
+      update-for: "Đã có {name} {version}."
+      review-updates: Xem bản cập nhật
+      removing: Đang gỡ…
+      receipt: Biên nhận
+      plan:
+        free: Miễn phí
+        bought: Đã mua
+        renews: Gia hạn {date}
+        refunded: Đã hoàn tiền
+        revoked: Đã thu hồi
+      status:
+        installed: Đã cài
+        not-installed: Chưa cài
+        update: Có bản cập nhật
+        current: Mới nhất
+      remove:
+        label: Gỡ {name}
+        title: Gỡ {name}?
+        keep: Giữ lại
+        confirm: Gỡ
+        failed: Không thể gỡ {name}
+        failed-body: Không có gì thay đổi. Tiện ích vẫn được cài và hoạt động.
+        effect:
+          default: "{name} sẽ ngừng hoạt động trên Fleetbase của bạn. Dữ liệu vẫn được giữ, và bạn có thể cài lại bất cứ lúc nào."
+          in-app: "{name} sẽ rời khỏi {app}. Đơn hàng, tài xế và lịch sử vẫn được giữ, và bạn có thể cài lại bất cứ lúc nào."
+          paid: "{name} sẽ ngừng hoạt động ở đây, nhưng giao dịch mua vẫn còn. Cài lại từ mục Đã mua miễn phí."

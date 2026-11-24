@@ -1,88 +1,43 @@
 import Controller from '@ember/controller';
-import { inject as service } from '@ember/service';
-import { action } from '@ember/object';
-import { later } from '@ember/runloop';
+import { tracked } from '@glimmer/tracking';
+import { task } from 'ember-concurrency';
 
+export function matchesQuery(extension, query) {
+    const needle = (query ?? '').trim().toLowerCase();
+    if (!needle) {
+        return true;
+    }
+    return [extension.name, extension.publisher_name, extension.category_name, extension.slug].some((value) => typeof value === 'string' && value.toLowerCase().includes(needle));
+}
+
+/**
+ * Your extensions › Installed (design D): one Registry::LibraryRow per
+ * installed extension, with an updates banner when any have one.
+ */
 export default class InstalledController extends Controller {
-    @service modalsManager;
-    @service currentUser;
-    @service notifications;
-    @service socket;
-    @service hostRouter;
-    @service abilities;
+    @tracked extensions = [];
+    @tracked error = null;
 
-    @action about(extension) {
-        this.modalsManager.show('modals/extension-details', {
-            titleComponent: 'extension-modal-title',
-            modalClass: 'flb--extension-modal modal-lg',
-            modalHeaderClass: 'flb--extension-modal-header',
-            acceptButtonText: 'Done',
-            hideDeclineButton: true,
-            extension,
-        });
+    get isLoading() {
+        return this.load.isRunning;
     }
 
-    @action uninstall(extension) {
-        const uninstallChannel = `uninstall.${this.currentUser.companyId}.${extension.id}`;
+    /** The first extension with an update, for the banner's one line. */
+    get firstUpdate() {
+        return (this.extensions ?? []).find((extension) => extension.update_available === true) ?? null;
+    }
 
-        this.modalsManager.show('modals/extension-uninstall', {
-            title: `Uninstall ${extension.name}`,
-            modalClass: 'flb--extension-modal modal-lg',
-            modalHeaderClass: 'flb--extension-modal-header',
-            acceptButtonText: 'Uninstall',
-            acceptButtonIcon: 'trash',
-            acceptButtonScheme: 'danger',
-            acceptButtonDisabled: this.abilities.cannot('registry-bridge uninstall extension'),
-            process: null,
-            step: null,
-            stepDescription: 'Awaiting uninstall to begin...',
-            progress: 0,
-            extension,
-            confirm: async (modal) => {
-                modal.startLoading();
+    get updatesAvailable() {
+        return (this.extensions ?? []).filter((extension) => extension.update_available === true).length;
+    }
 
-                // Listen for uninstall progress
-                this.socket.listen(uninstallChannel, ({ process, step, progress }) => {
-                    let stepDescription;
-                    switch (step) {
-                        case 'server.uninstall':
-                            stepDescription = '(1/3) Uninstalling extension...';
-                            break;
-
-                        case 'engine.uninstall':
-                            stepDescription = '(2/3) Uninstalling extension...';
-                            break;
-
-                        case 'console.build':
-                            stepDescription = '(3/3) Completing uninstall...';
-                            break;
-
-                        default:
-                            break;
-                    }
-                    modal.setOptions({ process, step, progress, stepDescription });
-                });
-
-                // Start uninstall progress
-                modal.setOption('progress', 5);
-
-                // Run uninstall
-                try {
-                    await extension.uninstall();
-                    await this.hostRouter.refresh();
-                    this.notifications.info(`${extension.name} is now Uninstalled.`);
-                    later(
-                        this,
-                        () => {
-                            window.location.reload(true);
-                        },
-                        600
-                    );
-                    modal.done();
-                } catch (error) {
-                    this.notifications.serverError(error);
-                }
-            },
-        });
+    @task *load() {
+        this.error = null;
+        try {
+            this.extensions = yield this.model?.load ? this.model.load() : Promise.resolve(this.model ?? []);
+        } catch (error) {
+            this.error = error;
+            this.extensions = [];
+        }
     }
 }

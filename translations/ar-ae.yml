@@ -1,132 +1,382 @@
 registry-bridge:
   extension-name: جسر السجل
   common:
+    retry: إعادة المحاولة
+    close: إغلاق
+  installer:
+    starting: جارٍ البدء…
+    queued-next: في انتظار البدء…
+    queued-behind: "في انتظار انتهاء {count, plural, zero {# عمليات تثبيت أخرى} one {عملية تثبيت أخرى} two {عمليتي تثبيت أخريين} few {# عمليات تثبيت أخرى} many {# عملية تثبيت أخرى} other {# عملية تثبيت أخرى}}…"
+    completed: اكتمل كل شيء.
+    failed: حدث خطأ ما.
+    failed-at: "فشل أثناء: {step}"
+    rolled-back: تم التراجع عن جميع التغييرات؛ عاد المثيل كما كان من قبل.
+    rebuild-required: أُعيد بناء وحدة التحكم أثناء المهمة؛ أعد بناءها مرة أخرى لإزالة الإضافة منها.
+    retry: إعادة المحاولة
+    reloading: "تم. إعادة تحميل وحدة التحكم خلال {seconds} ث…"
+    installed: "تم تثبيت {extensionName}."
+    uninstalled: "تم إلغاء تثبيت {extensionName}."
+    updated: "تم تحديث {extensionName}."
+    steps:
+      resolve: جارٍ تحديد الإصدار…
+      download: جارٍ تنزيل الإصدار والتحقق منه…
+      snapshot: جارٍ حفظ نقطة استعادة…
+      server-install: جارٍ تثبيت حزمة الخادم…
+      server-uninstall: جارٍ إزالة حزمة الخادم…
+      engine-install: جارٍ تثبيت محرك وحدة التحكم…
+      engine-uninstall: جارٍ إزالة محرك وحدة التحكم…
+      console-build: جارٍ إعادة بناء وحدة التحكم (قد يستغرق ذلك بعض الوقت)…
+      cache-clear: جارٍ مسح ذاكرة التخزين المؤقت…
+      record: جارٍ الإنهاء…
+      rollback: جارٍ التراجع عن التغييرات…
+    phases:
+      prepare: تجهيز كل شيء
+      download: التنزيل
+      install: التثبيت
+      update: التحديث
+      remove: الإزالة
+      finish: اللمسات الأخيرة
+    status:
+      prepare: جارٍ التحقق من أن كل شيء جاهز…
+      download: "جارٍ تنزيل {name}…"
+      install: "جارٍ تثبيت {name}…"
+      update: "جارٍ تحديث {name}…"
+      remove: "جارٍ إزالة {name}…"
+      finish: أوشكنا على الانتهاء…
+      build: جارٍ إعادة بناء وحدة التحكم. قد تستغرق هذه الخطوة بعض الوقت…
+      rollback: حدث خطأ ما. جارٍ إعادة كل شيء كما كان…
+    details:
+      show: عرض التفاصيل
+      seconds: "{seconds} ث"
+    failure:
+      install: لم يكتمل التثبيت. لم يتغير أي شيء، لذا يمكنك المحاولة مرة أخرى بأمان.
+      update: لم يكتمل التحديث. لم يتغير أي شيء، لذا يمكنك المحاولة مرة أخرى بأمان.
+      uninstall: لم يكتمل إلغاء التثبيت. لم يتغير أي شيء، لذا يمكنك المحاولة مرة أخرى بأمان.
+      generic: لم تكتمل العملية. حاول مرة أخرى بعد قليل.
+      rollback-incomplete: تعذّر الإنهاء، ولم يكن بالإمكان التراجع عن كل التغييرات. اطلب من المسؤول مراجعة التفاصيل.
+      next: إذا استمر الفشل، شارك التفاصيل مع المسؤول أو مع دعم Fleetbase.
+  explore:
+    title: استكشاف الإضافات
+    category-title: "{categoryName}"
+    loading: جارٍ تحميل الإضافات
+    this-registry: سجل الإضافات
+    filters:
+      category: الفئة
+      pricing: التسعير
+      hosting: الاستضافة
+      hide-installed: إخفاء المثبتة
+      sort: الترتيب
+      active: عوامل التصفية النشطة
+      remove: "إزالة عامل التصفية {filter}"
+    sort:
+      popular: الأكثر تثبيتاً
+      newest: الأحدث
+      updated: المحدّثة مؤخراً
+      name: الاسم
+    pricing:
+      free: مجانية
+      paid: مدفوعة
+    hosting:
+      self_hosted: استضافة ذاتية
+      cloud: Fleetbase Cloud
+      both: السحابة والاستضافة الذاتية
+    empty:
+      title: لم تُنشر أي إضافات في هذا السجل بعد
+      body: "وحدة التحكم هذه متصلة بـ {host}. تظهر الإضافات هنا بعد أن يرسلها ناشر ويوافق عليها فريق السجل."
+      check-config: التحقق من إعدادات السجل
+    no-results:
+      title: "لا توجد إضافات تطابق “{query}”"
+      filtered-title: لا توجد إضافات تطابق عوامل التصفية هذه
+      body: جرّب مصطلحاً أعم، أو أزل عامل تصفية، أو تصفّح حسب الفئة. يشمل البحث الأسماء والعناوين الفرعية والوسوم والناشرين.
+      clear: مسح البحث وعوامل التصفية
+    error:
+      title: لم يستجب السجل
+      body: "تعذّر الوصول إلى {host} أو رفض الطلب. حاول مرة أخرى بعد قليل؛ وإذا استمر الفشل، يمكن للمسؤول مراجعة الإدارة ← إعدادات السجل."
+    registration:
+      body: هذا المثيل غير مسجّل في خدمة السجل بعد، لذا يمكن تصفّح الإضافات دون تثبيتها أو شرائها.
+      action: تسجيل هذا المثيل
+      ask-admin: اطلب من المسؤول تسجيله من الإدارة ← إعدادات السجل.
+  maintenance:
+    title: "الإضافات متوقفة مؤقتًا أثناء ترقية السجل."
+  card:
+    free: مجانية
+    purchased: مشتراة
+    on-sale: عرض خاص
+    installed: مثبتة
+    installed-version: "مثبت الإصدار v{version}"
+    update: "تحديث v{version}"
+    update-to: "التحديث إلى v{version}"
+    ready-to-install: جاهزة للتثبيت
+    self-hosted-only: للاستضافة الذاتية فقط
+    cloud-only: للسحابة فقط
+    verified: ناشر موثّق
+    view-details: عرض التفاصيل
     install: تثبيت
-    uninstall: إلغاء التثبيت
-    approve: الموافقة
-    reject: الرفض
-    details: التفاصيل
-    about: حول
-    about-extension: حول {extensionName}
-  component:
-    extension-details-modal:
-      extension: الامتداد
-      author: المؤلف
-      description: الوصف
-      overview: نظرة عامة
-      details: التفاصيل
-      version: الإصدار
-      updated: تم التحديث
-      website: الموقع الإلكتروني
-      self-managed: مُدار ذاتيًا
-      self-managed-help-text: الامتداد المُدار ذاتيًا مصمم للمستخدمين الذين يستضيفون Fleetbase على خوادمهم الخاصة، خارج بيئة السحابة/SaaS. تتطلب هذه الامتدادات التثبيت والتكوين اليدوي. إذا كنت تستخدم Fleetbase كنسخة مستضافة ذاتيًا، يمكنك استخدام هذه الامتدادات لإضافة ميزات إضافية. ومع ذلك، فهي غير متاحة لمستخدمي السحابة/SaaS.
-    extension-pending-publish-viewer:
-      content-panel-title: الامتدادات المعلقة للنشر
-      focused-extension-title: >
-        تفاصيل {extensionName}
-      download-bundle: تحميل الحزمة
-      view-details: عرض التفاصيل
-      no-extensions-awaiting-publish: لا توجد امتدادات تنتظر النشر
-    extension-reviewer-control:
-      content-panel-title: الامتدادات التي تنتظر المراجعة
-      focused-extension-title: >
-        تفاصيل {extensionName}
-      approve-confirm-title: هل أنت متأكد أنك تريد الموافقة على هذا الامتداد؟
-      approve-confirm-body: يجب اختبار هذا الامتداد بدقة في بيئة التطوير والاختبار واختباره من حيث الامتثال وكذلك قضايا الأمان. بمجرد الموافقة، سيتعين نشر الامتداد يدويًا في السجل.
-      decline-confirm-title: هل أنت متأكد أنك تريد رفض هذا الامتداد؟
-      decline-confirm-body: سيتم رفض هذا الامتداد، ولكن سيتم منح المؤلف فرصة لإجراء التصحيحات وإعادة التقديم للمراجعة.
-      download-bundle: تحميل الحزمة
-      view-details: عرض التفاصيل
-      approve: الموافقة
-      reject: الرفض
-      no-extensions-awaiting-review: لا توجد امتدادات تنتظر المراجعة
+    unavailable: غير متاحة هنا
+  purchase:
+    title: "شراء {name}"
+    your-organization: مؤسستك في السجل
+    finalizing:
+      title: جارٍ إتمام الشراء…
+      body: "جارٍ تأكيد الدفع مع Stripe وتسجيل الترخيص لـ {organization}. لا تغلق علامة التبويب هذه."
+    success:
+      badge: مدفوعة
+      title: "{name} أصبحت لك"
+      body: "الترخيص مملوك لـ {organization} التي سُجّل لديها هذا المثيل، ويظهر ضمن المشتراة."
+      receipt: إيصال Stripe
+      install-now: التثبيت الآن
+      later: لاحقاً
+      paid: "تم دفع {amount} شاملاً الضريبة."
+    failed:
+      badge: لم يكتمل
+      title: لم يتم الدفع
+      body: "أفاد Stripe بأن جلسة الدفع {status}. لم يتم تحصيل أي مبلغ ولم يُمنح أي ترخيص."
+      unknown-status: لم تكتمل
+      try-again: حاول مرة أخرى
+    processing:
+      title: لا يزال الدفع قيد التأكيد
+      body: لم يؤكد Stripe الدفع بعد. سيظهر الترخيص ضمن المشتراة فور تأكيده؛ يمكنك إغلاق هذه النافذة.
+    cancelled:
+      badge: أُلغي
+      title: أُلغيت عملية الدفع
+      body: غادرت صفحة الدفع في Stripe قبل الدفع. لم يتم تحصيل أي مبلغ ولم يُمنح أي ترخيص.
   installed:
-    title: الامتدادات المثبتة
+    auto-update:
+      label: "سياسة التحديث التلقائي"
+      none: "متوقف"
+      patch: "إصدارات التصحيح"
+      minor: "الإصدارات الفرعية"
+      help: "التصحيح يثبّت إصدارات x.y.Z، والفرعي يثبّت إصدارات x.Y.z (يبقى 0.x على إصداره الفرعي). تُجدول التحديثات كل ساعة مع لقطة واسترجاع، وفقط لإصدارات متوافقة مع هذه الوحدة."
+      saved: "تم ضبط التحديث التلقائي لـ {name} على {policy}."
+      last-failed: "فشل آخر تحديث تلقائي إلى v{version}؛ لن تُعاد المحاولة حتى يظهر إصدار أحدث."
+    status:
+      up-to-date: محدّثة
+      update-available: يتوفر تحديث
+      core: خدمة أساسية
   purchased:
-    title: الامتدادات المشتراة
-  developers:
-    extensions:
-      extensions: الامتدادات
-      create-new-extension: إنشاء امتداد جديد
-      new-extension: امتداد جديد
-      extension: الامتداد
-      submission: التقديم
-      details: التفاصيل
-      bundles: الحزم
-      monetize: تحقيق الدخل
-      explore:
-        explore-extensions: استكشاف الامتدادات
-        explore-category-extensions: >
-          امتدادات {categoryName}
-      extension-form:
-        package-name: اسم الحزمة
-        package-json-name: اسم package.json
-        composer-json-name: اسم composer.json
-        submission-success-message: تم تقديم الامتداد وهو في انتظار المراجعة.
-        extension-category: الفئة
-        extension-category-help-text: اختر الفئة التي سيتمكن المستخدمون من العثور على الامتداد فيها.
-        extension-select-category: اختر الفئة
-        extension-name: اسم الامتداد
-        extension-icon: أيقونة الامتداد
-        upload-extension-icon: تحميل الأيقونة
-        extension-description: الوصف
-        extension-tags: العلامات
-        extension-add-tags: إضافة الكلمات الرئيسية والعلامات
-        extension-promotional-text: النص الترويجي
-        details-content-block: تفاصيل الامتداد
-        extension-listing-details: تفاصيل الإدراج
-        extension-subtitle: العنوان الفرعي
-        extension-website-url: عنوان الموقع الإلكتروني
-        extension-repo-url: عنوان المستودع
-        extension-support-url: عنوان الدعم
-        extension-privacy-policy-url: عنوان سياسة الخصوصية
-        extension-tos-url: عنوان شروط الخدمة
-        extension-primary-language: اللغة الأساسية
-        extension-version: الإصدار
-        extension-copyright: حقوق النشر
-        extension-copyright-help-text: أدخل إشعار حقوق النشر للامتداد الخاص بك. يتضمن هذا عادةً السنة واسم مالك حقوق النشر أو الشركة.
-        extension-payment-required: يتطلب الدفع
-        extension-payment-required-help-text: يحدد ما إذا كان الدفع أو الاشتراك مطلوبًا للمستخدمين لتثبيت هذا الامتداد.
-        extension-price: السعر
-        extension-price-help-text: حدد السعر العادي للامتداد. هذا هو التكلفة القياسية للمستخدمين لشراء أو الوصول إلى الامتداد.
-        extension-sale-price: سعر البيع
-        extension-sale-price-help-text: إذا كان الامتداد معروضًا حاليًا بسعر مخفض، أدخل سعر البيع هنا. يجب أن يكون أقل من السعر العادي.
-        extension-subscription-required: يتطلب الاشتراك
-        extension-subscription-required-help-text: يحدد ما إذا كان يجب على المستخدم أن يكون لديه اشتراك لتثبيت واستخدام هذا الامتداد.
-        extension-subscription-billing-period: فترة الفوترة للاشتراك
-        extension-subscription-billing-period-placeholder: اختر فترة الفوترة
-        extension-subscription-billing-period-help-text: حدد فترة الفوترة للاشتراك. تشمل الأمثلة شهريًا، ربع سنويًا، سنويًا، أو فترات مخصصة أخرى.
-        extension-subscription-amount: مبلغ الاشتراك
-        extension-subscription-amount-help-text: أدخل المبلغ القياسي الذي سيتم تحصيله للاشتراك. يجب أن يعكس هذا السعر العادي قبل أي خصومات أو تعديلات في التسعير المتدرج.
-        extension-subscription-model: نموذج الاشتراك
-        extension-subscription-model-help-text: يحدد نوع نموذج تسعير الاشتراك الذي يجب اتباعه. تشمل الخيارات السعر الثابت، المتدرج، والاشتراك القائم على الاستخدام.
-        extension-subscription-tiers: مستويات الاشتراك
-        extension-subscription-tiers-help-text: حدد مستويات التسعير المختلفة للاشتراك، إذا كان ذلك ممكنًا. قم بتضمين تفاصيل مثل مستويات الاشتراك، التسعير لكل مستوى، وأي ميزات أو قيود محددة لكل مستوى.
-        extension-name-help-text: أدخل الاسم الرسمي للامتداد. سيتم عرض هذا كالمعرف الأساسي للمستخدمين.
-        extension-icon-help-text: قم بتحميل أيقونة تمثل الامتداد. سيتم استخدام هذه الأيقونة في القوائم ونتائج البحث.
-        extension-description-help-text: قدم وصفًا تفصيليًا لما يفعله الامتداد وميزاته الرئيسية. تساعد هذه المعلومات المستخدمين على فهم وظيفة الامتداد.
-        extension-tags-help-text: أضف الكلمات الرئيسية والعلامات ذات الصلة التي تصف الامتداد، مما يساعد المستخدمين في العثور عليه من خلال البحث.
-        extension-promotional-text-help-text: اكتب نصًا ترويجيًا لتسليط الضوء على نقاط البيع الفريدة للامتداد. سيتم استخدام هذا النص في التسويق أو الأقسام المميزة.
-        extension-subtitle-help-text: قدم عنوانًا فرعيًا موجزًا يقدم سياقًا إضافيًا أو معلومات حول الامتداد.
-        extension-website-url-help-text: أدخل عنوان URL للموقع الرسمي للامتداد أو صفحة المنتج لمزيد من المعلومات.
-        extension-repo-url-help-text: قدم عنوان URL لمستودع كود الامتداد (مثل GitHub، GitLab)، إذا كان ذلك ممكنًا.
-        extension-support-url-help-text: حدد عنوان URL حيث يمكن للمستخدمين الحصول على الدعم، طرح الأسئلة، أو الإبلاغ عن المشكلات المتعلقة بالامتداد.
-        extension-privacy-policy-url-help-text: رابط إلى وثيقة سياسة الخصوصية التي توضح كيفية التعامل مع بيانات المستخدم وحمايتها.
-        extension-tos-url-help-text: رابط إلى وثيقة شروط الخدمة التي يجب على المستخدمين الموافقة عليها قبل استخدام الامتداد.
-        extension-primary-language-help-text: حدد اللغة الأساسية التي تم تطوير الامتداد بها أو المتاحة بها.
-        extension-version-help-text: حدد الإصدار الحالي للامتداد. هذا مهم لتتبع التحديثات والتوافق.
-        extension-payment-details: تفاصيل الدفع
-        extension-screenshots: لقطات الشاشة
-        upload-screenshots: تحميل لقطات الشاشة
-        submit-for-review: تقديم للمراجعة
-        extension-bundle: حزمة الامتداد
-        extension-upload-bundle: تحميل حزمة الامتداد
-        details: التفاصيل
-        bundle-id: معرف الحزمة
-        bundle-id-help-text: معرف الحزمة المنشورة حاليًا.
-        extension-id: معرف الامتداد
-        extension-id-help-text: المعرف الفريد لهذا الامتداد.
-        bundles: الحزم
-        upload-new-bundle: تحميل حزمة جديدة
-        self-managed: مُدار ذاتيًا
-        self-managed-help-text: قم بتمكين هذا الخيار إذا كان الموديل مخصصًا للحالات المستضافة ذاتيًا فقط. من خلال تحديد هذا، لن يكون الموديل متاحًا للتثبيت على إصدار السحابة/SaaS من Fleetbase ويجب تثبيته يدويًا بواسطة المستخدم على الخادم الخاص به.
+    status:
+      installed: "مثبت الإصدار v{version}"
+  admin:
+    config:
+      service:
+        title: خدمة السجل
+        url: عنوان الخدمة
+        url-help: العنوان الأساسي لخدمة سجل Fleetbase. يمر عبرها الاستكشاف والتثبيت والتحديث والشراء.
+      registration:
+        title: تسجيل المثيل
+        help: تُسجّل المثيلات برمز لمرة واحدة (صالح لمدة 15 دقيقة) من مالك أو مسؤول مؤسستك في السجل.
+        registered: مسجّل
+        instance: المثيل
+        organization: المؤسسة
+        token: رمز المثيل
+        registered-at: تاريخ التسجيل
+        register: تسجيل هذا المثيل
+        url-first: أدخل عنوان الخدمة أولاً.
+        register-again: "إعادة التسجيل"
+        register-again-help: "الصق رمزًا جديدًا من مؤسسة السجل. يحتفظ هذا المثيل بمعرّفه وعمليات التثبيت ومقاعد التراخيص في الخدمة؛ ويُستبدل الرمز المميز فقط."
+        cancel: "إلغاء"
+      result:
+        connected: متصل بالسجل
+        failed: تعذّر الاتصال بالسجل
+        host: المضيف
+        status: حالة HTTP
+        latency: زمن الاستجابة
+        extensions: الإضافات المنشورة
+        token-accepted: "مقبول ({name}، {organization})"
+        token-rejected: مرفوض
+        ok-toast: "تم الاتصال بـ {host} خلال {ms} مللي ثانية."
+      test: اختبار الاتصال
+      save: حفظ التغييرات
+      saved: تم حفظ إعدادات السجل.
+      this-instance: هذا المثيل
+      registered-toast: "تم التسجيل في {host} باسم {name}."
+      reregistered-toast: "أُعيد تسجيل {name} ({id}) في {host}: المثيل نفسه برمز مميز جديد. احتُفظ بعمليات التثبيت ومقاعد التراخيص."
+      unregistered-toast: لم يعد هذا المثيل مسجّلاً في خدمة السجل.
+      unregister:
+        title: إلغاء تسجيل هذا المثيل؟
+        body: "ينسى هذا المثيل رمز السجل الخاص به ولن يتمكن بعد ذلك من تثبيت الإضافات أو تحديثها أو شرائها. تستمر الإضافات المثبتة في العمل. لإبطال الرمز نفسه، أزل المثيل من مؤسستك في السجل. إذا سجّلت هذه الوحدة مرة أخرى لاحقًا، فستبقي الخدمة على المثيل نفسه."
+        accept: إلغاء التسجيل
+  compatibility:
+    details: التفاصيل التقنية
+    requires: "يتطلب وحدة التحكم {console} وواجهة core API {api}"
+    current: "يعمل هذا المثيل بوحدة التحكم {console} وواجهة core API {api}"
+    verdicts:
+      ready: جاهز للتثبيت
+      needs_update: يحتاج إلى تحديث Fleetbase أولًا
+      unavailable: غير متاح لإعدادك
+    reasons:
+      ok: يعمل مع إصدار Fleetbase الذي تستخدمه.
+      core_too_old: تتطلب هذه الإضافة إصدارًا أحدث من Fleetbase. اطلب من المسؤول تحديث Fleetbase، ثم ثبّتها.
+      console_too_old: تتطلب هذه الإضافة إصدارًا أحدث من وحدة تحكم Fleetbase. اطلب من المسؤول تحديث Fleetbase، ثم ثبّتها.
+      core_too_new: لم تُحدَّث هذه الإضافة بعد لإصدار Fleetbase الذي تستخدمه.
+      console_too_new: لم تُحدَّث هذه الإضافة بعد لإصدار وحدة تحكم Fleetbase الذي تستخدمه.
+      hosting-cloud: هذه الإضافة متاحة فقط على Fleetbase Cloud.
+      hosting-self-hosted: هذه الإضافة متاحة فقط على Fleetbase المستضاف ذاتيًا.
+      no_release: لا يوجد إصدار من هذه الإضافة لتثبيته بعد.
+      not_registered: اربط Fleetbase هذا بسجل الإضافات لتتمكن من تثبيت الإضافات.
+      needs_console_build: "تحتاج هذه الإضافة إلى إعادة بناء وحدة التحكم، وهذا لا يمكن لـ Fleetbase هذا القيام به تلقائياً. اسأل مسؤول Fleetbase لديك."
+      default-ready: يعمل مع Fleetbase لديك.
+      default-needs_update: يحتاج Fleetbase إلى تحديث قبل تثبيت هذه الإضافة.
+      default-unavailable: لا يمكن تثبيت هذه الإضافة على Fleetbase هذا.
+  store:
+    verified: ناشر موثّق
+    view:
+      label: العرض
+      cards: بطاقات
+      list: قائمة
+    button:
+      get: احصل عليه
+      get-free: احصل عليه · مجاناً
+      buy: شراء · {price}
+      downloading: جارٍ التنزيل… {percent}%
+      installing: جارٍ التثبيت… {percent}%
+      finishing: جارٍ الإنهاء…
+      open: فتح
+      update: تحديث
+      blocked: لا يمكن التثبيت بعد
+      unavailable: غير متاح
+      registration: غير متصل
+      unauthorized: اطلب من المسؤول
+      hint:
+        blocked: تحتاج هذه الإضافة إلى إصدار أحدث من Fleetbase. اطلب من مسؤول Fleetbase تحديثه.
+        unavailable: هذه الإضافة غير متاحة لإعدادك.
+        registration: اربط Fleetbase هذا بسجل الإضافات أولاً.
+        unauthorized: لا يسمح دورك بتثبيت الإضافات. اطلب من المسؤول.
+    verdict:
+      details: عرض التفاصيل
+      installed: "مثبّتة"
+      installed-reason: "مثبّتة وتعمل مع Fleetbase لديك."
+      inline:
+        ready: يعمل مع Fleetbase لديك
+        needs_update: يحتاج إلى تحديث Fleetbase
+        unavailable: غير متاح لإعدادك
+      short:
+        ready: يعمل لديك
+        needs_update: يحتاج إلى تحديث
+        unavailable: غير متاح
+    nav:
+      label: الإضافات
+      discover: اكتشف
+      installed: المثبّتة
+      purchased: المشتراة
+      updates: التحديثات
+      search: ابحث في الإضافات
+    discover:
+      featured: مميّز
+      learn-more: اعرف المزيد
+      categories: الفئات
+      see-all: عرض الكل
+      shelves:
+        popular: الأكثر شيوعاً
+        updated: جديد ومحدَّث
+        free: أساسيات مجانية
+        for-app: لـ {app}
+        for-app-subtitle: يعمل مع تطبيق تستخدمه
+    results:
+      for: نتائج “{query}”
+      all: كل الإضافات
+      count: "{count, plural, =0 {لا توجد إضافات} one {إضافة واحدة} other {# إضافات}}"
+      none-in-category: لا يوجد ما يطابق في هذه الفئة
+    filters:
+      compatible: يعمل مع Fleetbase لديك
+      compatible-long: ما يعمل مع Fleetbase لديك فقط
+      sort: الترتيب
+    rail:
+      all: كل الإضافات
+      show: عرض
+      price: السعر
+      any: الكل
+    breadcrumb: مسار التنقل
+    updates:
+      title: التحديثات
+      none: كل شيء محدَّث.
+      from-to: "{from} → {to}"
+      whats-new: "الجديد:"
+      auto: التحديث تلقائياً
+      rest-current: كل ما عدا ذلك محدَّث.
+    error: حدث خطأ أثناء تحميل الإضافات.
+    retry: حاول مرة أخرى
+    page:
+      not-found: تعذّر تحميل هذه الإضافة.
+      adds-to: تُضاف إلى {app}
+      remove: إزالة
+      find-it: "تجده في {path}"
+      screenshots: لقطات الشاشة
+      screenshot-of: لقطة شاشة لـ {name}
+      sections: الأقسام
+      tabs:
+        overview: نظرة عامة
+        whats-new: الجديد
+        support: الدعم
+      highlights: ما ستحصل عليه
+      setup: بعد التثبيت
+      version: الإصدار {version}
+      no-notes: لا توجد ملاحظات لهذا الإصدار.
+      links:
+        website: الموقع
+        support: الحصول على الدعم
+        privacy: سياسة الخصوصية
+        terms: الشروط
+        source: الشيفرة المصدرية
+      no-links: لم يضف الناشر أي روابط.
+      more: المزيد في {category}
+      help: المساعدة والروابط
+      facts:
+        version: الإصدار
+        updated: آخر تحديث
+        languages: اللغات
+        adds-to: تُضاف إلى
+        category: الفئة
+    failure:
+      title: تعذّر تثبيت {name}
+      update-title: تعذّر تحديث {name}
+      retry: حاول مرة أخرى
+      dismiss: إغلاق
+    done:
+      installed: "{name} جاهز للاستخدام."
+      updated: "{name} محدَّث."
+      failed: تعذّر تثبيت {name}. لم يتغير شيء في Fleetbase لديك.
+      removed: "أُزيل {name}."
+      removed-paid: "أُزيل {name}. مشترياتك باقية؛ أعد تثبيته من المشتراة في أي وقت."
+      remove-failed: "تعذّرت إزالة {name}. ما زال مثبّتاً ويعمل."
+    pill:
+      installing: جارٍ تثبيت {name} · {percent}%
+      updating: جارٍ تحديث {name} · {percent}%
+      removing: جارٍ إزالة {name} · {percent}%
+    library:
+      installed-title: المثبّتة
+      installed-empty: لا شيء مثبّت بعد. ستظهر هنا الإضافات التي تثبّتها.
+      browse: تصفّح الإضافات
+      browse-paid: تصفّح الإضافات المدفوعة
+      purchased-title: المشتراة
+      purchased-by: اشترتها {organization}
+      purchased-sub: ما اشترته مؤسستك
+      purchased-note: إزالة الإضافة لا تلغي ما دفعته. أعد تثبيتها من هنا مجاناً.
+      purchased-empty: لم تشترِ شيئاً بعد.
+      updates-ready: "{count, plural, one {تحديث واحد جاهز.} other {# تحديثات جاهزة.}}"
+      update-for: "صدر {name} {version}."
+      review-updates: مراجعة التحديثات
+      removing: جارٍ الإزالة…
+      receipt: الإيصال
+      plan:
+        free: مجاني
+        bought: مشتراة
+        renews: تتجدد في {date}
+        refunded: مستردّة
+        revoked: ملغاة
+      status:
+        installed: مثبّتة
+        not-installed: غير مثبّتة
+        update: تحديث جاهز
+        current: محدَّثة
+      remove:
+        label: إزالة {name}
+        title: إزالة {name}؟
+        keep: إبقاؤها
+        confirm: إزالة
+        failed: تعذّرت إزالة {name}
+        failed-body: لم يتغير شيء. ما زالت مثبّتة وتعمل.
+        effect:
+          default: "سيتوقف {name} عن العمل في Fleetbase لديك. تبقى بياناتك، ويمكنك تثبيته مجدداً في أي وقت."
+          in-app: "سيُزال {name} من {app}. تبقى طلباتك وسائقوك وسجلّك، ويمكنك تثبيته مجدداً في أي وقت."
+          paid: "سيتوقف {name} عن العمل هنا، لكن مشترياتك تبقى. أعد تثبيته من المشتراة مجاناً."

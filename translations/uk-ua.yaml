@@ -1,144 +1,382 @@
 registry-bridge:
-  extension-name: Registry Bridge
+  extension-name: Міст реєстру
   common:
+    retry: Повторити
+    close: Закрити
+  installer:
+    starting: Починаємо…
+    queued-next: Очікуємо початку…
+    queued-behind: "Очікуємо завершення {count, plural, one {# іншого встановлення} few {# інших встановлень} many {# інших встановлень} other {# інших встановлень}}…"
+    completed: Готово.
+    failed: Щось пішло не так.
+    failed-at: "Помилка на кроці: {step}"
+    rolled-back: Усі зміни скасовано; екземпляр у тому самому стані, що й до запуску.
+    rebuild-required: Під час завдання консоль було перезібрано; перезберіть її ще раз, щоб прибрати розширення з консолі.
+    retry: Повторити
+    reloading: "Готово. Консоль перезавантажиться через {seconds} с…"
+    installed: "{extensionName} встановлено."
+    uninstalled: "{extensionName} видалено."
+    updated: "{extensionName} оновлено."
+    steps:
+      resolve: Визначення випуску…
+      download: Завантаження та перевірка випуску…
+      snapshot: Збереження точки відновлення…
+      server-install: Встановлення серверного пакета…
+      server-uninstall: Видалення серверного пакета…
+      engine-install: Встановлення рушія консолі…
+      engine-uninstall: Видалення рушія консолі…
+      console-build: Перезбирання консолі (це може зайняти деякий час)…
+      cache-clear: Очищення кешу…
+      record: Завершення…
+      rollback: Скасування змін…
+    phases:
+      prepare: Підготовка
+      download: Завантаження
+      install: Встановлення
+      update: Оновлення
+      remove: Видалення
+      finish: Завершення
+    status:
+      prepare: Перевіряємо, чи все готово…
+      download: "Завантажуємо {name}…"
+      install: "Встановлюємо {name}…"
+      update: "Оновлюємо {name}…"
+      remove: "Видаляємо {name}…"
+      finish: Майже готово, завершуємо…
+      build: Перезбираємо консоль. Цей крок може тривати довго…
+      rollback: Щось пішло не так. Повертаємо все як було…
+    details:
+      show: Показати деталі
+      seconds: "{seconds} с"
+    failure:
+      install: Встановлення не завершилося. Нічого не змінено, тож можна спокійно спробувати ще раз.
+      update: Оновлення не завершилося. Нічого не змінено, тож можна спокійно спробувати ще раз.
+      uninstall: Видалення не завершилося. Нічого не змінено, тож можна спокійно спробувати ще раз.
+      generic: Дію не завершено. Спробуйте ще раз за мить.
+      rollback-incomplete: Не вдалося завершити, і не всі зміни вдалося скасувати. Попросіть адміністратора переглянути деталі.
+      next: Якщо помилка повторюється, передайте деталі адміністратору або службі підтримки Fleetbase.
+  explore:
+    title: Огляд розширень
+    category-title: "{categoryName}"
+    loading: Завантаження розширень
+    this-registry: Реєстр розширень
+    filters:
+      category: Категорія
+      pricing: Ціна
+      hosting: Розміщення
+      hide-installed: Приховати встановлені
+      sort: Сортування
+      active: Активні фільтри
+      remove: "Прибрати фільтр «{filter}»"
+    sort:
+      popular: Найпопулярніші
+      newest: Найновіші
+      updated: Нещодавно оновлені
+      name: Назва
+    pricing:
+      free: Безкоштовні
+      paid: Платні
+    hosting:
+      self_hosted: Власний сервер
+      cloud: Fleetbase Cloud
+      both: Хмара і власний сервер
+    empty:
+      title: У цьому реєстрі ще немає опублікованих розширень
+      body: "Ця консоль підключена до {host}. Розширення з’являться тут, щойно видавець надішле розширення, а команда реєстру його схвалить."
+      check-config: Перевірити налаштування реєстру
+    no-results:
+      title: "Немає розширень за запитом «{query}»"
+      filtered-title: Немає розширень за цими фільтрами
+      body: Спробуйте ширший запит, приберіть фільтр або перегляньте категорії. Пошук охоплює назви, підзаголовки, теги та видавців.
+      clear: Очистити пошук і фільтри
+    error:
+      title: Реєстр не відповів
+      body: "Не вдалося зв’язатися з {host}, або він відхилив запит. Спробуйте ще раз за мить; якщо помилка повторюється, адміністратор може перевірити Адміністрування → Налаштування реєстру."
+    registration:
+      body: Цей екземпляр ще не зареєстровано в службі реєстру, тому розширення можна переглядати, але не встановлювати чи купувати.
+      action: Зареєструвати цей екземпляр
+      ask-admin: Попросіть адміністратора зареєструвати його в Адміністрування → Налаштування реєстру.
+  maintenance:
+    title: "Розширення тимчасово призупинено на час оновлення реєстру."
+  card:
+    free: Безкоштовно
+    purchased: Придбано
+    on-sale: Знижка
+    installed: Встановлено
+    installed-version: "Встановлено v{version}"
+    update: "Оновлення v{version}"
+    update-to: "Оновити до v{version}"
+    ready-to-install: Готове до встановлення
+    self-hosted-only: Лише власний сервер
+    cloud-only: Лише хмара
+    verified: Перевірений видавець
+    view-details: Докладніше
     install: Встановити
-    uninstall: Видалити
-    approve: Схвалити
-    reject: Відхилити
-    details: Деталі
-    publish: Опублікувати
-    about: Про розширення
-    about-extension: Про {extensionName}
-  component:
-    extension-details-modal:
-      extension: Розширення
-      author: Автор
-      description: Опис
-      overview: Огляд
-      details: Деталі
-      version: Версія
-      updated: Оновлено
-      website: Веб-сайт
-      self-managed: Автономний режим
-      self-managed-help-text: Автономні розширення призначені для користувачів, які розгортають Fleetbase на власних серверах, поза хмарним/SaaS середовищем. Ці розширення вимагають ручного встановлення та налаштування. Якщо ви використовуєте Fleetbase на власному сервері, ви можете використовувати їх для додавання нових функцій. Вони недоступні для хмарних/SaaS користувачів.
-      self-hosted-install: Встановлення на власний сервер
-      self-hosted-install-help-text: Переглянути інструкції з встановлення на власний сервер.
-    extension-pending-publish-viewer:
-      content-panel-title: Розширення, що очікують публікації
-      focused-extension-title: >
-        Деталі {extensionName}
-      download-bundle: Завантажити пакет
-      view-details: Переглянути деталі
-      publish: Опублікувати
-      no-extensions-awaiting-publish: Немає розширень, що очікують публікації
-    extension-reviewer-control:
-      content-panel-title: Розширення, що очікують на перевірку
-      focused-extension-title: >
-        Деталі {extensionName}
-      approve-confirm-title: Ви впевнені, що хочете схвалити це розширення?
-      approve-confirm-body: Це розширення має бути ретельно протестоване в тестовому середовищі та середовищі розробки на відповідність вимогам та відсутність проблем із безпекою. Після схвалення розширення потрібно буде вручну опублікувати в реєстрі.
-      decline-confirm-title: Ви впевнені, що хочете відхилити це розширення?
-      decline-confirm-body: Це розширення буде відхилено, але автору буде надано можливість внести виправлення та повторно відправити його на перевірку.
-      download-bundle: Завантажити пакет
-      view-details: Переглянути деталі
-      approve: Схвалити
-      reject: Відхилити
-      no-extensions-awaiting-review: Немає розширень, що очікують перевірки
+    unavailable: Тут недоступне
+  purchase:
+    title: "Придбати {name}"
+    your-organization: вашої організації в реєстрі
+    finalizing:
+      title: Завершення покупки…
+      body: "Підтверджуємо оплату в Stripe і реєструємо ліцензію для {organization}. Не закривайте цю вкладку."
+    success:
+      badge: Оплачено
+      title: "{name} тепер ваше"
+      body: "Ліцензію оформлено для {organization}, до якої зареєстровано цей екземпляр; її видно в розділі «Придбані»."
+      receipt: Квитанція Stripe
+      install-now: Встановити зараз
+      later: Пізніше
+      paid: "Сплачено {amount}, включно з податком."
+    failed:
+      badge: Не завершено
+      title: Оплату не проведено
+      body: "Stripe повідомив, що сеанс оплати {status}. Кошти не списано, ліцензію не надано."
+      unknown-status: не завершено
+      try-again: Спробувати ще раз
+    processing:
+      title: Оплата ще підтверджується
+      body: Stripe ще не підтвердив оплату. Ліцензія з’явиться в розділі «Придбані», щойно це станеться; це вікно можна закрити.
+    cancelled:
+      badge: Скасовано
+      title: Оплату скасовано
+      body: Ви вийшли з оплати Stripe до сплати. Кошти не списано, ліцензію не надано.
   installed:
-    title: Встановлені розширення
+    auto-update:
+      label: "Політика автооновлення"
+      none: "Вимкнено"
+      patch: "Патч-випуски"
+      minor: "Мінорні випуски"
+      help: "Патч встановлює випуски x.y.Z, мінорні встановлюють x.Y.z (0.x лишається на своєму мінорному). Оновлення ставляться в чергу щогодини зі знімком і відкатом і лише до випусків, сумісних із цією консоллю."
+      saved: "Автооновлення для {name}: {policy}."
+      last-failed: "Останнє автооновлення до v{version} не вдалося; повтору не буде, доки не вийде новіший випуск."
+    status:
+      up-to-date: Актуальне
+      update-available: Є оновлення
+      core: Базова служба
   purchased:
-    title: Придбані розширення
-  developers:
-    payments:
-      manage-account: Керування акаунтом виплат
-      no-account-warning: Ви повинні пройти процес реєстрації в Stripe перед доступом до налаштувань акаунта.
-      settings:
-        title: Керування акаунтом виплат
-        description: Керуйте даними свого акаунта Stripe, включаючи інформацію про бізнес та банківські рахунки для отримання виплат.
-        loading: Завантаження керування акаунтом...
-    extensions:
-      extensions: Розширення
-      create-new-extension: Створити нове розширення
-      new-extension: Нове розширення
-      extension: Розширення
-      submission: Подання
-      details: Деталі
-      bundles: Пакети
-      monetize: Монетизація
-      explore:
-        explore-extensions: Огляд розширень
-        explore-category-extensions: >
-          Розширення категорії {categoryName}
-      extension-form:
-        package-name: Назва пакета
-        package-json-name: назва в package.json
-        composer-json-name: назва в composer.json
-        submission-success-message: Розширення надіслано та воно очікує перевірки.
-        extension-category: Категорія
-        extension-category-help-text: Оберіть категорію, у якій користувачі зможуть знайти ваше розширення.
-        extension-select-category: Оберіть категорію
-        extension-name: Назва розширення
-        extension-icon: Іконка розширення
-        upload-extension-icon: Завантажити іконку
-        extension-description: Опис
-        extension-tags: Теги
-        extension-add-tags: Додати ключові слова та теги
-        extension-promotional-text: Рекламний текст
-        details-content-block: Деталі розширення
-        extension-listing-details: Деталі в каталозі
-        extension-subtitle: Підзаголовок
-        extension-website-url: URL-адреса веб-сайту
-        extension-repo-url: URL-адреса репозиторію
-        extension-support-url: URL-адреса підтримки
-        extension-privacy-policy-url: URL-адреса політики конфіденційності
-        extension-tos-url: URL-адреса умов використання
-        extension-primary-language: Основна мова
-        extension-version: Версія
-        extension-copyright: Авторські права
-        extension-copyright-help-text: Вкажіть примітку про авторські права для вашого розширення. Зазвичай це включає рік та ім'я власника авторських прав або назву компанії.
-        extension-payment-required: Потрібна оплата
-        extension-payment-required-help-text: Визначає, чи потрібна оплата або підписка для встановлення цього розширення користувачами.
-        extension-price: Ціна
-        extension-price-help-text: Вкажіть звичайну ціну розширення. Це стандартна вартість для купівлі або доступу.
-        extension-sale-price: Акційна ціна
-        extension-sale-price-help-text: Якщо розширення зараз пропонується зі знижкою, введіть акційну ціну тут. Вона має бути меншою за звичайну ціну.
-        extension-subscription-required: Потрібна підписка
-        extension-subscription-required-help-text: Визначає, чи повинен користувач мати підписку для встановлення та використання цього розширення.
-        extension-subscription-billing-period: Розрахунковий період підписки
-        extension-subscription-billing-period-placeholder: Оберіть розрахунковий період
-        extension-subscription-billing-period-help-text: >
-          Вкажіть розрахунковий період для підписки. Наприклад: щомісяця, щокварталу, щорічно або інші власні інтервали.
-        extension-subscription-amount: Вартість підписки
-        extension-subscription-amount-help-text: Введіть стандартну суму для стягнення за підписку. Вона має відображати звичайну ціну до застосування будь-яких знижок чи багаторівневих коригувань.
-        extension-subscription-model: Модель підписки
-        extension-subscription-model-help-text: Визначає тип цінової моделі підписки. Варіанти включають фіксовану ставку, багаторівневу підписку та підписку на основі використання.
-        extension-subscription-tiers: Рівні підписки
-        extension-subscription-tiers-help-text: Визначте різні рівні цін для підписки, якщо це застосовно. Включіть деталі, такі як рівні, ціноутворення для кожного рівня, а також будь-які специфічні функції чи обмеження кожного рівня.
-        extension-name-help-text: Введіть офіційну назву розширення. Вона відображатиметься як основний ідентифікатор для користувачів.
-        extension-icon-help-text: Завантажте іконку, яка представляє розширення. Ця іконка буде використовуватися в списках та результатах пошуку.
-        extension-description-help-text: Надайте детальний опис того, що робить розширення, та його основних функцій. Ця інформація допомагає користувачам зрозуміти функціонал розширення.
-        extension-tags-help-text: Додайте відповідні ключові слова та теги, які описують розширення, допомагаючи користувачам знайти його через пошук.
-        extension-promotional-text-help-text: Напишіть рекламний текст, щоб виділити унікальні переваги розширення. Цей текст буде використовуватися в маркетингових або обраних розділах.
-        extension-subtitle-help-text: Надайте короткий підзаголовок, який містить додатковий контекст або інформацію про розширення.
-        extension-website-url-help-text: Введіть URL-адресу офіційного веб-сайту розширення або сторінки продукту для отримання додаткової інформації.
-        extension-repo-url-help-text: Вкажіть URL-адресу репозиторію коду розширення (наприклад, GitHub, GitLab), якщо це застосовно.
-        extension-support-url-help-text: Вкажіть URL-адресу, де користувачі можуть отримати підтримку, поставити запитання або повідомити про проблеми з розширенням.
-        extension-privacy-policy-url-help-text: Посилання на документ політики конфіденційності, у якому детально описано, як обробляються та захищаються дані користувачів.
-        extension-tos-url-help-text: Посилання на документ умов використання, з якими користувачі повинні погодитися перед використанням розширення.
-        extension-primary-language-help-text: Вкажіть основну мову, якою розроблено або доступно розширення.
-        extension-version-help-text: Вкажіть поточну версію розширення. Це важливо для відстеження оновлень та сумісності.
-        extension-payment-details: Платіжні реквізити
-        extension-screenshots: Скріншоти
-        upload-screenshots: Завантажити скріншоти
-        submit-for-review: Надіслати на перевірку
-        extension-bundle: Пакет розширення
-        extension-upload-bundle: Завантажити пакет розширення
-        details: Деталі
-        bundle-id: ID пакета
-        bundle-id-help-text: Ідентифікатор наразі опублікованого пакета.
-        extension-id: ID розширення
-        extension-id-help-text: Унікальний ідентифікатор цього розширення.
-        bundles: Пакети
-        upload-new-bundle: Завантажити новий пакет
-        self-managed: Автономний режим
-        self-managed-help-text: Увімкніть цю опцію, якщо ваш модуль призначений лише для власних серверів. Якщо обрати цей параметр, модуль буде недоступний для встановлення в хмарній/SaaS версії Fleetbase і повинен бути встановлений користувачем вручну на власному сервері.
+    status:
+      installed: "Встановлено v{version}"
+  admin:
+    config:
+      service:
+        title: Служба реєстру
+        url: URL служби
+        url-help: Базова адреса служби реєстру Fleetbase. Через неї проходять огляд, встановлення, оновлення та покупки.
+      registration:
+        title: Реєстрація екземпляра
+        help: Екземпляри реєструються одноразовим кодом (дійсним 15 хвилин) від власника або адміністратора вашої організації в реєстрі.
+        registered: Зареєстровано
+        instance: Екземпляр
+        organization: Організація
+        token: Токен екземпляра
+        registered-at: Дата реєстрації
+        register: Зареєструвати цей екземпляр
+        url-first: Спершу введіть URL служби.
+        register-again: "Зареєструвати повторно"
+        register-again-help: "Вставте новий код від вашої організації реєстру. Цей екземпляр зберігає свій ідентифікатор, встановлення та місця ліцензій у службі; замінюється лише його токен."
+        cancel: "Скасувати"
+      result:
+        connected: Підключено до реєстру
+        failed: Не вдалося підключитися до реєстру
+        host: Хост
+        status: Стан HTTP
+        latency: Затримка
+        extensions: Опубліковані розширення
+        token-accepted: "Прийнято ({name}, {organization})"
+        token-rejected: Відхилено
+        ok-toast: "Підключено до {host} за {ms} мс."
+      test: Перевірити з’єднання
+      save: Зберегти зміни
+      saved: Налаштування реєстру збережено.
+      this-instance: цей екземпляр
+      registered-toast: "Зареєстровано в {host} як {name}."
+      reregistered-toast: "{name} ({id}) повторно зареєстровано в {host}: той самий екземпляр, новий токен. Його встановлення та місця ліцензій збережено."
+      unregistered-toast: Цей екземпляр більше не зареєстровано в службі реєстру.
+      unregister:
+        title: Скасувати реєстрацію цього екземпляра?
+        body: "Екземпляр забуде свій токен реєстру й більше не зможе встановлювати, оновлювати чи купувати розширення. Встановлені розширення продовжать працювати. Щоб відкликати сам токен, видаліть екземпляр зі своєї організації в реєстрі. Якщо пізніше зареєструвати цю консоль знову, у службі залишиться той самий екземпляр."
+        accept: Скасувати реєстрацію
+  compatibility:
+    details: Технічні деталі
+    requires: "Потрібні консоль {console} і core API {api}"
+    current: "Цей екземпляр працює на консолі {console} і core API {api}"
+    verdicts:
+      ready: Готово до встановлення
+      needs_update: Спершу потрібно оновити Fleetbase
+      unavailable: Недоступно для вашої конфігурації
+    reasons:
+      ok: Працює з вашою версією Fleetbase.
+      core_too_old: Для цього розширення потрібна новіша версія Fleetbase. Попросіть адміністратора оновити Fleetbase, а потім встановіть його.
+      console_too_old: Для цього розширення потрібна новіша версія консолі Fleetbase. Попросіть адміністратора оновити Fleetbase, а потім встановіть його.
+      core_too_new: Це розширення ще не оновлено для вашої версії Fleetbase.
+      console_too_new: Це розширення ще не оновлено для вашої версії консолі Fleetbase.
+      hosting-cloud: Це розширення доступне лише у Fleetbase Cloud.
+      hosting-self-hosted: Це розширення доступне лише для самостійно розгорнутого Fleetbase.
+      no_release: Для цього розширення ще немає версії для встановлення.
+      not_registered: Підключіть цей Fleetbase до реєстру розширень, щоб встановлювати розширення.
+      needs_console_build: "Для цього розширення потрібно перезібрати консоль, а цей Fleetbase не може зробити це сам. Зверніться до адміністратора Fleetbase."
+      default-ready: Працює з вашим Fleetbase.
+      default-needs_update: Перед встановленням цього розширення Fleetbase потрібно оновити.
+      default-unavailable: Це розширення не можна встановити на цей Fleetbase.
+  store:
+    verified: Перевірений видавець
+    view:
+      label: Вигляд
+      cards: Картки
+      list: Список
+    button:
+      get: Отримати
+      get-free: Отримати · Безкоштовно
+      buy: Купити · {price}
+      downloading: Завантаження… {percent}%
+      installing: Встановлення… {percent}%
+      finishing: Завершення…
+      open: Відкрити
+      update: Оновити
+      blocked: Поки не можна встановити
+      unavailable: Недоступно
+      registration: Не підключено
+      unauthorized: Зверніться до адміністратора
+      hint:
+        blocked: Потрібна новіша версія Fleetbase. Попросіть адміністратора Fleetbase оновити її.
+        unavailable: Це розширення недоступне для вашого налаштування.
+        registration: Спершу підключіть цей Fleetbase до реєстру розширень.
+        unauthorized: Ваша роль не дозволяє встановлювати розширення. Зверніться до адміністратора.
+    verdict:
+      details: Показати подробиці
+      installed: "Встановлено"
+      installed-reason: "Встановлено й працює з вашим Fleetbase."
+      inline:
+        ready: Працює з вашим Fleetbase
+        needs_update: Потрібне оновлення Fleetbase
+        unavailable: Недоступно для вашого налаштування
+      short:
+        ready: Працює у вас
+        needs_update: Потрібне оновлення
+        unavailable: Недоступно
+    nav:
+      label: Розширення
+      discover: Огляд
+      installed: Встановлені
+      purchased: Придбані
+      updates: Оновлення
+      search: Пошук розширень
+    discover:
+      featured: Рекомендоване
+      learn-more: Докладніше
+      categories: Категорії
+      see-all: Усі
+      shelves:
+        popular: Популярні
+        updated: Нові та оновлені
+        free: Безкоштовні основи
+        for-app: Для {app}
+        for-app-subtitle: Працює з застосунком, яким ви користуєтесь
+    results:
+      for: Результати для «{query}»
+      all: Усі розширення
+      count: "{count, plural, =0 {Немає розширень} one {# розширення} few {# розширення} many {# розширень} other {# розширень}}"
+      none-in-category: У цій категорії нічого не знайдено
+    filters:
+      compatible: Працює з моїм Fleetbase
+      compatible-long: Лише те, що працює з моїм Fleetbase
+      sort: Сортування
+    rail:
+      all: Усі розширення
+      show: Показати
+      price: Ціна
+      any: Будь-яка
+    breadcrumb: Навігація
+    updates:
+      title: Оновлення
+      none: Усе оновлено.
+      from-to: "{from} → {to}"
+      whats-new: "Що нового:"
+      auto: Оновлювати автоматично
+      rest-current: Усе інше оновлено.
+    error: Не вдалося завантажити розширення.
+    retry: Спробувати ще раз
+    page:
+      not-found: Не вдалося завантажити це розширення.
+      adds-to: Додається до {app}
+      remove: Видалити
+      find-it: "Знайдіть у {path}"
+      screenshots: Знімки екрана
+      screenshot-of: Знімок екрана {name}
+      sections: Розділи
+      tabs:
+        overview: Огляд
+        whats-new: Що нового
+        support: Підтримка
+      highlights: Що ви отримаєте
+      setup: Після встановлення
+      version: Версія {version}
+      no-notes: Для цієї версії немає приміток.
+      links:
+        website: Вебсайт
+        support: Отримати підтримку
+        privacy: Політика конфіденційності
+        terms: Умови
+        source: Вихідний код
+      no-links: Видавець не додав посилань.
+      more: Більше в категорії {category}
+      help: Довідка та посилання
+      facts:
+        version: Версія
+        updated: Оновлено
+        languages: Мови
+        adds-to: Додається до
+        category: Категорія
+    failure:
+      title: Не вдалося встановити {name}
+      update-title: Не вдалося оновити {name}
+      retry: Спробувати ще раз
+      dismiss: Закрити
+    done:
+      installed: "{name} готове до роботи."
+      updated: "{name} оновлено."
+      failed: Не вдалося встановити {name}. У вашому Fleetbase нічого не змінилося.
+      removed: "{name} видалено."
+      removed-paid: "{name} видалено. Покупка залишається; встановіть його знову з розділу «Придбані» будь-коли."
+      remove-failed: "Не вдалося видалити {name}. Розширення встановлене й працює."
+    pill:
+      installing: Встановлення {name} · {percent}%
+      updating: Оновлення {name} · {percent}%
+      removing: Видалення {name} · {percent}%
+    library:
+      installed-title: Встановлені
+      installed-empty: Поки нічого не встановлено. Тут з'являться встановлені розширення.
+      browse: Переглянути розширення
+      browse-paid: Переглянути платні розширення
+      purchased-title: Придбані
+      purchased-by: Придбано {organization}
+      purchased-sub: Що придбала ваша організація
+      purchased-note: Видалення розширення не скасовує оплату. Встановіть його знову тут безкоштовно.
+      purchased-empty: Ще нічого не придбано.
+      updates-ready: "{count, plural, one {# оновлення готове.} few {# оновлення готові.} many {# оновлень готові.} other {# оновлень готові.}}"
+      update-for: "Вийшла версія {name} {version}."
+      review-updates: Переглянути оновлення
+      removing: Видалення…
+      receipt: Квитанція
+      plan:
+        free: Безкоштовно
+        bought: Придбано
+        renews: Поновлюється {date}
+        refunded: Повернено
+        revoked: Відкликано
+      status:
+        installed: Встановлено
+        not-installed: Не встановлено
+        update: Є оновлення
+        current: Оновлено
+      remove:
+        label: Видалити {name}
+        title: Видалити {name}?
+        keep: Залишити
+        confirm: Видалити
+        failed: Не вдалося видалити {name}
+        failed-body: Нічого не змінилося. Розширення встановлене й працює.
+        effect:
+          default: "{name} перестане працювати у вашому Fleetbase. Ваші дані залишаться, і ви зможете встановити його знову будь-коли."
+          in-app: "{name} зникне з {app}. Ваші замовлення, водії та історія залишаться, і ви зможете встановити його знову будь-коли."
+          paid: "{name} перестане працювати тут, але покупка залишиться. Встановіть його знову з розділу «Придбані» безкоштовно."

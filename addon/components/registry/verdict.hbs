@@ -1,0 +1,29 @@
+{{#if this.show}}
+    {{#if (eq this.variant "card")}}
+        <section class="rb-verdict-card is-{{this.verdict}}" aria-label={{this.detail.label}} data-test-verdict-card={{this.verdict}} ...attributes>
+            <div class="rb-verdict-card-title">
+                <FaIcon @icon={{this.icon}} />
+                <span>{{this.detail.label}}</span>
+            </div>
+            {{#if this.detail.reason}}
+                <p class="rb-verdict-card-reason">{{this.detail.reason}}</p>
+            {{/if}}
+            {{yield}}
+            {{#if this.detail.technical.length}}
+                <details class="rb-verdict-card-details">
+                    <summary>{{t "registry-bridge.store.verdict.details"}}</summary>
+                    <ul>
+                        {{#each this.detail.technical as |line|}}
+                            <li>{{line}}</li>
+                        {{/each}}
+                    </ul>
+                </details>
+            {{/if}}
+        </section>
+    {{else}}
+        <span class="rb-verdict is-{{this.verdict}}" data-test-verdict={{this.verdict}} ...attributes>
+            <FaIcon @icon={{this.icon}} @size="xs" />
+            {{this.text}}
+        </span>
+    {{/if}}
+{{/if}}

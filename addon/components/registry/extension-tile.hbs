@@ -1,0 +1,26 @@
+<article class="rb-tile" data-test-extension-tile={{this.extension.slug}} ...attributes>
+    <div class="rb-tile-head">
+        <Registry::ExtensionIcon @extension={{this.extension}} @size="md" />
+        <div class="rb-tile-id">
+            <button type="button" class="rb-name rb-stretch" {{on "click" this.open}} data-test-extension-name>{{this.extension.name}}</button>
+            {{#if this.publisher}}
+                <span class="rb-publisher">
+                    {{this.publisher}}
+                    {{#if this.verified}}
+                        <FaIcon @icon="circle-check" @size="xs" class="rb-verified" title={{t "registry-bridge.store.verified"}} />
+                        <span class="sr-only">{{t "registry-bridge.store.verified"}}</span>
+                    {{/if}}
+                </span>
+            {{/if}}
+        </div>
+    </div>
+    {{#if this.blurb}}
+        <p class="rb-tile-blurb">{{this.blurb}}</p>
+    {{/if}}
+    <div class="rb-tile-foot">
+        {{#if this.category}}
+            <span class="rb-chip">{{this.category}}</span>
+        {{/if}}
+        <Registry::InstallButton @extension={{this.extension}} @progress={{@progress}} @size="sm" @onAction={{@onAction}} @onOpen={{@onOpen}} class="rb-above" />
+    </div>
+</article>

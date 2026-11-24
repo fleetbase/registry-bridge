@@ -1,32 +1,35 @@
-<Layout::Section::Header @title={{t "registry-bridge.installed.title"}} />
+<div class="rb-page rb-library" data-test-installed-page>
+    <div class="rb-library-head">
+        <h1 class="rb-page-title">{{t "registry-bridge.store.library.installed-title"}}</h1>
+        {{#if this.extensions.length}}<span class="rb-muted">{{t "registry-bridge.store.results.count" count=this.extensions.length}}</span>{{/if}}
+    </div>
 
-<Layout::Section::Body class="overflow-y-scroll h-full">
-    <div class="m-auto p-8">
-        <div class="extension-card-grid-container">
-            {{#each @model as |extension|}}
-                <div class="extension-card-container">
-                    <div class="extension-card-icon-container">
-                        <Image src={{extension.icon_url}} alt={{extension.name}} @fallbackSrc={{config "defaultValues.extensionIcon"}} />
-                    </div>
-                    <div class="extension-card-body-container">
-                        <div class="flex flex-col">
-                            <div class="font-semibold text-sm block">{{extension.name}}</div>
-                            <div class="text-xs">{{n-a extension.description}}</div>
-                        </div>
-                        <div class="flex flex-col flex-1 pt-1 space-y-2">
-                            <Button
-                                @type="default"
-                                @text={{t "registry-bridge.common.about-extension" extensionName=extension.name}}
-                                @icon="circle-info"
-                                @onClick={{fn this.about extension}}
-                                class="w-full btn-block"
-                            />
-                            <Button @type="danger" @text={{t "registry-bridge.common.uninstall"}} @icon="trash" @onClick={{fn this.uninstall extension}} class="w-full btn-block" />
-                        </div>
-                    </div>
-                </div>
+    {{#if this.firstUpdate}}
+        <div class="rb-banner" data-test-updates-banner>
+            <span class="rb-banner-title">{{t "registry-bridge.store.library.updates-ready" count=this.updatesAvailable}}</span>
+            <span class="rb-muted">{{t "registry-bridge.store.library.update-for" name=this.firstUpdate.name version=this.firstUpdate.latest_version}}</span>
+            <LinkTo @route="updates" class="rb-btn rb-btn-primary rb-banner-action">{{t "registry-bridge.store.library.review-updates"}}</LinkTo>
+        </div>
+    {{/if}}
+
+    {{#if this.isLoading}}
+        <div class="rb-loading" aria-busy="true"><Skeleton::Table @rows={{4}} @columns={{4}} @checkbox={{false}} /></div>
+    {{else if this.error}}
+        <InfoBlock @type="danger" @icon="triangle-exclamation">
+            <div class="font-semibold">{{t "registry-bridge.store.error"}}</div>
+            <div class="mt-3"><Button @size="xs" @icon="rotate-right" @text={{t "registry-bridge.store.retry"}} @onClick={{perform this.load}} /></div>
+        </InfoBlock>
+    {{else if this.extensions.length}}
+        <div class="rb-lib-list" role="list">
+            {{#each this.extensions as |extension|}}
+                <Registry::LibraryRow @extension={{extension}} />
             {{/each}}
         </div>
-    </div>
-    <Spacer @height="300px" />
-</Layout::Section::Body>
+    {{else}}
+        <div class="rb-empty" data-test-installed-empty>
+            <FaIcon @icon="shapes" @size="2x" class="rb-muted" />
+            <p>{{t "registry-bridge.store.library.installed-empty"}}</p>
+            <LinkTo @route="explore" class="rb-btn rb-btn-primary">{{t "registry-bridge.store.library.browse"}}</LinkTo>
+        </div>
+    {{/if}}
+</div>

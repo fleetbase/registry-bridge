@@ -1,0 +1,21 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register"
+    },
+    "status": 422,
+    "body": {
+        "errors": [
+            "The code field is required.",
+            "The kind field is required."
+        ],
+        "fields": {
+            "code": [
+                "The code field is required."
+            ],
+            "kind": [
+                "The kind field is required."
+            ]
+        }
+    }
+}

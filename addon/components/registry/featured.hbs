@@ -1,0 +1,49 @@
+{{#if this.current}}
+    <section class="rb-featured" aria-label={{t "registry-bridge.store.discover.featured"}} data-test-featured={{this.current.slug}} ...attributes>
+        <div class="rb-featured-body">
+            <span class="rb-eyebrow">{{t "registry-bridge.store.discover.featured"}}</span>
+            <div class="rb-featured-id">
+                <Registry::ExtensionIcon @extension={{this.current}} @size="lg" />
+                <div>
+                    <h2 class="rb-featured-name"><button type="button" class="rb-name" {{on "click" this.open}}>{{this.current.name}}</button></h2>
+                    <span class="rb-publisher">
+                        {{this.current.publisher_name}}
+                        {{#if this.verified}}
+                            <FaIcon @icon="circle-check" @size="xs" class="rb-verified" />
+                            <span class="sr-only">{{t "registry-bridge.store.verified"}}</span>
+                        {{/if}}
+                        {{#if this.meta}}· {{this.meta}}{{/if}}
+                    </span>
+                </div>
+            </div>
+            {{#if (or this.current.subtitle this.current.description)}}
+                <p class="rb-featured-blurb">{{or this.current.subtitle this.current.description}}</p>
+            {{/if}}
+            <div class="rb-featured-actions">
+                <Registry::InstallButton @extension={{this.current}} @size="md" @onOpen={{@onOpen}} />
+                <button type="button" class="rb-link" {{on "click" this.open}}>{{t "registry-bridge.store.discover.learn-more"}}</button>
+                <Registry::Verdict @extension={{this.current}} @onlyPositive={{true}} />
+            </div>
+            {{#if this.dots.length}}
+                <div class="rb-dots" role="group" aria-label={{t "registry-bridge.store.discover.featured"}}>
+                    {{#each this.dots as |dot|}}
+                        <button
+                            type="button"
+                            class="rb-dot {{if dot.current 'is-current'}}"
+                            aria-label={{dot.name}}
+                            aria-pressed={{if dot.current "true" "false"}}
+                            {{on "click" (fn this.show dot.i)}}
+                        ></button>
+                    {{/each}}
+                </div>
+            {{/if}}
+        </div>
+        <div class="rb-featured-media" aria-hidden="true">
+            {{#if this.screenshot}}
+                <img src={{this.screenshot}} alt="" loading="lazy" />
+            {{else}}
+                <Registry::ExtensionIcon @extension={{this.current}} @size="xl" />
+            {{/if}}
+        </div>
+    </section>
+{{/if}}

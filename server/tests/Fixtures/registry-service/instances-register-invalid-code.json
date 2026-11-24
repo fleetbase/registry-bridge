@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register"
+    },
+    "status": 401,
+    "body": {
+        "errors": [
+            "The registration code is invalid, expired or already used."
+        ]
+    }
+}

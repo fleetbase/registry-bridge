@@ -1,0 +1,236 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/catalog/extensions"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "id": "ext_a2unpicvi8",
+                "slug": "acme-fleet-insights",
+                "name": "Acme Fleet Insights",
+                "subtitle": "Dashboards for fuel, utilisation and driver behaviour.",
+                "fa_icon": "chart-line",
+                "icon_url": null,
+                "tags": [
+                    "analytics",
+                    "reports"
+                ],
+                "hosting": "cloud",
+                "status": "published",
+                "publisher": {
+                    "id": "org_7nwqd9szuv",
+                    "slug": "acme",
+                    "name": "Acme Logistics",
+                    "is_verified": true
+                },
+                "category": {
+                    "id": "cat_jqtma8luwq",
+                    "slug": "analytics-and-reporting",
+                    "name": "Analytics and Reporting",
+                    "icon": "chart-line"
+                },
+                "latest_release": null,
+                "latest_version": null,
+                "compat": null,
+                "packages": {
+                    "npm": "@acme/acme-fleet-insights-engine",
+                    "composer": "acme/acme-fleet-insights-api"
+                },
+                "price": {
+                    "model": "one_time",
+                    "amount": 1900,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 1900
+                },
+                "is_paid": true,
+                "installs_count": 0,
+                "published_at": "2026-10-23T08:27:09.000000Z",
+                "updated_at": "2026-10-23T08:05:25.000000Z",
+                "created_at": "2026-10-23T08:05:25.000000Z"
+            },
+            {
+                "id": "ext_qo76q0el02",
+                "slug": "acme-route-planner",
+                "name": "Acme Route Planner",
+                "subtitle": "Plan multi-stop routes (draft).",
+                "fa_icon": null,
+                "icon_url": null,
+                "tags": [
+                    "routing"
+                ],
+                "hosting": "both",
+                "status": "published",
+                "publisher": {
+                    "id": "org_7nwqd9szuv",
+                    "slug": "acme",
+                    "name": "Acme Logistics",
+                    "is_verified": true
+                },
+                "category": null,
+                "latest_release": null,
+                "latest_version": null,
+                "compat": null,
+                "packages": {
+                    "npm": "@acme/acme-route-planner-engine",
+                    "composer": "acme/acme-route-planner-api"
+                },
+                "price": {
+                    "model": "one_time",
+                    "amount": 2900,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 2900
+                },
+                "is_paid": true,
+                "installs_count": 0,
+                "published_at": "2026-10-23T08:27:09.000000Z",
+                "updated_at": "2026-10-23T08:05:25.000000Z",
+                "created_at": "2026-10-23T08:05:25.000000Z"
+            },
+            {
+                "id": "ext_lrmamhjvoi",
+                "slug": "registry-demo-hello",
+                "name": "Registry Demo Hello",
+                "subtitle": "A free demo extension that says hello from the console.",
+                "fa_icon": "puzzle-piece",
+                "icon_url": null,
+                "tags": [
+                    "demo",
+                    "free",
+                    "getting-started"
+                ],
+                "hosting": "both",
+                "status": "published",
+                "publisher": {
+                    "id": "org_jgpeqfbxcf",
+                    "slug": "registry-demo",
+                    "name": "Registry Demo",
+                    "is_verified": true
+                },
+                "category": {
+                    "id": "cat_pilzzobwtq",
+                    "slug": "fleet-management",
+                    "name": "Fleet Management",
+                    "icon": "truck-moving"
+                },
+                "latest_release": {
+                    "id": "rel_dlx3qr7woe",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 882,
+                    "checksum": "sha256:69384a4894fa04287ac37662724b8ffcaa59e3b1e02546356465388bccb05623",
+                    "notes": "Seeded by registry:seed --seed-release.",
+                    "published_at": "2026-10-23T08:05:13.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-23T08:05:13.000000Z"
+                },
+                "latest_version": "1.0.0",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "packages": {
+                    "npm": "@registry-demo/hello-engine",
+                    "composer": "registry-demo/hello-api"
+                },
+                "price": {
+                    "model": "free",
+                    "amount": 0,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 0
+                },
+                "is_paid": false,
+                "installs_count": 0,
+                "published_at": "2026-10-23T08:05:21.000000Z",
+                "updated_at": "2026-10-23T08:05:21.000000Z",
+                "created_at": "2026-10-23T08:05:13.000000Z"
+            },
+            {
+                "id": "ext_ts109fqyn8",
+                "slug": "registry-demo-pro",
+                "name": "Registry Demo Pro",
+                "subtitle": "A paid demo extension with reports for fleet managers.",
+                "fa_icon": "puzzle-piece",
+                "icon_url": null,
+                "tags": [
+                    "demo",
+                    "paid",
+                    "reports"
+                ],
+                "hosting": "both",
+                "status": "published",
+                "publisher": {
+                    "id": "org_jgpeqfbxcf",
+                    "slug": "registry-demo",
+                    "name": "Registry Demo",
+                    "is_verified": true
+                },
+                "category": {
+                    "id": "cat_jqtma8luwq",
+                    "slug": "analytics-and-reporting",
+                    "name": "Analytics and Reporting",
+                    "icon": "chart-line"
+                },
+                "latest_release": {
+                    "id": "rel_387nbicatn",
+                    "version": "1.0.0",
+                    "channel": "stable",
+                    "status": "published",
+                    "compat": {
+                        "console": ">=0.7.0",
+                        "api": ">=1.6.0"
+                    },
+                    "size_bytes": 873,
+                    "checksum": "sha256:93885f12e28ddb3b3940f7f238a3eb80b7614d21860ba7d3b0e88f672dc7a414",
+                    "notes": "Seeded by registry:seed --seed-release.",
+                    "published_at": "2026-10-23T08:05:13.000000Z",
+                    "yanked_at": null,
+                    "created_at": "2026-10-23T08:05:13.000000Z"
+                },
+                "latest_version": "1.0.0",
+                "compat": {
+                    "console": ">=0.7.0",
+                    "api": ">=1.6.0"
+                },
+                "packages": {
+                    "npm": "@registry-demo/pro-engine",
+                    "composer": "registry-demo/pro-api"
+                },
+                "price": {
+                    "model": "one_time",
+                    "amount": 4900,
+                    "currency": "USD",
+                    "on_sale": false,
+                    "sale_amount": null,
+                    "effective_amount": 4900
+                },
+                "is_paid": true,
+                "installs_count": 0,
+                "published_at": "2026-10-23T08:05:21.000000Z",
+                "updated_at": "2026-10-23T08:05:21.000000Z",
+                "created_at": "2026-10-23T08:05:13.000000Z"
+            }
+        ],
+        "meta": {
+            "total": 4,
+            "per_page": 30,
+            "current_page": 1,
+            "last_page": 1,
+            "from": 1,
+            "to": 4,
+            "time": 823
+        }
+    }
+}

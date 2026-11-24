@@ -17,17 +17,105 @@ return [
         ],
     ],
     'registry' => [
-        'host' => env('REGISTRY_HOST', 'https://registry.fleetbase.io'),
-        'token' => env('REGISTRY_TOKEN', env('REGISTRY_AUTH_TOKEN'))
-    ],
-    'stripe' => [
-        'key' => env('STRIPE_KEY', env('STRIPE_API_KEY')),
-        'secret' => env('STRIPE_SECRET', env('STRIPE_API_SECRET')),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        // Registry Service: catalog, package endpoints and the instance API.
+        'service_url' => env('REGISTRY_SERVICE_URL', 'https://registry.fleetbase.io'),
+        // Issued by the service when an admin registers this instance; stored encrypted in settings.
+        'instance_token' => env('REGISTRY_INSTANCE_TOKEN'),
+        // `self_hosted` (default) or `cloud`; matched against each listing's hosting.
+        'instance_kind' => env('REGISTRY_INSTANCE_KIND'),
+        'instance' => [],
+        // Publisher portal the console links to (the service's website). Defaults to the service URL.
+        'publisher_url' => env('REGISTRY_PUBLISHER_URL'),
+        // Purchases through the service checkout: `auto` (on for a registered instance unless the service
+        // has no checkout endpoint), `true` or `false`.
+        'checkout' => env('REGISTRY_SERVICE_CHECKOUT', 'auto'),
+        // Seconds the stored registry settings stay in the application cache between requests; writing one of
+        // them forgets the cache at once. 0 reads the settings table on every request.
+        'settings_cache_ttl' => env('REGISTRY_SETTINGS_CACHE_TTL', 30),
+        // Fleetbase Cloud: this API registers itself with the service on boot (`registry:init`, and every five
+        // minutes from the scheduler) as the one cloud instance, with a request signed by the platform secret the
+        // service shares. Both must be set; the instance kind is then `cloud`.
+        'cloud' => [
+            'auto_register'   => Utils::castBoolean(env('REGISTRY_CLOUD_AUTO_REGISTER', false)),
+            'platform_secret' => env('REGISTRY_CLOUD_PLATFORM_SECRET'),
+        ],
+        // Cutover freeze: checkout, install, update and uninstall are refused with this message and the console shows
+        // it as a banner. `php artisan registry:maintenance on` turns it on at runtime; this variable forces it on.
+        'maintenance' => [
+            'enabled' => Utils::castBoolean(env('REGISTRY_MAINTENANCE', false)),
+            'message' => env('REGISTRY_MAINTENANCE_MESSAGE'),
+        ],
     ],
     'extensions' => [
         'preinstalled' => Utils::castBoolean(env('REGISTRY_PREINSTALLED_EXTENSIONS', false)),
         'protected_prefixes' => explode(',', env('REGISTRY_PROTECTED_PREFIXES', '@fleetbase,fleetbase,@flb,@fleetbase-extension,@flb-extension'))
     ],
-    'facilitator_fee' => env('REGISTRY_FACILITATOR_FEE', 10)
+    'auto_update' => [
+        // Schedule registry:auto-update, which queues updates allowed by each install's policy (none, patch, minor;
+        // set on the Installed page, `none` by default).
+        'enabled' => Utils::castBoolean(env('REGISTRY_AUTO_UPDATE', true)),
+        'schedule' => env('REGISTRY_AUTO_UPDATE_SCHEDULE', '17 * * * *'),
+    ],
+    'installer' => [
+        // Queue installs and return a job id (the console follows the job). False runs the job inside the request, e.g. where no queue worker runs.
+        'async' => Utils::castBoolean(env('REGISTRY_INSTALLER_ASYNC', true)),
+        'queue' => env('REGISTRY_INSTALLER_QUEUE', 'installer'),
+        'connection' => env('REGISTRY_INSTALLER_CONNECTION'),
+        // Job records, queue order and the instance lock. Must be shared by the web and queue processes and support locks; null uses the default store (file when that is the null store).
+        'cache_store' => env('REGISTRY_INSTALLER_CACHE_STORE'),
+        // Defaults: base_path(), fleetbase.console.path, storage_path('app/registry-installer').
+        'api_path' => env('REGISTRY_INSTALLER_API_PATH'),
+        'console_path' => env('REGISTRY_INSTALLER_CONSOLE_PATH'),
+        'work_path' => env('REGISTRY_INSTALLER_WORK_PATH'),
+        'runtime_engines' => [
+            // Where prebuilt engine releases are unpacked, one folder per package. Default: storage/app/registry-runtime-engines,
+            // which this API serves at ~registry/v1/engines/files (no shared volume with the console). With base_url set
+            // the console serves the folder itself instead, and the default is <console>/dist/engines-dist.
+            'path' => env('REGISTRY_RUNTIME_ENGINES_PATH'),
+            // Unset (the default): the API serves the engines. Set (e.g. /engines-dist/) when the console serves the path.
+            'base_url' => env('REGISTRY_RUNTIME_ENGINES_BASE_URL'),
+            // The manifest served at GET ~registry/v1/engines/runtime. Default: <path>/runtime-engines.json.
+            'manifest' => env('REGISTRY_RUNTIME_ENGINES_MANIFEST'),
+        ],
+        'compat' => [
+            // auto: ember-core's check-engine-compat when node and the script exist, else the PHP port. Or node, php.
+            'driver' => env('REGISTRY_ENGINE_COMPAT_DRIVER', 'auto'),
+            'policy' => env('REGISTRY_ENGINE_COMPAT_POLICY', 'minor'),
+            // Default: <console>/dist/host-modules.json and <console>/node_modules/@fleetbase/ember-core/bin/check-engine-compat.js.
+            // The console's host-modules.json, which prebuilt engines are checked against: a path, or a URL where the
+            // console serves it (e.g. http://console:4200/host-modules.json in Docker), fetched and kept for 5 minutes.
+            'host_modules' => env('REGISTRY_HOST_MODULES_PATH'),
+            'script' => env('REGISTRY_ENGINE_COMPAT_SCRIPT'),
+        ],
+        'binaries' => [
+            'composer' => env('REGISTRY_COMPOSER_BINARY', 'composer'),
+            'pnpm' => env('REGISTRY_PNPM_BINARY', 'pnpm'),
+            'php' => env('REGISTRY_PHP_BINARY', 'php'),
+            'node' => env('REGISTRY_NODE_BINARY', 'node'),
+        ],
+        // pnpm build --environment; default app.env.
+        'build_environment' => env('REGISTRY_INSTALLER_BUILD_ENV'),
+        // Artisan commands run after an install, uninstall or rollback, without `php artisan`. Not optimize:clear
+        // or cache:clear: on Redis they flush the whole database (job records, queues, sessions).
+        'cache_commands' => Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_CACHE_COMMANDS,
+        // Run `octane:reload` after an install, update or uninstall, so the API's Octane workers load the change. For
+        // an installer worker in the same container as Octane (the Docker image's REGISTRY_INSTALLER_WORKER); a
+        // failed reload is logged, never fails the job.
+        'reload_octane' => Utils::castBoolean(env('REGISTRY_INSTALLER_RELOAD_OCTANE', false)),
+        // Can the installer rebuild the console (extensions without ready-built console files)? Unset: only when the
+        // console is on this host (no runtime engines served to a separate console, i.e. not the Docker setup).
+        'console_build' => env('REGISTRY_INSTALLER_CONSOLE_BUILD') === null ? null : Utils::castBoolean(env('REGISTRY_INSTALLER_CONSOLE_BUILD')),
+        // Run package discovery, the cache commands and the Octane reload in one artisan process
+        // (`registry:installer-refresh`) rather than booting the API once per command.
+        'batch_artisan' => Utils::castBoolean(env('REGISTRY_INSTALLER_BATCH_ARTISAN', true)),
+        // Added to every Composer command the installer runs.
+        'composer_flags' => Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::DEFAULT_COMPOSER_FLAGS,
+        'require_checksums' => Utils::castBoolean(env('REGISTRY_INSTALLER_REQUIRE_CHECKSUMS', false)),
+        'timeout' => (int) env('REGISTRY_INSTALLER_TIMEOUT', 7200),
+        'lock_seconds' => (int) env('REGISTRY_INSTALLER_LOCK_SECONDS', 10800),
+        'stale_after' => (int) env('REGISTRY_INSTALLER_STALE_AFTER', 1800),
+        'retry_delay' => 15,
+        'job_ttl' => 604800,
+        'log_lines' => 50,
+    ],
 ];

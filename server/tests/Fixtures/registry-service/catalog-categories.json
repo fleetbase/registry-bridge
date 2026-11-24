@@ -1,0 +1,625 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/v1/catalog/categories"
+    },
+    "status": 200,
+    "body": [
+        {
+            "id": "cat_3a9uznxr8s",
+            "slug": "telematics",
+            "name": "Telematics",
+            "description": "Advanced tracking and diagnostics for vehicle fleets, including real-time data and analytics.",
+            "icon": "satellite-dish",
+            "tags": [
+                "tracking",
+                "diagnostics",
+                "real-time",
+                "analytics"
+            ],
+            "sort": 0,
+            "extensions_count": 2
+        },
+        {
+            "id": "cat_j2tsc33c7g",
+            "slug": "inventory",
+            "name": "Inventory",
+            "description": "Tools for inventory management, stock control, and supply chain visibility.",
+            "icon": "boxes-packing",
+            "tags": [
+                "management",
+                "stock",
+                "supply chain"
+            ],
+            "sort": 1,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_coceppaa0n",
+            "slug": "accounting",
+            "name": "Accounting",
+            "description": "Financial management solutions including invoicing, expense tracking, and financial reporting.",
+            "icon": "cash-register",
+            "tags": [
+                "finance",
+                "invoicing",
+                "expenses",
+                "reporting"
+            ],
+            "sort": 2,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_6ppvps2blj",
+            "slug": "route-optimization",
+            "name": "Route Optimization",
+            "description": "Enhancements for efficient route planning and optimization to reduce travel time and costs.",
+            "icon": "route",
+            "tags": [
+                "route",
+                "planning",
+                "optimization",
+                "GPS",
+                "mapping"
+            ],
+            "sort": 3,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_mxpsanm3pa",
+            "slug": "fleet-management",
+            "name": "Fleet Management",
+            "description": "Tools for managing fleet vehicles, including maintenance, tracking, and performance analysis.",
+            "icon": "truck-moving",
+            "tags": [
+                "vehicles",
+                "maintenance",
+                "tracking",
+                "analytics"
+            ],
+            "sort": 4,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_emxbjl6a59",
+            "slug": "order-management",
+            "name": "Order Management",
+            "description": "Solutions for handling orders from placement to delivery, including tracking and customer communication.",
+            "icon": "clipboard-list",
+            "tags": [
+                "orders",
+                "tracking",
+                "delivery",
+                "customer service"
+            ],
+            "sort": 5,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_yfinxymlul",
+            "slug": "warehouse-management",
+            "name": "Warehouse Management",
+            "description": "Systems for managing warehouse operations, inventory storage, and logistics.",
+            "icon": "warehouse",
+            "tags": [
+                "warehouse",
+                "inventory",
+                "logistics",
+                "storage"
+            ],
+            "sort": 6,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_grfy9as6sh",
+            "slug": "compliance-and-regulations",
+            "name": "Compliance and Regulations",
+            "description": "Tools to ensure compliance with local and international shipping and logistics regulations.",
+            "icon": "scale-balanced",
+            "tags": [
+                "compliance",
+                "regulations",
+                "shipping",
+                "international"
+            ],
+            "sort": 7,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_bfbvgtou7m",
+            "slug": "analytics-and-reporting",
+            "name": "Analytics and Reporting",
+            "description": "Advanced analytics and reporting tools for insights into logistics operations.",
+            "icon": "chart-line",
+            "tags": [
+                "analytics",
+                "reporting",
+                "data",
+                "insights"
+            ],
+            "sort": 8,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_wyx8e5argi",
+            "slug": "customer-relationship-management",
+            "name": "Customer Relationship Management (CRM)",
+            "description": "Extensions to manage customer interactions, support, and relationships.",
+            "icon": "users",
+            "tags": [
+                "CRM",
+                "customer",
+                "support",
+                "relationship"
+            ],
+            "sort": 9,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_xq3jlkbzcs",
+            "slug": "e-commerce",
+            "name": "E-commerce",
+            "description": "Comprehensive e-commerce solutions, ranging from integration tools with existing platforms to complete e-commerce applications, enhancing online retail and digital transactions.",
+            "icon": "store",
+            "tags": [
+                "e-commerce",
+                "integration",
+                "shopping",
+                "online"
+            ],
+            "sort": 10,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_6dxpmhkk5x",
+            "slug": "security-and-risk-management",
+            "name": "Security and Risk Management",
+            "description": "Enhancements for improving security and managing risks in logistics operations.",
+            "icon": "shield-alt",
+            "tags": [
+                "security",
+                "risk management",
+                "safety",
+                "protection"
+            ],
+            "sort": 11,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_wq3wbepfbv",
+            "slug": "transportation-management",
+            "name": "Transportation Management",
+            "description": "Solutions for managing and optimizing different modes of transportation, including carrier selection and freight consolidation.",
+            "icon": "truck-fast",
+            "tags": [
+                "transportation",
+                "freight",
+                "carrier management",
+                "optimization"
+            ],
+            "sort": 12,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_yuldzqdg2f",
+            "slug": "customs-and-trade-compliance",
+            "name": "Customs and Trade Compliance",
+            "description": "Tools to navigate and comply with international trade laws, customs regulations, and import/export requirements.",
+            "icon": "passport",
+            "tags": [
+                "customs",
+                "trade",
+                "compliance",
+                "import",
+                "export"
+            ],
+            "sort": 13,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_0njuqvh2nd",
+            "slug": "supplier-relationship-management",
+            "name": "Supplier Relationship Management",
+            "description": "Extensions to manage and enhance relationships with suppliers, including communication and performance tracking.",
+            "icon": "handshake",
+            "tags": [
+                "suppliers",
+                "relationship management",
+                "performance",
+                "communication"
+            ],
+            "sort": 14,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_qv1qdpir31",
+            "slug": "quality-control",
+            "name": "Quality Control",
+            "description": "Tools for quality assurance in supply chain processes, including product inspections and compliance monitoring.",
+            "icon": "check-circle",
+            "tags": [
+                "quality control",
+                "inspection",
+                "compliance",
+                "assurance"
+            ],
+            "sort": 15,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_qf9wskfgdy",
+            "slug": "forecasting-and-demand-planning",
+            "name": "Forecasting and Demand Planning",
+            "description": "Analytical tools for accurate demand forecasting and inventory optimization based on market trends and data analysis.",
+            "icon": "magnifying-glass-location",
+            "tags": [
+                "forecasting",
+                "demand planning",
+                "inventory",
+                "market trends"
+            ],
+            "sort": 16,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_znibjdzpd1",
+            "slug": "procurement-and-purchasing",
+            "name": "Procurement and Purchasing",
+            "description": "Solutions for managing procurement processes, including purchase orders, vendor selection, and contract management.",
+            "icon": "basket-shopping",
+            "tags": [
+                "procurement",
+                "purchasing",
+                "vendors",
+                "contracts"
+            ],
+            "sort": 17,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_fdtwdkjsqc",
+            "slug": "asset-tracking-and-management",
+            "name": "Asset Tracking and Management",
+            "description": "Tools for tracking and managing assets within the supply chain, including RFID, barcode, and IoT technologies.",
+            "icon": "barcode",
+            "tags": [
+                "asset tracking",
+                "management",
+                "RFID",
+                "IoT"
+            ],
+            "sort": 18,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_nokollejgi",
+            "slug": "sustainability-and-environmental-compliance",
+            "name": "Sustainability and Environmental Compliance",
+            "description": "Solutions focused on environmental compliance and sustainable practices in logistics and supply chain operations.",
+            "icon": "leaf",
+            "tags": [
+                "sustainability",
+                "environmental compliance",
+                "green logistics",
+                "eco-friendly"
+            ],
+            "sort": 19,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_vslejbgine",
+            "slug": "human-resources-management",
+            "name": "Human Resources Management",
+            "description": "Extensions for managing logistics workforce, including scheduling, training, and performance evaluations.",
+            "icon": "user-tie",
+            "tags": [
+                "human resources",
+                "workforce management",
+                "training",
+                "scheduling"
+            ],
+            "sort": 20,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_eni0bmmsma",
+            "slug": "collaboration-and-communication-tools",
+            "name": "Collaboration and Communication Tools",
+            "description": "Platforms and tools to facilitate effective collaboration and communication among supply chain stakeholders.",
+            "icon": "comments",
+            "tags": [
+                "collaboration",
+                "communication",
+                "teamwork",
+                "stakeholders"
+            ],
+            "sort": 21,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_0t57thf7ov",
+            "slug": "artificial-intelligence",
+            "name": "Artificial Intelligence",
+            "description": "Advanced AI-driven tools and applications for predictive analytics, automation, and intelligent decision-making in logistics.",
+            "icon": "robot",
+            "tags": [
+                "AI",
+                "predictive analytics",
+                "automation",
+                "intelligence"
+            ],
+            "sort": 22,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_syq9cvdrh0",
+            "slug": "freight-forwarding",
+            "name": "Freight Forwarding",
+            "description": "Comprehensive solutions for managing and optimizing the process of freight forwarding, including documentation, cargo handling, and customs brokerage.",
+            "icon": "truck-ramp-box",
+            "tags": [
+                "freight forwarding",
+                "cargo handling",
+                "customs",
+                "logistics"
+            ],
+            "sort": 23,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_ztmknuxeda",
+            "slug": "air-cargo-logistics",
+            "name": "Air Cargo Logistics",
+            "description": "Specialized tools for air cargo handling, including tracking, capacity management, and air freight optimization.",
+            "icon": "plane",
+            "tags": [
+                "air cargo",
+                "tracking",
+                "capacity management",
+                "air freight"
+            ],
+            "sort": 24,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_hz8lkbpj9h",
+            "slug": "bulk-shipping",
+            "name": "Bulk Shipping",
+            "description": "Solutions for managing bulk cargo shipments, including vessel chartering, loading and unloading operations, and safety compliance.",
+            "icon": "anchor",
+            "tags": [
+                "bulk shipping",
+                "vessel chartering",
+                "cargo operations",
+                "safety"
+            ],
+            "sort": 25,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_bbiu7niaxq",
+            "slug": "lng-logistics",
+            "name": "LNG Logistics",
+            "description": "Tools and technologies for handling Liquefied Natural Gas (LNG) logistics, covering transportation, storage, and distribution.",
+            "icon": "gas-pump",
+            "tags": [
+                "LNG",
+                "liquefied natural gas",
+                "transportation",
+                "storage"
+            ],
+            "sort": 26,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_4stoohdvqh",
+            "slug": "train-cargo-management",
+            "name": "Train Cargo Management",
+            "description": "Systems for managing train cargo logistics, including scheduling, cargo tracking, and railway compliance.",
+            "icon": "train",
+            "tags": [
+                "train cargo",
+                "scheduling",
+                "tracking",
+                "railway"
+            ],
+            "sort": 27,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_nrvokdq2zc",
+            "slug": "container-haulage",
+            "name": "Container Haulage",
+            "description": "Efficient management of container haulage operations, with features for container tracking, port operations, and haulier scheduling.",
+            "icon": "trailer",
+            "tags": [
+                "container",
+                "haulage",
+                "tracking",
+                "port operations"
+            ],
+            "sort": 28,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_2y9nmropg4",
+            "slug": "tactical-logistics",
+            "name": "Tactical Logistics",
+            "description": "Solutions for tactical support, including field logistics, deployment planning, and military supply chain management.",
+            "icon": "jet-fighter",
+            "tags": [
+                "tactical",
+                "field logistics",
+                "deployment",
+                "military supply"
+            ],
+            "sort": 29,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_bdtho8ltjg",
+            "slug": "secure-communications",
+            "name": "Secure Communications",
+            "description": "Secure and encrypted communication tools designed for military-grade confidentiality and reliability.",
+            "icon": "walkie-talkie",
+            "tags": [
+                "secure",
+                "encrypted",
+                "communication",
+                "military"
+            ],
+            "sort": 30,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_toomgcjppc",
+            "slug": "surveillance-and-reconnaissance",
+            "name": "Surveillance and Reconnaissance",
+            "description": "Advanced surveillance and reconnaissance tools, including UAVs, sensors, and satellite imaging for operational intelligence.",
+            "icon": "binoculars",
+            "tags": [
+                "surveillance",
+                "reconnaissance",
+                "UAV",
+                "intelligence"
+            ],
+            "sort": 31,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_62djfpc3qn",
+            "slug": "cybersecurity",
+            "name": "Cybersecurity",
+            "description": "Cybersecurity solutions to protect logistics data and operations from cyber threats and attacks.",
+            "icon": "fingerprint",
+            "tags": [
+                "cybersecurity",
+                "data protection",
+                "cyber threats",
+                "security"
+            ],
+            "sort": 32,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_pmwfva6dpp",
+            "slug": "mission-planning-and-analysis",
+            "name": "Mission Planning and Analysis",
+            "description": "Tools for strategic mission planning and analysis, including scenario modeling and operational readiness assessments.",
+            "icon": "map-marked-alt",
+            "tags": [
+                "mission planning",
+                "analysis",
+                "modeling",
+                "readiness"
+            ],
+            "sort": 33,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_qrix8qrzsa",
+            "slug": "armaments-and-ammunition-management",
+            "name": "Armaments and Ammunition Management",
+            "description": "Management tools for tracking and maintaining armaments and ammunition inventories.",
+            "icon": "person-rifle",
+            "tags": [
+                "armaments",
+                "ammunition",
+                "inventory",
+                "management"
+            ],
+            "sort": 34,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_tkbzutt53a",
+            "slug": "emergency-and-disaster-response",
+            "name": "Emergency and Disaster Response",
+            "description": "Solutions for organizing and managing logistics in emergency and disaster response scenarios.",
+            "icon": "truck-medical",
+            "tags": [
+                "emergency",
+                "disaster response",
+                "logistics",
+                "crisis management"
+            ],
+            "sort": 35,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_bajwumfqqp",
+            "slug": "training-and-simulation",
+            "name": "Training and Simulation",
+            "description": "Advanced training tools and simulation software for military logistics and operational training.",
+            "icon": "person-running",
+            "tags": [
+                "training",
+                "simulation",
+                "military",
+                "logistics"
+            ],
+            "sort": 36,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_um1ckgegmy",
+            "slug": "vehicle-and-equipment-maintenance",
+            "name": "Vehicle and Equipment Maintenance",
+            "description": "Maintenance management systems for military vehicles and equipment, including predictive maintenance tools.",
+            "icon": "wrench",
+            "tags": [
+                "vehicle",
+                "equipment",
+                "maintenance",
+                "predictive tools"
+            ],
+            "sort": 37,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_gmdlxcilk5",
+            "slug": "manufacturing-operations",
+            "name": "Manufacturing Operations",
+            "description": "Tools and systems designed for the manufacturing industry, including automation, process control, and production planning.",
+            "icon": "industry",
+            "tags": [
+                "manufacturing",
+                "automation",
+                "process control",
+                "production"
+            ],
+            "sort": 38,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_jcubhj6ofk",
+            "slug": "medical-logistics",
+            "name": "Medical Logistics",
+            "description": "Solutions tailored for the medical industry, focusing on medical supply chain, equipment tracking, and pharmaceutical logistics.",
+            "icon": "kit-medical",
+            "tags": [
+                "medical",
+                "pharmaceutical",
+                "supply chain",
+                "equipment tracking"
+            ],
+            "sort": 39,
+            "extensions_count": 0
+        },
+        {
+            "id": "cat_ueuwmixxxl",
+            "slug": "mining-industry",
+            "name": "Mining Industry",
+            "description": "Specialized solutions for the mining industry, encompassing resource management, excavation planning, and safety protocols.",
+            "icon": "gem",
+            "tags": [
+                "mining",
+                "resource management",
+                "excavation",
+                "safety"
+            ],
+            "sort": 40,
+            "extensions_count": 0
+        }
+    ]
+}

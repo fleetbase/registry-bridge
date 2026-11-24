@@ -1,0 +1,35 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/v1/instances/register"
+    },
+    "status": 200,
+    "body": {
+        "token": "flbi_buyer00000000000000000000000000000rotated",
+        "token_type": "Bearer",
+        "rotated": true,
+        "instance": {
+            "id": "inst_rsmdtgevid",
+            "name": "Acme Fleet (self-hosted)",
+            "host": "https://fleet.example.test",
+            "kind": "self_hosted",
+            "console_version": "0.7.69",
+            "api_version": "1.6.30",
+            "status": "active",
+            "organization": {
+                "id": "org_qqymqcyvgv",
+                "slug": "registry-demo-buyer",
+                "name": "Registry Demo Buyer",
+                "website": null,
+                "bio": null,
+                "avatar_url": null,
+                "is_personal": false,
+                "is_verified": true,
+                "verified_at": "2026-10-22T07:09:38.000000Z",
+                "created_at": "2026-10-22T07:09:38.000000Z"
+            },
+            "last_seen_at": "2026-10-24T09:10:00.000000Z",
+            "created_at": "2026-10-22T07:09:47.000000Z"
+        }
+    }
+}

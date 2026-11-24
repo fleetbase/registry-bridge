@@ -1,0 +1,20 @@
+{{!
+    A set of extensions as cards or list rows (the view toggle's two views).
+    @extensions  Array of catalog records
+    @view        cards | list
+    @progressFor (extension) => running install progress, optional
+    @onOpen, @onAction  passed through
+}}
+{{#if (eq @view "list")}}
+    <div class="rb-list" role="list" data-test-extension-collection="list" ...attributes>
+        {{#each @extensions as |extension|}}
+            <Registry::ExtensionRow @extension={{extension}} @progress={{if @progressFor (@progressFor extension)}} @onOpen={{@onOpen}} @onAction={{@onAction}} />
+        {{/each}}
+    </div>
+{{else}}
+    <div class="rb-grid" data-test-extension-collection="cards" ...attributes>
+        {{#each @extensions as |extension|}}
+            <Registry::ExtensionTile @extension={{extension}} @progress={{if @progressFor (@progressFor extension)}} @onOpen={{@onOpen}} @onAction={{@onAction}} />
+        {{/each}}
+    </div>
+{{/if}}

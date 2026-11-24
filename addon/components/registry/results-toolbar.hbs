@@ -1,0 +1,17 @@
+<div class="rb-toolbar" data-test-results-toolbar ...attributes>
+    {{#if this.showCompatible}}
+        <label class="rb-switch">
+            <input type="checkbox" checked={{if @catalog.compatible true false}} {{on "change" @catalog.toggleCompatible}} data-test-filter-compatible />
+            <span class="rb-switch-track" aria-hidden="true"></span>
+            {{t "registry-bridge.store.filters.compatible"}}
+        </label>
+    {{/if}}
+    <label class="rb-sort" for={{this.sortId}}>
+        <span class="rb-muted">{{t "registry-bridge.store.filters.sort"}}</span>
+        <select id={{this.sortId}} class="rb-select" {{on "change" this.changeSort}} data-test-results-sort>
+            {{#each @catalog.sortOptions as |sortOption|}}
+                <option value={{sortOption.value}} selected={{eq sortOption.value this.sort}}>{{sortOption.label}}</option>
+            {{/each}}
+        </select>
+    </label>
+</div>
