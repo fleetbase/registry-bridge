@@ -266,8 +266,6 @@ registry-bridge:
       learn-more: Learn more
       categories: Categories
       see-all: See all
-      all-categories: All categories
-      fewer-categories: Fewer categories
       shelves:
         popular: Popular
         updated: New and updated

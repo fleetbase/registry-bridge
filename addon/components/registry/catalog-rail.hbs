@@ -1,0 +1,41 @@
+<aside class="rb-rail" data-test-catalog-rail aria-label={{t "registry-bridge.store.discover.categories"}}>
+    <div class="rb-rail-section">
+        <span class="rb-rail-label">{{t "registry-bridge.store.rail.show"}}</span>
+        <label class="rb-switch">
+            <input type="checkbox" checked={{if @catalog.compatible true false}} {{on "change" @catalog.toggleCompatible}} data-test-filter-compatible />
+            <span class="rb-switch-track" aria-hidden="true"></span>
+            {{t "registry-bridge.store.filters.compatible-long"}}
+        </label>
+    </div>
+    <fieldset class="rb-rail-section">
+        <legend class="rb-rail-label">{{t "registry-bridge.store.rail.price"}}</legend>
+        <label class="rb-radio"><input type="radio" name="rb-price" checked={{not @catalog.pricing}} {{on "change" (fn @catalog.setPricing null)}} />{{t
+                "registry-bridge.store.rail.any"
+            }}</label>
+        <label class="rb-radio"><input type="radio" name="rb-price" checked={{eq @catalog.pricing "free"}} {{on "change" (fn @catalog.setPricing "free")}} />{{t
+                "registry-bridge.explore.pricing.free"
+            }}</label>
+        <label class="rb-radio"><input type="radio" name="rb-price" checked={{eq @catalog.pricing "paid"}} {{on "change" (fn @catalog.setPricing "paid")}} />{{t
+                "registry-bridge.explore.pricing.paid"
+            }}</label>
+    </fieldset>
+    <nav class="rb-rail-section" aria-label={{t "registry-bridge.store.discover.categories"}}>
+        <span class="rb-rail-label">{{t "registry-bridge.store.discover.categories"}}</span>
+        <LinkTo @route="explore.index" @query={{this.resetQuery}} class="rb-rail-link {{if this.allCurrent 'is-current'}}" data-test-rail-category="all">
+            <FaIcon @icon="grip" @fixedWidth={{true}} />
+            {{t "registry-bridge.store.rail.all"}}
+        </LinkTo>
+        {{#each @catalog.railCategories as |category|}}
+            <LinkTo
+                @route="explore.category"
+                @model={{category.slug}}
+                class="rb-rail-link {{if category.current 'is-current'}}"
+                title={{category.name}}
+                data-test-rail-category={{category.slug}}
+            >
+                <FaIcon @icon={{category.icon}} @fixedWidth={{true}} />
+                <span class="rb-rail-text">{{category.name}}</span>
+            </LinkTo>
+        {{/each}}
+    </nav>
+</aside>

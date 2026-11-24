@@ -266,8 +266,6 @@ registry-bridge:
       learn-more: Докладніше
       categories: Категорії
       see-all: Усі
-      all-categories: Усі категорії
-      fewer-categories: Менше категорій
       shelves:
         popular: Популярні
         updated: Нові та оновлені
