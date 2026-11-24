@@ -22,7 +22,7 @@
             <div class="rb-featured-actions">
                 <Registry::InstallButton @extension={{this.current}} @size="md" @onOpen={{@onOpen}} />
                 <button type="button" class="rb-link" {{on "click" this.open}}>{{t "registry-bridge.store.discover.learn-more"}}</button>
-                <Registry::Verdict @extension={{this.current}} />
+                <Registry::Verdict @extension={{this.current}} @onlyPositive={{true}} />
             </div>
             {{#if this.dots.length}}
                 <div class="rb-dots" role="group" aria-label={{t "registry-bridge.store.discover.featured"}}>

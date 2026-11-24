@@ -16,6 +16,7 @@ const ICONS = { ready: 'check', needs_update: 'circle-exclamation', unavailable:
  *
  * @argument {Object} extension
  * @argument {String} [variant] inline (default) | short | card
+ * @argument {Boolean} [onlyPositive] inline: show only "Works with your Fleetbase" (next to the install button)
  */
 export default class RegistryVerdictComponent extends Component {
     @service intl;
@@ -32,7 +33,15 @@ export default class RegistryVerdictComponent extends Component {
         if (!this.verdict) {
             return false;
         }
-        return this.variant === 'card' || this.args.extension?.is_installed !== true;
+        if (this.variant === 'card') {
+            return true;
+        }
+        // Inline beside an install button that already says "Can't install yet" / "Not available", only a
+        // positive verdict adds anything; the reasons are in the card. Rows and tiles keep every verdict.
+        if (this.args.onlyPositive === true && this.verdict !== 'ready') {
+            return false;
+        }
+        return this.args.extension?.is_installed !== true;
     }
 
     get icon() {

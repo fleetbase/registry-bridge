@@ -41,7 +41,7 @@
                         </p>
                         <div class="rb-extension-actions">
                             <Registry::InstallButton @extension={{this.extension}} @size="lg" />
-                            <Registry::Verdict @extension={{this.extension}} />
+                            <Registry::Verdict @extension={{this.extension}} @onlyPositive={{true}} />
                             {{#if this.canRemove}}
                                 <button type="button" class="rb-link rb-link-danger" {{on "click" this.remove}} data-test-extension-remove>{{t "registry-bridge.store.page.remove"}}</button>
                             {{/if}}
