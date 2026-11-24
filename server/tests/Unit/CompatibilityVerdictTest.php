@@ -26,7 +26,7 @@ test('a release made only for an older Fleetbase is not available', function () 
 });
 
 test('hosting, a missing release or a missing registration make it unavailable whatever the versions', function () {
-    foreach (['hosting', 'no_release', 'not_registered'] as $code) {
+    foreach (['hosting', 'no_release', 'not_registered', 'needs_console_build'] as $code) {
         expect(ServiceCatalog::compatibility($code, [], ['api' => '2.0.4']))->toMatchArray(['verdict' => 'unavailable', 'reason' => $code]);
     }
 
@@ -100,4 +100,14 @@ test('other extensions are named for people', function () {
         ->and(ServiceCatalog::extensionName('@acme/route-tools-engine'))->toBe('Route Tools')
         ->and(ServiceCatalog::extensionName('loconav'))->toBe('Loconav')
         ->and(ServiceCatalog::extensionName('@acme/route-tools-engine', 'Acme Routes'))->toBe('Acme Routes');
+});
+
+test('the installer can rebuild the console only where the console is on this host', function () {
+    $docker = Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::fromArray(['api_path' => '/tmp', 'console_path' => '/tmp/console']);
+    $local  = Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::fromArray(['api_path' => '/tmp', 'console_path' => '/tmp/console', 'runtime_engines' => ['base_url' => '/engines-dist/']]);
+    $forced = Fleetbase\RegistryBridge\Support\Installer\InstallerConfig::fromArray(['api_path' => '/tmp', 'console_path' => '/tmp/console', 'console_build' => true]);
+
+    expect($docker->consoleBuild)->toBeFalse()
+        ->and($local->consoleBuild)->toBeTrue()
+        ->and($forced->consoleBuild)->toBeTrue();
 });

@@ -311,6 +311,7 @@ class ServiceCatalog
             'host_versions' => is_array($hostModules) ? array_filter((array) ($hostModules['versions'] ?? []), 'is_string') : null,
             'built_in'      => array_keys(array_merge((array) ($package['dependencies'] ?? []), (array) ($package['devDependencies'] ?? []))),
             // The console release the build came from (host-modules.json `console`, fleetbase#730), which `compat.console` ranges name.
+            'can_build'       => $config->consoleBuild,
             'console_version' => is_array($hostModules) && is_string($hostModules['console'] ?? null) && $hostModules['console'] !== '' ? $hostModules['console'] : null,
         ];
     }
@@ -467,7 +468,7 @@ class ServiceCatalog
         $mismatched = array_values(array_filter($required, fn (array $e) => in_array($e['fit'], ['older', 'newer'], true)));
         $verdict    = fn (string $verdict, string $reason) => ['verdict' => $verdict, 'reason' => $reason, 'requires' => $requires, 'current' => $current, 'missing' => $missing, 'mismatched' => $mismatched];
 
-        if (in_array($blockedCode, ['hosting', 'no_release', 'not_registered'], true)) {
+        if (in_array($blockedCode, ['hosting', 'no_release', 'not_registered', 'needs_console_build'], true)) {
             return $verdict('unavailable', $blockedCode);
         }
 
@@ -631,6 +632,11 @@ class ServiceCatalog
 
         $checkout      = (bool) ($state['checkout'] ?? false);
         $blocked       = static::installBlock($registered, $hosting, $kind, $isPaid, $isPurchased, $names, $latest, $checkout);
+        // Without ready-built console files the install rebuilds the console; say so up front where that can't happen
+        if ($blocked === null && (!$isInstalled || $updateVersion !== '') && $console !== null && ($console['can_build'] ?? true) === false
+            && static::installMode($packages['npm'], $nextDist, $console) === 'build') {
+            $blocked = ['code' => 'needs_console_build', 'reason' => "This extension needs the console to be rebuilt, which this Fleetbase can't do on its own."];
+        }
         $blockedReason = $blocked['reason'] ?? null;
 
         return [

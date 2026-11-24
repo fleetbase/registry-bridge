@@ -102,6 +102,9 @@ return [
         // an installer worker in the same container as Octane (the Docker image's REGISTRY_INSTALLER_WORKER); a
         // failed reload is logged, never fails the job.
         'reload_octane' => Utils::castBoolean(env('REGISTRY_INSTALLER_RELOAD_OCTANE', false)),
+        // Can the installer rebuild the console (extensions without ready-built console files)? Unset: only when the
+        // console is on this host (no runtime engines served to a separate console, i.e. not the Docker setup).
+        'console_build' => env('REGISTRY_INSTALLER_CONSOLE_BUILD') === null ? null : Utils::castBoolean(env('REGISTRY_INSTALLER_CONSOLE_BUILD')),
         // Run package discovery, the cache commands and the Octane reload in one artisan process
         // (`registry:installer-refresh`) rather than booting the API once per command.
         'batch_artisan' => Utils::castBoolean(env('REGISTRY_INSTALLER_BATCH_ARTISAN', true)),

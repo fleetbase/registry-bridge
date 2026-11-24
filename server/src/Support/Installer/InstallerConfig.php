@@ -51,6 +51,9 @@ class InstallerConfig
         public readonly bool $reloadOctane = false,
         public readonly array $composerFlags = self::DEFAULT_COMPOSER_FLAGS,
         public readonly bool $batchArtisan = true,
+        // Whether this API can rebuild the console for an extension without ready-built console files. Off by
+        // default when the API serves engines to a separate console (Docker), where no rebuild can happen.
+        public readonly bool $consoleBuild = true,
     ) {
     }
 
@@ -151,6 +154,7 @@ class InstallerConfig
             reloadOctane: (bool) ($config['reload_octane'] ?? false),
             composerFlags: array_values(array_map('strval', (array) ($config['composer_flags'] ?? self::DEFAULT_COMPOSER_FLAGS))),
             batchArtisan: (bool) ($config['batch_artisan'] ?? true),
+            consoleBuild: isset($config['console_build']) ? (bool) $config['console_build'] : !$serve,
         );
     }
 }
