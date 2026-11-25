@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -39,7 +39,26 @@ jobs:
 
     # Pest only looks for <root>/vendor/autoload.php and ignores Composer's vendor-dir
     # (https://github.com/pestphp/pest/issues/920, still so in Pest 3), so point vendor at server_vendor.
-    - name: Run Tests
+    # The suite runs once, under Xdebug, and writes coverage/clover.xml; a failing test fails this step.
+    - name: Run Tests with Coverage
       run: |
         ln -sfn server_vendor vendor
-        composer test:unit
+        XDEBUG_MODE=coverage composer test:coverage:clover
+
+    - name: Upload Coverage Report
+      if: ${{ always() && hashFiles('coverage/clover.xml') != '' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: registry-bridge-coverage-clover
+        path: coverage/clover.xml
+        if-no-files-found: error
+
+    - name: Upload coverage to Codecov
+      if: ${{ hashFiles('coverage/clover.xml') != '' }}
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage/clover.xml
+        disable_search: true
+        flags: backend
+        fail_ci_if_error: false
