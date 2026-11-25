@@ -78,6 +78,8 @@
         "test:lint": "php-cs-fixer fix -v --dry-run",
         "test:types": "phpstan analyse --ansi --memory-limit=0",
         "test:unit": "pest --colors=always",
+        "test:coverage": "pest --coverage --colors=always",
+        "test:coverage:clover": "mkdir -p coverage && pest --coverage-clover=coverage/clover.xml --colors=always",
         "test": [
             "@test:lint",
             "@test:types",
